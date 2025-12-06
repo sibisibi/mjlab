@@ -1,0 +1,63 @@
+[
+  {
+    "id": "viz840w8",
+    "name": "2025-12-05_17-25-32",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/viz840w8",
+    "created_at": "2025-12-06T01:25:38Z",
+    "tags": [
+      "nightly"
+    ],
+    "metrics": {
+      "Episode_Reward": {
+        "action_rate_l2": -0.3440324664115906,
+        "joint_limit": -0.002063468564301729,
+        "motion_body_ang_vel": 0.7630945444107056,
+        "motion_body_lin_vel": 0.8689963221549988,
+        "motion_body_ori": 0.8657832145690918,
+        "motion_body_pos": 0.9782323837280272,
+        "motion_global_root_ori": 0.47507983446121216,
+        "motion_global_root_pos": 0.3871406018733978,
+        "self_collisions": -0.006288759410381317
+      },
+      "Episode_Termination": {
+        "anchor_ori": 0,
+        "anchor_pos": 0,
+        "ee_body_pos": 0.0833333358168602,
+        "time_out": 8
+      },
+      "Loss": {
+        "entropy": -2.056006097793579,
+        "learning_rate": 7.593750000000002e-05,
+        "surrogate": -0.00628023983881576,
+        "value": 0.010640854062512518
+      },
+      "Metrics": {
+        "motion/error_anchor_ang_vel": 0.94920015335083,
+        "motion/error_anchor_lin_vel": 0.2924744784832001,
+        "motion/error_anchor_pos": 0.14274930953979492,
+        "motion/error_anchor_rot": 0.08509748429059982,
+        "motion/error_body_ang_vel": 1.5143990516662598,
+        "motion/error_body_lin_vel": 0.3253359794616699,
+        "motion/error_body_pos": 0.03534012660384178,
+        "motion/error_body_rot": 0.12734439969062805,
+        "motion/error_joint_pos": 0.516251802444458,
+        "motion/error_joint_vel": 5.962419033050537,
+        "motion/sampling_entropy": 0.9527305960655212,
+        "motion/sampling_top1_bin": 0.3333333730697632,
+        "motion/sampling_top1_prob": 0.3348730802536011
+      },
+      "Perf": {
+        "collection_time": 0.7453243732452393,
+        "learning_time": 0.05617952346801758,
+        "total_fps": 122649
+      },
+      "Policy": {
+        "mean_noise_std": 0.2295350283384323
+      },
+      "Train": {
+        "mean_episode_length": 500,
+        "mean_reward": 39.87069725036621
+      }
+    }
+  }
+]
