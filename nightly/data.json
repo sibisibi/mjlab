@@ -1033,5 +1033,20 @@
       "ee_pos_error": 0.044610269367694855,
       "ee_ori_error": 0.17616170644760132
     }
+  },
+  {
+    "id": "oosp49x3",
+    "name": "2026-03-01_02-19-15",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/oosp49x3",
+    "created_at": "2026-03-01T10:19:21Z",
+    "commit": "177cede",
+    "metrics": {
+      "success_rate": 0.984375,
+      "mpkpe": 0.02958952635526657,
+      "r_mpkpe": 0.028142515569925308,
+      "joint_vel_error": 3.038800001144409,
+      "ee_pos_error": 0.047437720000743866,
+      "ee_ori_error": 0.17332430183887482
+    }
   }
 ]
