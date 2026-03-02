@@ -563,8 +563,10 @@ document.write(`
 
 <span class="sd">    Args:</span>
 <span class="sd">      spec: The entity&#39;s MjSpec to edit.</span>
-<span class="sd">      target_names: Names of targets (joints, tendons, or sites) controlled by</span>
-<span class="sd">        this actuator.</span>
+<span class="sd">      target_names: Names of targets (joints, tendons, or sites) as they</span>
+<span class="sd">        appear in the spec. When the entity&#39;s ``spec_fn`` uses internal</span>
+<span class="sd">        ``MjSpec.attach(prefix=...)``, these will include the prefix</span>
+<span class="sd">        (e.g., ``&quot;left/elbow&quot;`` rather than ``&quot;elbow&quot;``).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
