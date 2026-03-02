@@ -538,16 +538,28 @@ document.write(`
           <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">request_speed_up</span><span class="p">()</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span> <span class="o">=</span> <span class="n">ViserCameraOverlays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">mj_model</span><span class="p">)</span>
-      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Camera Feeds&quot;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span><span class="o">.</span><span class="n">setup_controls</span><span class="p">()</span>
+      <span class="c1"># Let command terms create their own GUI controls.</span>
+      <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">unwrapped</span>
+      <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">active_terms</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Commands&quot;</span><span class="p">):</span>
+          <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">create_gui</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_idx</span><span class="p">)</span>
 
-      <span class="c1"># Add standard visualization options from ViserMujocoScene (Environment, Visualization, Contacts, Camera Tracking, Debug Visualization).</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">create_visualization_gui</span><span class="p">(</span>
-        <span class="n">camera_distance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
-        <span class="n">camera_azimuth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">azimuth</span><span class="p">,</span>
-        <span class="n">camera_elevation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">elevation</span><span class="p">,</span>
-      <span class="p">)</span>
+      <span class="c1"># Add standard visualization options from ViserMujocoScene.</span>
+      <span class="k">def</span><span class="w"> </span><span class="nf">_debug_viz_extra</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">create_debug_vis_gui</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Scene&quot;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">create_visualization_gui</span><span class="p">(</span>
+          <span class="n">camera_distance</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">distance</span><span class="p">,</span>
+          <span class="n">camera_azimuth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">azimuth</span><span class="p">,</span>
+          <span class="n">camera_elevation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">elevation</span><span class="p">,</span>
+          <span class="n">debug_viz_extra_gui</span><span class="o">=</span><span class="n">_debug_viz_extra</span><span class="p">,</span>
+        <span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span> <span class="o">=</span> <span class="n">ViserCameraOverlays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">mj_model</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span><span class="o">.</span><span class="n">has_cameras</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Camera Feeds&quot;</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span><span class="o">.</span><span class="n">setup_controls</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_env_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_idx</span>
 
