@@ -724,8 +724,8 @@ but this is not yet available.</p>
 <p>Viewers render a small number of environments for performance reasons.</p>
 <ul class="simple">
 <li><p><strong>Offscreen renderer</strong> (for video recording): Renders the tracked
-environment plus up to 2 nearest neighbors (see <code class="docutils literal notranslate"><span class="pre">_MAX_EXTRA_ENVS</span></code>
-in <code class="docutils literal notranslate"><span class="pre">viewer/offscreen_renderer.py</span></code>).</p></li>
+environment plus its nearest neighbors. The count is controlled by
+<code class="docutils literal notranslate"><span class="pre">ViewerConfig.max_extra_envs</span></code> (default 2).</p></li>
 <li><p><strong>Native/Viser viewers</strong>: Limited by MuJoCo’s geometry buffer
 (default 10,000 geoms). The viewer shows whichever environments fit
 within the geometry budget.</p></li>

@@ -405,10 +405,6 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.native.visualizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">MujocoNativeDebugVisualizer</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viewer_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ViewerConfig</span>
 
-<span class="c1"># Max number of envs to visualize (performance/memory limit).</span>
-<span class="c1"># See FAQ: &quot;How many environments can I visualize at once?&quot;</span>
-<span class="n">_MAX_EXTRA_ENVS</span> <span class="o">=</span> <span class="mi">2</span>
-
 
 <div class="viewcode-block" id="OffscreenRenderer">
 <a class="viewcode-back" href="../../../source/api/viewer.html#mjlab.viewer.OffscreenRenderer">[docs]</a>
@@ -520,10 +516,10 @@ document.write(`
 <span class="sd">    We render a small local neighborhood around ``env_idx`` instead of the first</span>
 <span class="sd">    N environments, so videos stay focused on the tracked robot and nearby peers.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">_MAX_EXTRA_ENVS</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nworld</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">max_extra_envs</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nworld</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
       <span class="k">return</span> <span class="p">[]</span>
 
-    <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_MAX_EXTRA_ENVS</span><span class="p">,</span> <span class="n">nworld</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cfg</span><span class="o">.</span><span class="n">max_extra_envs</span><span class="p">,</span> <span class="n">nworld</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">origins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_origins</span><span class="p">[:</span><span class="n">nworld</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">ref</span> <span class="o">=</span> <span class="n">origins</span><span class="p">[</span><span class="n">env_idx</span><span class="p">]</span>
     <span class="n">dist2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">origins</span> <span class="o">-</span> <span class="n">ref</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
