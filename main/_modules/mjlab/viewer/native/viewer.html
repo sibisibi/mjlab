@@ -632,6 +632,11 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">_update_debug_visualizers</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_render_other_env_geoms</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sim</span><span class="p">,</span> <span class="n">sim_data</span><span class="p">)</span>
 
+      <span class="c1"># Pin tracking camera to body frame origin so DR-induced COM shifts don&#39;t move</span>
+      <span class="c1"># the camera.</span>
+      <span class="k">if</span> <span class="n">sim</span><span class="o">.</span><span class="n">expanded_fields</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_INERTIAL_FIELDS</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stabilize_tracking_camera</span><span class="p">()</span>
+
       <span class="n">has_visual_dr</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">expanded_fields</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_VISUAL_FIELDS</span><span class="p">)</span>
       <span class="n">v</span><span class="o">.</span><span class="n">sync</span><span class="p">(</span><span class="n">state_only</span><span class="o">=</span><span class="ow">not</span> <span class="n">has_visual_dr</span><span class="p">)</span></div>
 
@@ -734,6 +739,9 @@ document.write(`
     <span class="c1"># Restore main env&#39;s model fields.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sync_model_fields</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_idx</span><span class="p">)</span>
 
+  <span class="c1"># Inertial fields that shift subtree_com (and thus the tracking camera).</span>
+  <span class="n">_INERTIAL_FIELDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;body_ipos&quot;</span><span class="p">,</span> <span class="s2">&quot;body_mass&quot;</span><span class="p">})</span>
+
   <span class="c1"># Fields that affect rendering. Physics-only fields (geom_aabb,</span>
   <span class="c1"># geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.</span>
   <span class="n">_VISUAL_FIELDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
@@ -766,6 +774,23 @@ document.write(`
       <span class="n">src</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">field_name</span><span class="p">)[</span><span class="n">env_idx</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
       <span class="n">dst</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mjm</span><span class="p">,</span> <span class="n">field_name</span><span class="p">)</span>
       <span class="n">dst</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dst</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">_stabilize_tracking_camera</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pin the tracked body&#39;s subtree_com to its frame origin (xpos).</span>
+
+<span class="sd">    MuJoCo&#39;s tracking camera centers on ``subtree_com[trackbodyid]``, which</span>
+<span class="sd">    shifts when inertial fields (body_ipos, body_mass) are domain randomized.</span>
+<span class="sd">    Overwriting that single entry with ``xpos`` (the body frame origin,</span>
+<span class="sd">    unaffected by body_ipos) keeps the camera stable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mjd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">cam</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtCamera</span><span class="o">.</span><span class="n">mjCAMERA_TRACKING</span><span class="o">.</span><span class="n">value</span>
+    <span class="p">):</span>
+      <span class="k">return</span>
+    <span class="n">bid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">viewer</span><span class="o">.</span><span class="n">cam</span><span class="o">.</span><span class="n">trackbodyid</span>
+    <span class="k">if</span> <span class="n">bid</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">mjd</span><span class="o">.</span><span class="n">subtree_com</span><span class="p">[</span><span class="n">bid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mjd</span><span class="o">.</span><span class="n">xpos</span><span class="p">[</span><span class="n">bid</span><span class="p">]</span>
 
 <div class="viewcode-block" id="NativeMujocoViewer.sync_viewer_to_env">
 <a class="viewcode-back" href="../../../../source/api/viewer.html#mjlab.viewer.NativeMujocoViewer.sync_viewer_to_env">[docs]</a>
