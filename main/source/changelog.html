@@ -219,6 +219,7 @@
 <li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debugging/export_scene.html">Export Scene</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="nav bd-sidenav">
@@ -498,6 +499,7 @@ from the new <code class="docutils literal notranslate"><span class="pre">dr</sp
 <li><p><code class="docutils literal notranslate"><span class="pre">EventTermCfg</span></code> no longer accepts <code class="docutils literal notranslate"><span class="pre">domain_randomization</span></code>. The
 <code class="docutils literal notranslate"><span class="pre">&#64;requires_model_fields</span></code> decorator on each <code class="docutils literal notranslate"><span class="pre">dr</span></code> function takes care
 of field expansion automatically.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code> is deprecated. Use <code class="docutils literal notranslate"><span class="pre">Scene.write(path,</span> <span class="pre">zip=True)</span></code>.</p></li>
 </ul>
 </div>
 <section id="added">
@@ -551,6 +553,9 @@ surfaces. Material names are now supported in <code class="docutils literal notr
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">dr.body_com_offset</span></code> not triggering <code class="docutils literal notranslate"><span class="pre">set_const</span></code>.</p></li>
 </ul>
 </li>
+<li><p><code class="docutils literal notranslate"><span class="pre">export-scene</span></code> CLI script to export any task scene or asset_zoo entity
+(<code class="docutils literal notranslate"><span class="pre">g1</span></code>, <code class="docutils literal notranslate"><span class="pre">go1</span></code>, <code class="docutils literal notranslate"><span class="pre">yam</span></code>) to a directory or zip archive for inspection
+and debugging.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">yam_lift_cube_vision_env_cfg</span></code> now randomizes cube color (<code class="docutils literal notranslate"><span class="pre">dr.geom_rgba</span></code>)
 on every reset when <code class="docutils literal notranslate"><span class="pre">cam_type=&quot;rgb&quot;</span></code>.</p></li>
 <li><p>The native viewer now reflects per-world DR changes to visual model fields
@@ -594,6 +599,13 @@ deprecated in a future version.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">upload_model</span></code> option to <code class="docutils literal notranslate"><span class="pre">RslRlBaseRunnerCfg</span></code> to control W&amp;B model
 file uploads (<code class="docutils literal notranslate"><span class="pre">.pt</span></code> and <code class="docutils literal notranslate"><span class="pre">.onnx</span></code>) while keeping metric logging enabled
 (<a class="reference external" href="https://github.com/mujocolab/mjlab/pull/654">#654</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Scene.write(output_dir,</span> <span class="pre">zip=False)</span></code> exports the scene XML and mesh
+assets to a directory (or zip archive). Replaces <code class="docutils literal notranslate"><span class="pre">Scene.to_zip()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Entity.write_xml()</span></code> and <code class="docutils literal notranslate"><span class="pre">Scene.write()</span></code> now apply XML fixups
+(empty defaults, duplicate nested defaults) and strip buffer textures
+that <code class="docutils literal notranslate"><span class="pre">MjSpec.to_xml()</span></code> cannot serialize.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fix_spec_xml</span></code> and <code class="docutils literal notranslate"><span class="pre">strip_buffer_textures</span></code> utilities in
+<code class="docutils literal notranslate"><span class="pre">mjlab.utils.xml</span></code>.</p></li>
 </ul>
 </section>
 <section id="changed">

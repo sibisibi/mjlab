@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>NaN Guard &#8212; mjlab Documentation</title>
+    <title>Export Scene &#8212; mjlab Documentation</title>
   
   
   
@@ -51,12 +51,12 @@
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'source/debugging/nan_guard';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/debugging/export_scene';</script>
     <link rel="icon" href="../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Export Scene" href="export_scene.html" />
-    <link rel="prev" title="Cloud Training" href="../training/cloud.html" />
+    <link rel="next" title="API Reference" href="../api/index.html" />
+    <link rel="prev" title="NaN Guard" href="nan_guard.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
     <meta name="docbuild:last-update" content="Mar 05, 2026"/>
@@ -169,7 +169,7 @@
 <div class="sidebar-version-switcher">
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
-    <option value="nan_guard.html" selected>main</option>
+    <option value="export_scene.html" selected>main</option>
     <option value="../../../v1.1.1/index.html" >v1.1.1</option>
     <option value="../../../v1.1.0/index.html" >v1.1.0</option>
     <option value="../../../v1.0.0/index.html" >v1.0.0</option>
@@ -219,8 +219,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">NaN Guard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="export_scene.html">Export Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Export Scene</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="nav bd-sidenav">
@@ -317,7 +317,7 @@
       
       
       
-      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/debugging/nan_guard.rst" target="_blank"
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/debugging/export_scene.rst" target="_blank"
    class="btn btn-sm btn-source-edit-button dropdown-item"
    title="Suggest edit"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -334,7 +334,7 @@
       
       
       
-      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/debugging/nan_guard.html&body=Your%20issue%20content%20here." target="_blank"
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/debugging/export_scene.html&body=Your%20issue%20content%20here." target="_blank"
    class="btn btn-sm btn-source-issues-button dropdown-item"
    title="Open an issue"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -364,7 +364,7 @@
       
       
       
-      <li><a href="../../_sources/source/debugging/nan_guard.rst" target="_blank"
+      <li><a href="../../_sources/source/debugging/export_scene.rst" target="_blank"
    class="btn btn-sm btn-download-source-button dropdown-item"
    title="Download source file"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -448,7 +448,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>NaN Guard</h1>
+    <h1>Export Scene</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -459,11 +459,8 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration">Configuration</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#behavior">Behavior</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output-format">Output format</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-dumps">Visualizing dumps</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nan-detection-termination">NaN detection termination</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#target-resolution">Target resolution</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#options">Options</a></li>
 </ul>
             </nav>
         </div>
@@ -475,130 +472,49 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="nan-guard">
-<span id="id1"></span><h1>NaN Guard<a class="headerlink" href="#nan-guard" title="Link to this heading">#</a></h1>
-<p>The NaN guard captures simulation states when NaN/Inf is detected, helping
-debug numerical instability issues.</p>
+  <section id="export-scene">
+<span id="id1"></span><h1>Export Scene<a class="headerlink" href="#export-scene" title="Link to this heading">#</a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">export-scene</span></code> script writes a complete scene (XML and mesh assets) to a
+directory for inspection, sharing, or loading in standalone MuJoCo.</p>
 <section id="quick-start">
 <h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
-<p>Enable the NaN guard with a single CLI flag:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--enable-nan-guard<span class="w"> </span>True
-</pre></div>
-</div>
-<p>This automatically captures and saves simulation states when NaN/Inf is
-detected. You can also enable it programmatically:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationCfg</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.nan_guard</span><span class="w"> </span><span class="kn">import</span> <span class="n">NanGuardCfg</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Export a built-in entity by alias.</span>
+uv<span class="w"> </span>run<span class="w"> </span>export-scene<span class="w"> </span>g1<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/g1
 
-<span class="n">cfg</span> <span class="o">=</span> <span class="n">SimulationCfg</span><span class="p">(</span>
-    <span class="n">nan_guard</span><span class="o">=</span><span class="n">NanGuardCfg</span><span class="p">(</span>
-        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">buffer_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;/tmp/mjlab/nan_dumps&quot;</span><span class="p">,</span>
-        <span class="n">max_envs_to_dump</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="p">),</span>
-<span class="p">)</span>
+<span class="c1"># Export a registered task scene.</span>
+uv<span class="w"> </span>run<span class="w"> </span>export-scene<span class="w"> </span>Mjlab-Velocity-Flat-Unitree-Go1<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/task
+
+<span class="c1"># Export as a zip archive.</span>
+uv<span class="w"> </span>run<span class="w"> </span>export-scene<span class="w"> </span>yam<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/yam<span class="w"> </span>--zip<span class="w"> </span>True
+
+<span class="c1"># Export a custom entity via import path.</span>
+uv<span class="w"> </span>run<span class="w"> </span>export-scene<span class="w"> </span>my_pkg.robots:get_my_robot_cfg<span class="w"> </span>--output-dir<span class="w"> </span>/tmp/custom
 </pre></div>
 </div>
+<p>The output directory contains a <code class="docutils literal notranslate"><span class="pre">scene.xml</span></code> and an <code class="docutils literal notranslate"><span class="pre">assets/</span></code> subdirectory
+with all referenced mesh files. The XML can be loaded directly with
+<code class="docutils literal notranslate"><span class="pre">mujoco.MjModel.from_xml_path()</span></code> or dropped into the
+<a class="reference external" href="https://mujoco.readthedocs.io/en/stable/programming/samples.html#sasimulate">simulate viewer</a>.</p>
 </section>
-<section id="configuration">
-<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h2>
+<section id="target-resolution">
+<h2>Target resolution<a class="headerlink" href="#target-resolution" title="Link to this heading">#</a></h2>
+<p>The positional <code class="docutils literal notranslate"><span class="pre">target</span></code> argument is resolved in order:</p>
+<ol class="arabic simple">
+<li><p><strong>Task ID</strong>: checked against the task registry (<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">mjlab.tasks</span></code>).</p></li>
+<li><p><strong>Entity alias</strong>: one of the built-in shorthands (<code class="docutils literal notranslate"><span class="pre">g1</span></code>, <code class="docutils literal notranslate"><span class="pre">go1</span></code>, <code class="docutils literal notranslate"><span class="pre">yam</span></code>).</p></li>
+<li><p><strong>Import path</strong>: a <code class="docutils literal notranslate"><span class="pre">module:attribute</span></code> string pointing to any callable
+that returns an <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>.</p></li>
+</ol>
+<p>If none match, the script prints available task IDs and aliases.</p>
+</section>
+<section id="options">
+<h2>Options<a class="headerlink" href="#options" title="Link to this heading">#</a></h2>
 <dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">enabled</span></code> <em>(default: False)</em></dt><dd><p>Enable/disable NaN detection and dumping.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">--output-dir</span> <span class="pre">DIR</span></code> <em>(default: “export”)</em></dt><dd><p>Destination directory. Cleaned before each export to prevent stale assets.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">buffer_size</span></code> <em>(default: 100)</em></dt><dd><p>Number of recent simulation states to keep in the rolling buffer.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">output_dir</span></code> <em>(default: “/tmp/mjlab/nan_dumps”)</em></dt><dd><p>Directory where NaN dump files are saved.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">max_envs_to_dump</span></code> <em>(default: 5)</em></dt><dd><p>Maximum number of NaN environments to dump to disk. All environments are
-tracked in the buffer, but only the first N are saved to reduce dump
-size.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">--zip</span> <span class="pre">True</span></code> <em>(default: False)</em></dt><dd><p>Compress the output into a <code class="docutils literal notranslate"><span class="pre">.zip</span></code> archive and remove the directory.</p>
 </dd>
 </dl>
-</section>
-<section id="behavior">
-<h2>Behavior<a class="headerlink" href="#behavior" title="Link to this heading">#</a></h2>
-<ul class="simple">
-<li><p><strong>Captures</strong> simulation state before each step (<code class="docutils literal notranslate"><span class="pre">qpos</span></code>, <code class="docutils literal notranslate"><span class="pre">qvel</span></code>, and
-<code class="docutils literal notranslate"><span class="pre">act</span></code> if the model has actuator activations)</p></li>
-<li><p><strong>Detects</strong> NaN/Inf in <code class="docutils literal notranslate"><span class="pre">qpos</span></code>, <code class="docutils literal notranslate"><span class="pre">qvel</span></code>, <code class="docutils literal notranslate"><span class="pre">qacc</span></code>,
-<code class="docutils literal notranslate"><span class="pre">qacc_warmstart</span></code>, and <code class="docutils literal notranslate"><span class="pre">sensordata</span></code> after each step</p></li>
-<li><p><strong>Dumps</strong> the rolling buffer and model to disk on first detection</p></li>
-<li><p><strong>Stops</strong> after the first dump to avoid spam</p></li>
-</ul>
-<p>When disabled, all operations are no-ops with negligible overhead.</p>
-</section>
-<section id="output-format">
-<h2>Output format<a class="headerlink" href="#output-format" title="Link to this heading">#</a></h2>
-<p>Each NaN detection creates timestamped files plus latest symlinks:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_dump_TIMESTAMP.npz</span></code>: compressed state buffer</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">states_step_NNNNNN</span></code>: captured states per step
-(shape: <code class="docutils literal notranslate"><span class="pre">[num_envs_dumped,</span> <span class="pre">state_size]</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_metadata</span></code>: dict with <code class="docutils literal notranslate"><span class="pre">num_envs_total</span></code>, <code class="docutils literal notranslate"><span class="pre">nan_env_ids</span></code>,
-<code class="docutils literal notranslate"><span class="pre">dumped_env_ids</span></code>, etc.</p></li>
-</ul>
-</li>
-<li><p><code class="docutils literal notranslate"><span class="pre">model_TIMESTAMP.mjb</span></code>: MuJoCo model in binary format</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_dump_latest.npz</span></code>: symlink to most recent dump</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">model_latest.mjb</span></code>: symlink to most recent model</p></li>
-</ul>
-</section>
-<section id="visualizing-dumps">
-<h2>Visualizing dumps<a class="headerlink" href="#visualizing-dumps" title="Link to this heading">#</a></h2>
-<p>Use the interactive viewer to scrub through captured states:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># View latest dump.</span>
-uv<span class="w"> </span>run<span class="w"> </span>viz-nan<span class="w"> </span>/tmp/mjlab/nan_dumps/nan_dump_latest.npz
-
-<span class="c1"># View a specific dump.</span>
-uv<span class="w"> </span>run<span class="w"> </span>viz-nan<span class="w"> </span>/tmp/mjlab/nan_dumps/nan_dump_20251014_123456.npz
-</pre></div>
-</div>
-<figure class="align-default" id="id2">
-<img alt="NaN Debug Viewer" src="../../_images/nan_debug.gif" />
-<figcaption>
-<p><span class="caption-text">NaN debug viewer.</span><a class="headerlink" href="#id2" title="Link to this image">#</a></p>
-</figcaption>
-</figure>
-<p>The viewer provides:</p>
-<ul class="simple">
-<li><p>Step slider to scrub through the buffer</p></li>
-<li><p>Environment slider to compare different environments</p></li>
-<li><p>Info panel showing which environments have NaN/Inf</p></li>
-<li><p>3D visualization of the robot and terrain at each state</p></li>
-</ul>
-</section>
-<section id="nan-detection-termination">
-<h2>NaN detection termination<a class="headerlink" href="#nan-detection-termination" title="Link to this heading">#</a></h2>
-<p>While the NaN guard helps <strong>debug</strong> NaN issues by capturing states, you can
-also <strong>prevent</strong> training crashes using the <code class="docutils literal notranslate"><span class="pre">nan_detection</span></code> termination
-term. This marks NaN environments as terminated, allowing them to reset
-while training continues:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs.mdp.terminations</span><span class="w"> </span><span class="kn">import</span> <span class="n">nan_detection</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.termination_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerminationTermCfg</span>
-
-<span class="n">nan_term</span><span class="p">:</span> <span class="n">TerminationTermCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
-    <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">TerminationTermCfg</span><span class="p">(</span>
-        <span class="n">func</span><span class="o">=</span><span class="n">nan_detection</span><span class="p">,</span>
-        <span class="n">time_out</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>Terminations are logged as <code class="docutils literal notranslate"><span class="pre">Episode_Termination/nan_term</span></code> in your metrics.</p>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p><code class="docutils literal notranslate"><span class="pre">nan_detection</span></code> is a band-aid, not a cure. If NaNs occur during your
-task objective (e.g., NaNs happen when grasping), the policy will never
-learn to complete the task since it resets before receiving rewards.
-Monitor your <code class="docutils literal notranslate"><span class="pre">Episode_Termination/nan_term</span></code> metrics carefully.</p>
-</div>
-<p><strong>When to use which:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_guard</span></code>: debug and understand why NaNs occur (always do this first)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_detection</span></code>: keep training stable while working on a permanent fix</p></li>
-</ul>
 </section>
 </section>
 
@@ -614,20 +530,20 @@ Monitor your <code class="docutils literal notranslate"><span class="pre">Episod
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../training/cloud.html"
+       href="nan_guard.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Cloud Training</p>
+        <p class="prev-next-title">NaN Guard</p>
       </div>
     </a>
     <a class="right-next"
-       href="export_scene.html"
+       href="../api/index.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Export Scene</p>
+        <p class="prev-next-title">API Reference</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -648,11 +564,8 @@ Monitor your <code class="docutils literal notranslate"><span class="pre">Episod
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration">Configuration</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#behavior">Behavior</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output-format">Output format</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-dumps">Visualizing dumps</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nan-detection-termination">NaN detection termination</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#target-resolution">Target resolution</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#options">Options</a></li>
 </ul>
   </nav></div>
 

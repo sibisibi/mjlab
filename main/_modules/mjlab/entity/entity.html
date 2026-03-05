@@ -219,6 +219,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../source/training/distributed_training.html">Distributed Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../source/training/cloud.html">Cloud Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../source/debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/debugging/export_scene.html">Export Scene</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="nav bd-sidenav">
@@ -414,6 +415,7 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.mujoco</span><span class="w"> </span><span class="kn">import</span> <span class="n">dof_width</span><span class="p">,</span> <span class="n">qpos_width</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">auto_wrap_fixed_base_mocap</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_expr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.xml</span><span class="w"> </span><span class="kn">import</span> <span class="n">fix_spec_xml</span><span class="p">,</span> <span class="n">strip_buffer_textures</span>
 
 
 <div class="viewcode-block" id="EntityIndexing">
@@ -903,9 +905,13 @@ document.write(`
 <div class="viewcode-block" id="Entity.write_xml">
 <a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.write_xml">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">write_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xml_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the MjSpec to disk.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">xml_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">to_xml</span><span class="p">())</span></div>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the MjSpec to disk.</span>
+
+<span class="sd">    Operates on a copy of the spec to avoid mutating the original.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">strip_buffer_textures</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+    <span class="n">xml_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">fix_spec_xml</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">to_xml</span><span class="p">()))</span></div>
 
 
 <div class="viewcode-block" id="Entity.to_zip">
