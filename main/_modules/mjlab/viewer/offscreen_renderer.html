@@ -565,8 +565,9 @@ document.write(`
           <span class="n">robot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Multiple entities in scene (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span><span class="si">}</span><span class="s2">). &quot;</span>
-            <span class="s2">&quot;Specify entity_name to choose which one.&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Multiple entities in scene (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="p">)</span><span class="si">}</span><span class="s2">): &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">entities</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">. &quot;</span>
+            <span class="s2">&quot;Set ViewerConfig.entity_name to choose which one.&quot;</span>
           <span class="p">)</span>
 
       <span class="n">body_id</span> <span class="o">=</span> <span class="n">robot</span><span class="o">.</span><span class="n">indexing</span><span class="o">.</span><span class="n">root_body_id</span>
