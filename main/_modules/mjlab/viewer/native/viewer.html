@@ -747,6 +747,7 @@ document.write(`
   <span class="c1"># geom_rbound, dof_*, jnt_*, actuator_*, tendon_*, etc.) are skipped.</span>
   <span class="n">_VISUAL_FIELDS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
     <span class="p">{</span>
+      <span class="s2">&quot;qpos0&quot;</span><span class="p">,</span>  <span class="c1"># Needed for correct mj_forward kinematics (qpos - qpos0).</span>
       <span class="s2">&quot;geom_rgba&quot;</span><span class="p">,</span>
       <span class="s2">&quot;geom_size&quot;</span><span class="p">,</span>
       <span class="s2">&quot;geom_pos&quot;</span><span class="p">,</span>
