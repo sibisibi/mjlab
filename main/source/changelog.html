@@ -503,6 +503,9 @@ document.write(`
 <ul class="simple">
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">DelayedBuiltinActuatorGroup</span></code> that fuses delayed builtin actuators
 sharing the same delay configuration into a single buffer operation.</p></li>
+<li><p>NaN guard now captures mocap body poses (<code class="docutils literal notranslate"><span class="pre">mocap_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">mocap_quat</span></code>)
+when the model has mocap bodies, enabling full state reconstruction in
+the dump viewer for fixed-base entities.</p></li>
 </ul>
 </section>
 <section id="changed">
