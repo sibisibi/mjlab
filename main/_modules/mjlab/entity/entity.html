@@ -398,6 +398,7 @@ document.write(`
   <h1>Source code for mjlab.entity.entity</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
@@ -757,6 +758,12 @@ document.write(`
   <span class="k">def</span><span class="w"> </span><span class="nf">actuators</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">actuator</span><span class="o">.</span><span class="n">Actuator</span><span class="p">]:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actuators</span>
 
+  <span class="c1"># Names.</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">body_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
   <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">all_joint_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_joints</span><span class="p">)</span>
@@ -766,48 +773,16 @@ document.write(`
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_non_free_joints</span><span class="p">)</span>
 
   <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">body_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-
-  <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">geom_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">geoms</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">tendon_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">tendons</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">site_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
 
   <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">actuator_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">num_joints</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">joint_names</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">num_bodies</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_names</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">num_geoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_names</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">num_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">site_names</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">num_actuators</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actuator_names</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">num_tendons</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tendon_names</span><span class="p">)</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">tendon_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">tendons</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">camera_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
@@ -818,6 +793,36 @@ document.write(`
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">lt</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">lt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">lights</span><span class="p">)</span>
 
   <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">material_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">materials</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">actuator_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">actuators</span><span class="p">)</span>
+
+  <span class="c1"># Counts.</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">num_bodies</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_names</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">num_joints</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">joint_names</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">num_geoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_names</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">num_sites</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">site_names</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">num_tendons</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tendon_names</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">num_cameras</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">camera_names</span><span class="p">)</span>
 
@@ -826,18 +831,18 @@ document.write(`
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">light_names</span><span class="p">)</span>
 
   <span class="nd">@property</span>
-  <span class="k">def</span><span class="w"> </span><span class="nf">material_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">materials</span><span class="p">)</span>
-
-  <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">num_materials</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">material_names</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">num_actuators</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">actuator_names</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">root_body</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjsBody</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-  <span class="c1"># Methods.</span>
+  <span class="c1"># Find methods.</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">find_bodies</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">name_keys</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">preserve_order</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
@@ -853,26 +858,6 @@ document.write(`
     <span class="k">if</span> <span class="n">joint_subset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">joint_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_names</span>
     <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">joint_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
-
-  <span class="k">def</span><span class="w"> </span><span class="nf">find_actuators</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span>
-    <span class="n">name_keys</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">actuator_subset</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">preserve_order</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-    <span class="k">if</span> <span class="n">actuator_subset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">actuator_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">actuator_names</span>
-    <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">actuator_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
-
-  <span class="k">def</span><span class="w"> </span><span class="nf">find_tendons</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span>
-    <span class="n">name_keys</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">tendon_subset</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">preserve_order</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-    <span class="k">if</span> <span class="n">tendon_subset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">tendon_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tendon_names</span>
-    <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">tendon_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">find_joints_by_actuator_names</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
@@ -918,6 +903,16 @@ document.write(`
       <span class="n">site_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">site_names</span>
     <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">site_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
 
+  <span class="k">def</span><span class="w"> </span><span class="nf">find_tendons</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">name_keys</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">tendon_subset</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">preserve_order</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="k">if</span> <span class="n">tendon_subset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">tendon_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tendon_names</span>
+    <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">tendon_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
+
   <span class="k">def</span><span class="w"> </span><span class="nf">find_cameras</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">name_keys</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -948,6 +943,16 @@ document.write(`
       <span class="n">material_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">material_names</span>
     <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">material_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
 
+  <span class="k">def</span><span class="w"> </span><span class="nf">find_actuators</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">name_keys</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">actuator_subset</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">preserve_order</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="k">if</span> <span class="n">actuator_subset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">actuator_subset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">actuator_names</span>
+    <span class="k">return</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">name_keys</span><span class="p">,</span> <span class="n">actuator_subset</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span>
+
 <div class="viewcode-block" id="Entity.compile">
 <a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.compile">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">compile</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">:</span>
@@ -975,6 +980,8 @@ document.write(`
       <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">to_zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="Entity.initialize">
+<a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.initialize">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">mj_model</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjModel</span><span class="p">,</span>
@@ -982,6 +989,12 @@ document.write(`
     <span class="n">data</span><span class="p">:</span> <span class="n">mjwarp</span><span class="o">.</span><span class="n">Data</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare the entity for simulation after the spec has been compiled.</span>
+
+<span class="sd">    Computes global index mappings, initializes actuators, and allocates all nworld</span>
+<span class="sd">    state and target tensors in ``EntityData``. Called once by the scene during</span>
+<span class="sd">    environment construction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">indexing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_indexing</span><span class="p">(</span><span class="n">mj_model</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">indexing</span> <span class="o">=</span> <span class="n">indexing</span>
     <span class="n">nworld</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">nworld</span>
@@ -1134,23 +1147,56 @@ document.write(`
       <span class="n">tendon_effort_target</span><span class="o">=</span><span class="n">tendon_effort_target</span><span class="p">,</span>
       <span class="n">site_effort_target</span><span class="o">=</span><span class="n">site_effort_target</span><span class="p">,</span>
       <span class="n">encoder_bias</span><span class="o">=</span><span class="n">encoder_bias</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="Entity.update">
+<a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.update">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actuators</span><span class="p">:</span>
-      <span class="n">act</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Advance actuator internal state by one physics substep.</span>
 
+<span class="sd">    Called after each ``sim.step()`` within the decimation loop.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actuators</span><span class="p">:</span>
+      <span class="n">act</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Entity.reset">
+<a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.reset">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">clear_state</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Zero actuator targets and reset actuator internal state.</span>
+
+<span class="sd">    Called by the scene when environments are reset at episode boundaries,</span>
+<span class="sd">    and by commands that teleport the robot to a new pose mid-episode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">clear_state</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actuators</span><span class="p">:</span>
-      <span class="n">act</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span>
+      <span class="n">act</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span></div>
 
-  <span class="k">def</span><span class="w"> </span><span class="nf">write_data_to_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_apply_actuator_controls</span><span class="p">()</span>
 
+<div class="viewcode-block" id="Entity.clear_state">
+<a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.clear_state">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">clear_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">clear_state</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Deprecated. Use ``reset`` instead.&quot;&quot;&quot;</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+      <span class="s2">&quot;Entity.clear_state() is deprecated. Use Entity.reset().&quot;</span><span class="p">,</span>
+      <span class="ne">DeprecationWarning</span><span class="p">,</span>
+      <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Entity.write_data_to_sim">
+<a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.write_data_to_sim">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">write_data_to_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert actuator targets into low-level controls and write them to the sim.</span>
+
+<span class="sd">    Called before each ``sim.step()`` within the decimation loop. Builtin actuators are</span>
+<span class="sd">    applied in a single batched operation; custom actuators are applied individually.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_apply_actuator_controls</span><span class="p">()</span></div>
+
 
 <div class="viewcode-block" id="Entity.write_ctrl_to_sim">
 <a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity.write_ctrl_to_sim">[docs]</a>
