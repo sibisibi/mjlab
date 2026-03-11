@@ -540,6 +540,11 @@ body positions after <code class="docutils literal notranslate"><span class="pre
 derived command state (e.g. relative body positions in tracking
 environments) is populated before the first observation is returned
 (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/761">#761</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> with <code class="docutils literal notranslate"><span class="pre">ray_alignment=&quot;yaw&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;world&quot;</span></code> now correctly
+aligns the frame offset when attached to a site or geom with a local offset
+from its parent body. Previously only ray directions and pattern offsets were
+aligned, causing the frame position to swing with body pitch/roll
+(<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/775">#775</a>).</p></li>
 </ul>
 </section>
 </section>
