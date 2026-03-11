@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 10, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 11, 2026"/>
   </head>
   
   
@@ -427,8 +427,9 @@ document.write(`
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Name of the entity in the scene that this action term controls.&quot;&quot;&quot;</span>
 
   <span class="n">clip</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Optional clipping bounds per transmission type. Maps transmission name</span>
-<span class="sd">  (e.g., &#39;position&#39;, &#39;velocity&#39;) to (min, max) tuple.&quot;&quot;&quot;</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Optional clipping bounds applied to processed actions (after scale</span>
+<span class="sd">  and offset). Dict maps actuator name regex patterns to (min, max)</span>
+<span class="sd">  tuples, resolved the same way as ``scale`` and ``offset``.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ActionTermCfg.build">
 <a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.ActionTermCfg.build">[docs]</a>
@@ -677,7 +678,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 10, 2026.
+  Last updated on Mar 11, 2026.
   <br/>
 </p>
   </div>
