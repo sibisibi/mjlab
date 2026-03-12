@@ -1138,5 +1138,20 @@
       "ee_pos_error": 0.04662501439452171,
       "ee_ori_error": 0.16683602333068848
     }
+  },
+  {
+    "id": "poxmy8kp",
+    "name": "2026-03-12_02-02-21",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/poxmy8kp",
+    "created_at": "2026-03-12T09:02:36Z",
+    "commit": "af63e04",
+    "metrics": {
+      "success_rate": 0.984375,
+      "mpkpe": 0.02915341407060623,
+      "r_mpkpe": 0.02798357978463173,
+      "joint_vel_error": 3.048765182495117,
+      "ee_pos_error": 0.047124262899160385,
+      "ee_ori_error": 0.1709297150373459
+    }
   }
 ]
