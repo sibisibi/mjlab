@@ -545,6 +545,9 @@ Use <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</
 of <code class="docutils literal notranslate"><span class="pre">actuator_force</span></code> (actuation space) for mechanical power computation.
 Previously the reward was incorrect for actuators with gear ratios other
 than 1 (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/776">#776</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">create_velocity_actuator</span></code> no longer sets <code class="docutils literal notranslate"><span class="pre">ctrllimited=True</span></code> with
+<code class="docutils literal notranslate"><span class="pre">inheritrange=1.0</span></code>. This caused a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for continuous joints
+(e.g. wheels) that have no position range defined (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/787">#787</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> no longer loads cuSOLVER, eliminating ~4 GB of
 persistent GPU memory overhead. Cholesky and eigendecomposition are now
 computed analytically for the small matrices involved (4x4 and 3x3)
