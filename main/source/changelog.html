@@ -215,7 +215,10 @@
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="training/motion_imitation.html">Motion Imitation</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="viewers.html">Viewers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training/distributed_training.html">Distributed Training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="training/cloud.html">Cloud Training</a></li>
@@ -501,6 +504,10 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added <a class="reference internal" href="training/motion_imitation.html#motion-imitation"><span class="std std-ref">motion imitation</span></a> documentation with
+preprocessing instructions. The README now links here instead of the
+BeyondMimic repository, which produced incompatible NPZ files when used
+with mjlab (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/777">#777</a>).</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">margin</span></code>, <code class="docutils literal notranslate"><span class="pre">gap</span></code>, and <code class="docutils literal notranslate"><span class="pre">solmix</span></code> fields to <code class="docutils literal notranslate"><span class="pre">CollisionCfg</span></code>
 for per geom contact parameter configuration (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/766">#766</a>).</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">DelayedBuiltinActuatorGroup</span></code> that fuses delayed builtin actuators

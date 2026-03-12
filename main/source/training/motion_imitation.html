@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>NaN Guard &#8212; mjlab Documentation</title>
+    <title>Motion Imitation &#8212; mjlab Documentation</title>
   
   
   
@@ -51,12 +51,12 @@
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'source/debugging/nan_guard';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'source/training/motion_imitation';</script>
     <link rel="icon" href="../../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Export Scene" href="export_scene.html" />
-    <link rel="prev" title="Cloud Training" href="../training/cloud.html" />
+    <link rel="next" title="Viewers" href="../viewers.html" />
+    <link rel="prev" title="Training with RSL-RL" href="rsl_rl.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
     <meta name="docbuild:last-update" content="Mar 12, 2026"/>
@@ -169,8 +169,8 @@
 <div class="sidebar-version-switcher">
   <label class="sidebar-version-label" for="version-select">Version</label>
   <select id="version-select" class="sidebar-version-select" onchange="location = this.value;">
-    <option value="nan_guard.html" selected>main</option>
-    <option value="../../../v1.2.0/source/debugging/nan_guard.html" >v1.2.0</option>
+    <option value="motion_imitation.html" selected>main</option>
+    <option value="../../../v1.2.0/index.html" >v1.2.0</option>
     <option value="../../../v1.1.1/index.html" >v1.1.1</option>
     <option value="../../../v1.1.0/index.html" >v1.1.0</option>
     <option value="../../../v1.0.0/index.html" >v1.0.0</option>
@@ -216,15 +216,15 @@
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1 has-children"><a class="reference internal" href="../training/rsl_rl.html">Training with RSL-RL</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
-<li class="toctree-l2"><a class="reference internal" href="../training/motion_imitation.html">Motion Imitation</a></li>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="rsl_rl.html">Training with RSL-RL</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Motion Imitation</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../viewers.html">Viewers</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../training/distributed_training.html">Distributed Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../training/cloud.html">Cloud Training</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">NaN Guard</a></li>
-<li class="toctree-l1"><a class="reference internal" href="export_scene.html">Export Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributed_training.html">Distributed Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cloud.html">Cloud Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/nan_guard.html">NaN Guard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debugging/export_scene.html">Export Scene</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="nav bd-sidenav">
@@ -321,7 +321,7 @@
       
       
       
-      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/debugging/nan_guard.rst" target="_blank"
+      <li><a href="https://github.com/mujocolab/mjlab/edit/main/docs/source/training/motion_imitation.rst" target="_blank"
    class="btn btn-sm btn-source-edit-button dropdown-item"
    title="Suggest edit"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -338,7 +338,7 @@
       
       
       
-      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/debugging/nan_guard.html&body=Your%20issue%20content%20here." target="_blank"
+      <li><a href="https://github.com/mujocolab/mjlab/issues/new?title=Issue%20on%20page%20%2Fsource/training/motion_imitation.html&body=Your%20issue%20content%20here." target="_blank"
    class="btn btn-sm btn-source-issues-button dropdown-item"
    title="Open an issue"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -368,7 +368,7 @@
       
       
       
-      <li><a href="../../_sources/source/debugging/nan_guard.rst" target="_blank"
+      <li><a href="../../_sources/source/training/motion_imitation.rst" target="_blank"
    class="btn btn-sm btn-download-source-button dropdown-item"
    title="Download source file"
    data-bs-placement="left" data-bs-toggle="tooltip"
@@ -452,7 +452,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>NaN Guard</h1>
+    <h1>Motion Imitation</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -462,12 +462,10 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration">Configuration</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#behavior">Behavior</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output-format">Output format</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-dumps">Visualizing dumps</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nan-detection-termination">NaN detection termination</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wandb-registry-setup">WandB registry setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#motion-preprocessing">Motion preprocessing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training">Training</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#evaluation">Evaluation</a></li>
 </ul>
             </nav>
         </div>
@@ -479,131 +477,60 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="nan-guard">
-<span id="id1"></span><h1>NaN Guard<a class="headerlink" href="#nan-guard" title="Link to this heading">#</a></h1>
-<p>The NaN guard captures simulation states when NaN/Inf is detected, helping
-debug numerical instability issues.</p>
-<section id="quick-start">
-<h2>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
-<p>Enable the NaN guard with a single CLI flag:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>&lt;task-name&gt;<span class="w"> </span>--enable-nan-guard<span class="w"> </span>True
+  <section id="motion-imitation">
+<span id="id1"></span><h1>Motion Imitation<a class="headerlink" href="#motion-imitation" title="Link to this heading">#</a></h1>
+<p>mjlab can train humanoid policies to imitate reference motions. This page
+covers motion data preprocessing and training.</p>
+<section id="wandb-registry-setup">
+<h2>WandB registry setup<a class="headerlink" href="#wandb-registry-setup" title="Link to this heading">#</a></h2>
+<p>mjlab uses <a class="reference external" href="https://wandb.ai/">Weights &amp; Biases</a> to store and load
+reference motions. Before preprocessing any motions, create a WandB registry
+by following the
+<a class="reference external" href="https://github.com/HybridRobotics/whole_body_tracking/blob/main/README.md#motion-preprocessing--registry-setup">BeyondMimic instructions</a>
+(only the registry creation step; skip the <code class="docutils literal notranslate"><span class="pre">csv_to_npz.py</span></code> command shown
+there).</p>
+</section>
+<section id="motion-preprocessing">
+<h2>Motion preprocessing<a class="headerlink" href="#motion-preprocessing" title="Link to this heading">#</a></h2>
+<p>Reference motions are retargeted CSV files in Unitree’s generalized
+coordinate convention (base position, base quaternion in xyzw, then joint
+angles).</p>
+<p>Convert a CSV to the NPZ format mjlab expects:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MUJOCO_GL</span><span class="o">=</span>egl<span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>mjlab.scripts.csv_to_npz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--input-file<span class="w"> </span>&lt;PATH_TO_CSV&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output-name<span class="w"> </span>&lt;MOTION_NAME&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--input-fps<span class="w"> </span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output-fps<span class="w"> </span><span class="m">50</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--render<span class="w"> </span>True
 </pre></div>
 </div>
-<p>This automatically captures and saves simulation states when NaN/Inf is
-detected. You can also enable it programmatically:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimulationCfg</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.nan_guard</span><span class="w"> </span><span class="kn">import</span> <span class="n">NanGuardCfg</span>
-
-<span class="n">cfg</span> <span class="o">=</span> <span class="n">SimulationCfg</span><span class="p">(</span>
-    <span class="n">nan_guard</span><span class="o">=</span><span class="n">NanGuardCfg</span><span class="p">(</span>
-        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">buffer_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;/tmp/mjlab/nan_dumps&quot;</span><span class="p">,</span>
-        <span class="n">max_envs_to_dump</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="p">),</span>
-<span class="p">)</span>
+<p>The script plays the motion through MuJoCo Warp, computes forward kinematics
+for every body, and uploads the resulting NPZ to your WandB registry.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You <strong>must</strong> use mjlab’s converter (<code class="docutils literal notranslate"><span class="pre">mjlab.scripts.csv_to_npz</span></code>).
+Converters from other frameworks such as IsaacLab produce NPZ files with
+incompatible body orderings. The NPZ stores precomputed body positions and
+quaternions indexed by body number, and different physics engines assign
+body indices differently (MuJoCo uses depth first traversal, PhysX uses
+breadth first). A mismatched NPZ will map tracking targets to the wrong
+bodies and training will not converge.</p>
+</div>
+</section>
+<section id="training">
+<h2>Training<a class="headerlink" href="#training" title="Link to this heading">#</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>train<span class="w"> </span>Mjlab-Tracking-Flat-Unitree-G1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--registry-name<span class="w"> </span>your-org/motions/motion-name<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--env.scene.num-envs<span class="w"> </span><span class="m">4096</span>
 </pre></div>
 </div>
 </section>
-<section id="configuration">
-<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h2>
-<dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">enabled</span></code> <em>(default: False)</em></dt><dd><p>Enable/disable NaN detection and dumping.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">buffer_size</span></code> <em>(default: 100)</em></dt><dd><p>Number of recent simulation states to keep in the rolling buffer.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">output_dir</span></code> <em>(default: “/tmp/mjlab/nan_dumps”)</em></dt><dd><p>Directory where NaN dump files are saved.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">max_envs_to_dump</span></code> <em>(default: 5)</em></dt><dd><p>Maximum number of NaN environments to dump to disk. All environments are
-tracked in the buffer, but only the first N are saved to reduce dump
-size.</p>
-</dd>
-</dl>
-</section>
-<section id="behavior">
-<h2>Behavior<a class="headerlink" href="#behavior" title="Link to this heading">#</a></h2>
-<ul class="simple">
-<li><p><strong>Captures</strong> simulation state before each step (<code class="docutils literal notranslate"><span class="pre">qpos</span></code>, <code class="docutils literal notranslate"><span class="pre">qvel</span></code>,
-<code class="docutils literal notranslate"><span class="pre">act</span></code> if the model has actuator activations, and <code class="docutils literal notranslate"><span class="pre">mocap_pos</span></code>/<code class="docutils literal notranslate"><span class="pre">mocap_quat</span></code>
-if the model has mocap bodies)</p></li>
-<li><p><strong>Detects</strong> NaN/Inf in <code class="docutils literal notranslate"><span class="pre">qpos</span></code>, <code class="docutils literal notranslate"><span class="pre">qvel</span></code>, <code class="docutils literal notranslate"><span class="pre">qacc</span></code>,
-<code class="docutils literal notranslate"><span class="pre">qacc_warmstart</span></code>, and <code class="docutils literal notranslate"><span class="pre">sensordata</span></code> after each step</p></li>
-<li><p><strong>Dumps</strong> the rolling buffer and model to disk on first detection</p></li>
-<li><p><strong>Stops</strong> after the first dump to avoid spam</p></li>
-</ul>
-<p>When disabled, all operations are no-ops with negligible overhead.</p>
-</section>
-<section id="output-format">
-<h2>Output format<a class="headerlink" href="#output-format" title="Link to this heading">#</a></h2>
-<p>Each NaN detection creates timestamped files plus latest symlinks:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_dump_TIMESTAMP.npz</span></code>: compressed state buffer</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">states_step_NNNNNN</span></code>: captured states per step
-(shape: <code class="docutils literal notranslate"><span class="pre">[num_envs_dumped,</span> <span class="pre">state_size]</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_metadata</span></code>: dict with <code class="docutils literal notranslate"><span class="pre">num_envs_total</span></code>, <code class="docutils literal notranslate"><span class="pre">nan_env_ids</span></code>,
-<code class="docutils literal notranslate"><span class="pre">dumped_env_ids</span></code>, etc.</p></li>
-</ul>
-</li>
-<li><p><code class="docutils literal notranslate"><span class="pre">model_TIMESTAMP.mjb</span></code>: MuJoCo model in binary format</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_dump_latest.npz</span></code>: symlink to most recent dump</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">model_latest.mjb</span></code>: symlink to most recent model</p></li>
-</ul>
-</section>
-<section id="visualizing-dumps">
-<h2>Visualizing dumps<a class="headerlink" href="#visualizing-dumps" title="Link to this heading">#</a></h2>
-<p>Use the interactive viewer to scrub through captured states:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># View latest dump.</span>
-uv<span class="w"> </span>run<span class="w"> </span>viz-nan<span class="w"> </span>/tmp/mjlab/nan_dumps/nan_dump_latest.npz
-
-<span class="c1"># View a specific dump.</span>
-uv<span class="w"> </span>run<span class="w"> </span>viz-nan<span class="w"> </span>/tmp/mjlab/nan_dumps/nan_dump_20251014_123456.npz
+<section id="evaluation">
+<h2>Evaluation<a class="headerlink" href="#evaluation" title="Link to this heading">#</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>play<span class="w"> </span>Mjlab-Tracking-Flat-Unitree-G1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--wandb-run-path<span class="w"> </span>your-org/mjlab/run-id
 </pre></div>
 </div>
-<figure class="align-default" id="id2">
-<img alt="NaN Debug Viewer" src="../../_images/nan_debug.gif" />
-<figcaption>
-<p><span class="caption-text">NaN debug viewer.</span><a class="headerlink" href="#id2" title="Link to this image">#</a></p>
-</figcaption>
-</figure>
-<p>The viewer provides:</p>
-<ul class="simple">
-<li><p>Step slider to scrub through the buffer</p></li>
-<li><p>Environment slider to compare different environments</p></li>
-<li><p>Info panel showing which environments have NaN/Inf</p></li>
-<li><p>3D visualization of the robot and terrain at each state</p></li>
-</ul>
-</section>
-<section id="nan-detection-termination">
-<h2>NaN detection termination<a class="headerlink" href="#nan-detection-termination" title="Link to this heading">#</a></h2>
-<p>While the NaN guard helps <strong>debug</strong> NaN issues by capturing states, you can
-also <strong>prevent</strong> training crashes using the <code class="docutils literal notranslate"><span class="pre">nan_detection</span></code> termination
-term. This marks NaN environments as terminated, allowing them to reset
-while training continues:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.envs.mdp.terminations</span><span class="w"> </span><span class="kn">import</span> <span class="n">nan_detection</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.termination_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TerminationTermCfg</span>
-
-<span class="n">nan_term</span><span class="p">:</span> <span class="n">TerminationTermCfg</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
-    <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">TerminationTermCfg</span><span class="p">(</span>
-        <span class="n">func</span><span class="o">=</span><span class="n">nan_detection</span><span class="p">,</span>
-        <span class="n">time_out</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>Terminations are logged as <code class="docutils literal notranslate"><span class="pre">Episode_Termination/nan_term</span></code> in your metrics.</p>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p><code class="docutils literal notranslate"><span class="pre">nan_detection</span></code> is a band-aid, not a cure. If NaNs occur during your
-task objective (e.g., NaNs happen when grasping), the policy will never
-learn to complete the task since it resets before receiving rewards.
-Monitor your <code class="docutils literal notranslate"><span class="pre">Episode_Termination/nan_term</span></code> metrics carefully.</p>
-</div>
-<p><strong>When to use which:</strong></p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_guard</span></code>: debug and understand why NaNs occur (always do this first)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">nan_detection</span></code>: keep training stable while working on a permanent fix</p></li>
-</ul>
 </section>
 </section>
 
@@ -619,20 +546,20 @@ Monitor your <code class="docutils literal notranslate"><span class="pre">Episod
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="../training/cloud.html"
+       href="rsl_rl.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Cloud Training</p>
+        <p class="prev-next-title">Training with RSL-RL</p>
       </div>
     </a>
     <a class="right-next"
-       href="export_scene.html"
+       href="../viewers.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Export Scene</p>
+        <p class="prev-next-title">Viewers</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -652,12 +579,10 @@ Monitor your <code class="docutils literal notranslate"><span class="pre">Episod
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick start</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration">Configuration</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#behavior">Behavior</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#output-format">Output format</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-dumps">Visualizing dumps</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#nan-detection-termination">NaN detection termination</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#wandb-registry-setup">WandB registry setup</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#motion-preprocessing">Motion preprocessing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#training">Training</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#evaluation">Evaluation</a></li>
 </ul>
   </nav></div>
 
