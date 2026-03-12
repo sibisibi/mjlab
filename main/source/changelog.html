@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 11, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 12, 2026"/>
   </head>
   
   
@@ -510,6 +510,11 @@ when the model has mocap bodies, enabling full state reconstruction in
 the dump viewer for fixed-base entities.</p></li>
 <li><p>Implemented <code class="docutils literal notranslate"><span class="pre">ActionTermCfg.clip</span></code> for clamping processed actions after
 scale and offset (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/771">#771</a>).</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> and <code class="docutils literal notranslate"><span class="pre">qfrc_external</span></code> generalized force accessors
+to <code class="docutils literal notranslate"><span class="pre">EntityData</span></code>. <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> gives actuator forces in joint space
+(projected through the transmission). <code class="docutils literal notranslate"><span class="pre">qfrc_external</span></code> recovers the
+generalized force from body external wrenches (<code class="docutils literal notranslate"><span class="pre">xfrc_applied</span></code>)
+(<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/776">#776</a>).</p></li>
 </ul>
 </section>
 <section id="changed">
@@ -521,11 +526,18 @@ Use <code class="docutils literal notranslate"><span class="pre">TerrainEntity</
 <code class="docutils literal notranslate"><span class="pre">clear_state</span></code> only zeroed actuator targets without resetting actuator
 internal state (e.g. delay buffers), which could cause stale commands
 after teleporting the robot to a new pose.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">EntityData.generalized_force</span></code>. The property was bugged (indexed
+free joint DOFs instead of articulated DOFs) and the name was ambiguous.
+Use <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> or <code class="docutils literal notranslate"><span class="pre">qfrc_external</span></code> instead (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/776">#776</a>).</p></li>
 </ul>
 </section>
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">electrical_power_cost</span></code> now uses <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> (joint space) instead
+of <code class="docutils literal notranslate"><span class="pre">actuator_force</span></code> (actuation space) for mechanical power computation.
+Previously the reward was incorrect for actuators with gear ratios other
+than 1 (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/776">#776</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> no longer loads cuSOLVER, eliminating ~4 GB of
 persistent GPU memory overhead. Cholesky and eigendecomposition are now
 computed analytically for the small matrices involved (4x4 and 3x3)
@@ -924,7 +936,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 11, 2026.
+  Last updated on Mar 12, 2026.
   <br/>
 </p>
   </div>
