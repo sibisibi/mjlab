@@ -1603,8 +1603,9 @@ document.write(`
     <span class="n">d_low</span><span class="p">,</span> <span class="n">d_high</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_distance_range</span>
     <span class="n">avg_distance</span> <span class="o">=</span> <span class="p">(</span><span class="n">d_low</span> <span class="o">+</span> <span class="n">d_high</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">difficulty</span> <span class="o">*</span> <span class="p">(</span><span class="n">d_high</span> <span class="o">-</span> <span class="n">d_low</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
 
-    <span class="c1"># Grid spacing (stone size + gap).</span>
-    <span class="n">avg_stone_size</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stone_size_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_size_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="c1"># Decrease stone size with difficulty (larger stones are easier).</span>
+    <span class="n">s_min</span><span class="p">,</span> <span class="n">s_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_size_range</span>
+    <span class="n">avg_stone_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">s_min</span> <span class="o">+</span> <span class="n">s_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">difficulty</span> <span class="o">*</span> <span class="p">(</span><span class="n">s_max</span> <span class="o">-</span> <span class="n">s_min</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
     <span class="n">spacing</span> <span class="o">=</span> <span class="n">avg_stone_size</span> <span class="o">+</span> <span class="n">avg_distance</span>
 
     <span class="c1"># Aggressive grid density to reach borders.</span>
@@ -1665,8 +1666,7 @@ document.write(`
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_x</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_y</span><span class="p">):</span>
-        <span class="n">avg_s_min</span><span class="p">,</span> <span class="n">avg_s_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_size_range</span>
-        <span class="n">base_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">avg_s_min</span> <span class="o">+</span> <span class="n">avg_s_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">base_size</span> <span class="o">=</span> <span class="n">avg_stone_size</span>
 
         <span class="c1"># Proposed position with displacement.</span>
         <span class="n">px</span> <span class="o">=</span> <span class="p">(</span>
@@ -1684,10 +1684,10 @@ document.write(`
         <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">px</span> <span class="o">-</span> <span class="n">size_x</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">px</span> <span class="o">+</span> <span class="n">size_x</span> <span class="o">/</span> <span class="mi">2</span>
         <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">py</span> <span class="o">-</span> <span class="n">size_y</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">py</span> <span class="o">+</span> <span class="n">size_y</span> <span class="o">/</span> <span class="mi">2</span>
 
-        <span class="c1"># Avoid platform.</span>
-        <span class="n">margin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">avg_s_max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_size_variation</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">platform_min</span> <span class="o">-</span> <span class="n">margin</span> <span class="o">&lt;=</span> <span class="n">px</span> <span class="o">&lt;=</span> <span class="n">platform_max</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
-          <span class="n">platform_min</span> <span class="o">-</span> <span class="n">margin</span> <span class="o">&lt;=</span> <span class="n">py</span> <span class="o">&lt;=</span> <span class="n">platform_max</span> <span class="o">+</span> <span class="n">margin</span>
+        <span class="c1"># Skip stones centered inside the platform. Stones whose edges</span>
+        <span class="c1"># extend under the platform are kept; the platform covers the overlap.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">platform_min</span> <span class="o">&lt;=</span> <span class="n">px</span> <span class="o">&lt;=</span> <span class="n">platform_max</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+          <span class="n">platform_min</span> <span class="o">&lt;=</span> <span class="n">py</span> <span class="o">&lt;=</span> <span class="n">platform_max</span>
         <span class="p">):</span>
           <span class="k">continue</span>
 

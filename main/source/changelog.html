@@ -527,6 +527,9 @@ generalized force from body external wrenches (<code class="docutils literal not
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">BoxSteppingStonesTerrainCfg</span></code> stone size now decreases with difficulty,
+interpolating from the large end of <code class="docutils literal notranslate"><span class="pre">stone_size_range</span></code> at difficulty 0
+to the small end at difficulty 1 (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/785">#785</a>).</p></li>
 <li><p>Removed deprecated <code class="docutils literal notranslate"><span class="pre">TerrainImporter</span></code> and <code class="docutils literal notranslate"><span class="pre">TerrainImporterCfg</span></code> aliases.
 Use <code class="docutils literal notranslate"><span class="pre">TerrainEntity</span></code> and <code class="docutils literal notranslate"><span class="pre">TerrainEntityCfg</span></code> instead (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/667">#667</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Entity.clear_state()</span></code> is deprecated. Use <code class="docutils literal notranslate"><span class="pre">Entity.reset()</span></code> instead.
@@ -553,6 +556,10 @@ before calling <code class="docutils literal notranslate"><span class="pre">mj_f
 (<code class="docutils literal notranslate"><span class="pre">DcMotorActuator</span></code>, <code class="docutils literal notranslate"><span class="pre">IdealPdActuator</span></code>) previously showed incorrect
 contact forces because the viewer ran with <code class="docutils literal notranslate"><span class="pre">ctrl=0</span></code>
 (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/786">#786</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BoxSteppingStonesTerrainCfg</span></code> no longer creates a large gap around the
+platform. Stones are now only skipped when their center falls inside the
+platform; edges that extend under the platform are allowed since the
+platform covers them (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/785">#785</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">dr.pseudo_inertia</span></code> no longer loads cuSOLVER, eliminating ~4 GB of
 persistent GPU memory overhead. Cholesky and eigendecomposition are now
 computed analytically for the small matrices involved (4x4 and 3x3)
