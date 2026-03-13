@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 12, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 13, 2026"/>
   </head>
   
   
@@ -181,7 +181,10 @@
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="tutorials.html">Tutorials</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/cartpole.html">Cartpole: Building Your First Environment</a></li>
+</ul>
+</details></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Concepts</span></p>
@@ -504,6 +507,9 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added cartpole balance and swingup tasks (<code class="docutils literal notranslate"><span class="pre">Mjlab-Cartpole-Balance</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Mjlab-Cartpole-Swingup</span></code>) with a <a class="reference internal" href="tutorials/cartpole.html#tutorial-cartpole"><span class="std std-ref">tutorial</span></a>
+that walks through building an environment from scratch.</p></li>
 <li><p>Added <a class="reference internal" href="training/motion_imitation.html#motion-imitation"><span class="std std-ref">motion imitation</span></a> documentation with
 preprocessing instructions. The README now links here instead of the
 BeyondMimic repository, which produced incompatible NPZ files when used
@@ -551,6 +557,9 @@ than 1 (<a class="extlink-issue reference external" href="https://github.com/muj
 <li><p><code class="docutils literal notranslate"><span class="pre">create_velocity_actuator</span></code> no longer sets <code class="docutils literal notranslate"><span class="pre">ctrllimited=True</span></code> with
 <code class="docutils literal notranslate"><span class="pre">inheritrange=1.0</span></code>. This caused a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for continuous joints
 (e.g. wheels) that have no position range defined (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/787">#787</a>).</p></li>
+<li><p>Joint limits for unlimited joints are now set to [-inf, inf] instead of
+[0, 0]. Previously the zero range caused incorrect clamping for entities
+with unlimited hinge or slide joints.</p></li>
 <li><p>Contact force visualization now copies <code class="docutils literal notranslate"><span class="pre">ctrl</span></code> into the CPU <code class="docutils literal notranslate"><span class="pre">MjData</span></code>
 before calling <code class="docutils literal notranslate"><span class="pre">mj_forward</span></code>. Actuators that compute torques in Python
 (<code class="docutils literal notranslate"><span class="pre">DcMotorActuator</span></code>, <code class="docutils literal notranslate"><span class="pre">IdealPdActuator</span></code>) previously showed incorrect
@@ -958,7 +967,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 12, 2026.
+  Last updated on Mar 13, 2026.
   <br/>
 </p>
   </div>
