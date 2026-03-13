@@ -1604,11 +1604,11 @@ document.write(`
 
     <span class="c1"># Increase distance between stones with difficulty.</span>
     <span class="n">d_low</span><span class="p">,</span> <span class="n">d_high</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_distance_range</span>
-    <span class="n">avg_distance</span> <span class="o">=</span> <span class="p">(</span><span class="n">d_low</span> <span class="o">+</span> <span class="n">d_high</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">difficulty</span> <span class="o">*</span> <span class="p">(</span><span class="n">d_high</span> <span class="o">-</span> <span class="n">d_low</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">avg_distance</span> <span class="o">=</span> <span class="n">d_low</span> <span class="o">+</span> <span class="n">difficulty</span> <span class="o">*</span> <span class="p">(</span><span class="n">d_high</span> <span class="o">-</span> <span class="n">d_low</span><span class="p">)</span>
 
     <span class="c1"># Decrease stone size with difficulty (larger stones are easier).</span>
     <span class="n">s_min</span><span class="p">,</span> <span class="n">s_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stone_size_range</span>
-    <span class="n">avg_stone_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">s_min</span> <span class="o">+</span> <span class="n">s_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">difficulty</span> <span class="o">*</span> <span class="p">(</span><span class="n">s_max</span> <span class="o">-</span> <span class="n">s_min</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">avg_stone_size</span> <span class="o">=</span> <span class="n">s_max</span> <span class="o">-</span> <span class="n">difficulty</span> <span class="o">*</span> <span class="p">(</span><span class="n">s_max</span> <span class="o">-</span> <span class="n">s_min</span><span class="p">)</span>
     <span class="n">spacing</span> <span class="o">=</span> <span class="n">avg_stone_size</span> <span class="o">+</span> <span class="n">avg_distance</span>
 
     <span class="c1"># Aggressive grid density to reach borders.</span>
