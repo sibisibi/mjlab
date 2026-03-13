@@ -557,6 +557,8 @@ than 1 (<a class="extlink-issue reference external" href="https://github.com/muj
 <li><p><code class="docutils literal notranslate"><span class="pre">create_velocity_actuator</span></code> no longer sets <code class="docutils literal notranslate"><span class="pre">ctrllimited=True</span></code> with
 <code class="docutils literal notranslate"><span class="pre">inheritrange=1.0</span></code>. This caused a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for continuous joints
 (e.g. wheels) that have no position range defined (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/787">#787</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">write_root_com_velocity_to_sim</span></code> no longer fails with tensor <code class="docutils literal notranslate"><span class="pre">env_ids</span></code>
+on floating base entities (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/793">#793</a>).</p></li>
 <li><p>Joint limits for unlimited joints are now set to [-inf, inf] instead of
 [0, 0]. Previously the zero range caused incorrect clamping for entities
 with unlimited hinge or slide joints.</p></li>
