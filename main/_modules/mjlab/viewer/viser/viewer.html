@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 13, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 15, 2026"/>
   </head>
   
   
@@ -571,7 +571,9 @@ document.write(`
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_env_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_idx</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_term_overlays</span> <span class="o">=</span> <span class="n">ViserTermOverlays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_term_overlays</span> <span class="o">=</span> <span class="n">ViserTermOverlays</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_time</span>
+    <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_term_overlays</span><span class="o">.</span><span class="n">setup_tabs</span><span class="p">(</span><span class="n">tabs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_debug_overlays</span> <span class="o">=</span> <span class="n">ViserDebugOverlays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_contact_overlays</span> <span class="o">=</span> <span class="n">ViserContactOverlays</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="p">)</span>
@@ -836,7 +838,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 13, 2026.
+  Last updated on Mar 15, 2026.
   <br/>
 </p>
   </div>
