@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 16, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 17, 2026"/>
   </head>
   
   
@@ -535,6 +535,10 @@ each reward term with a running mean over ~1 second (<a class="extlink-issue ref
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>In curriculum terrain mode, each terrain type now gets exactly one column
+(<code class="docutils literal notranslate"><span class="pre">num_cols</span></code> is set to <code class="docutils literal notranslate"><span class="pre">len(sub_terrains)</span></code>). The <code class="docutils literal notranslate"><span class="pre">proportion</span></code> field
+now controls robot spawning distribution across columns rather than column
+count. Random mode is unchanged (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/811">#811</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">BoxSteppingStonesTerrainCfg</span></code> stone size now decreases with difficulty,
 interpolating from the large end of <code class="docutils literal notranslate"><span class="pre">stone_size_range</span></code> at difficulty 0
 to the small end at difficulty 1 (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/785">#785</a>).</p></li>
@@ -971,7 +975,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 16, 2026.
+  Last updated on Mar 17, 2026.
   <br/>
 </p>
   </div>
