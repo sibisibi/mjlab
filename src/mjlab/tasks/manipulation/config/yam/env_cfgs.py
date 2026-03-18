@@ -245,7 +245,7 @@ def yam_lift_cube_vision_env_cfg(
       params={
         "operation": "add",
         "distribution": "uniform",
-        "ranges": (-1.0, 1.0),
+        "ranges": (-0.5, 0.5),
       },
     )
     cfg.events["light_dir"] = EventTermCfg(
@@ -254,7 +254,7 @@ def yam_lift_cube_vision_env_cfg(
       params={
         "operation": "add",
         "distribution": "uniform",
-        "ranges": (-0.5, 0.5),
+        "ranges": (-0.25, 0.25),
       },
     )
 

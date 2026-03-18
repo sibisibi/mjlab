@@ -128,7 +128,7 @@ DAMPING_GRIPPER = (
 )
 
 # Artificially limit gripper force for sim stability (must also be done on hardware).
-GRIPPER_EFFORT_LIMIT_SAFE = GRIPPER_EFFORT_LIMIT * 0.1
+GRIPPER_EFFORT_LIMIT_SAFE = GRIPPER_EFFORT_LIMIT * 0.3
 
 # Only actuate left_finger; right_finger is coupled via equality constraint.
 GRIPPER_ACTUATOR = BuiltinPositionActuatorCfg(
