@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 17, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 18, 2026"/>
   </head>
   
   
@@ -1240,12 +1240,16 @@ document.write(`
 </li>
       <li><a href="source/api/sensor.html#mjlab.sensor.RayCastSensorCfg.frame">frame (mjlab.sensor.RayCastSensorCfg attribute)</a>
 </li>
-      <li><a href="source/api/actuator.html#mjlab.actuator.ActuatorCfg.frictionloss">frictionloss (mjlab.actuator.ActuatorCfg attribute)</a>
+      <li><a href="source/api/sensor.html#mjlab.sensor.RayCastData.frame_pos_w">frame_pos_w (mjlab.sensor.RayCastData attribute)</a>
 </li>
-      <li><a href="source/api/sensor.html#mjlab.sensor.BuiltinSensor.from_existing">from_existing() (mjlab.sensor.BuiltinSensor class method)</a>
+      <li><a href="source/api/sensor.html#mjlab.sensor.RayCastData.frame_quat_w">frame_quat_w (mjlab.sensor.RayCastData attribute)</a>
+</li>
+      <li><a href="source/api/actuator.html#mjlab.actuator.ActuatorCfg.frictionloss">frictionloss (mjlab.actuator.ActuatorCfg attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/api/sensor.html#mjlab.sensor.BuiltinSensor.from_existing">from_existing() (mjlab.sensor.BuiltinSensor class method)</a>
+</li>
       <li><a href="source/api/sensor.html#mjlab.sensor.PinholeCameraPatternCfg.from_intrinsic_matrix">from_intrinsic_matrix() (mjlab.sensor.PinholeCameraPatternCfg class method)</a>
 </li>
       <li><a href="source/api/sensor.html#mjlab.sensor.PinholeCameraPatternCfg.from_mujoco_camera">from_mujoco_camera() (mjlab.sensor.PinholeCameraPatternCfg class method)</a>
@@ -1828,10 +1832,10 @@ document.write(`
 </li>
       <li><a href="source/api/sensor.html#mjlab.sensor.RayCastData.normals_w">normals_w (mjlab.sensor.RayCastData attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/managers.html#mjlab.managers.NullCommandManager">NullCommandManager (class in mjlab.managers)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/managers.html#mjlab.managers.NullCurriculumManager">NullCurriculumManager (class in mjlab.managers)</a>
 </li>
       <li><a href="source/api/managers.html#mjlab.managers.NullMetricsManager">NullMetricsManager (class in mjlab.managers)</a>
@@ -1850,6 +1854,8 @@ document.write(`
         <li><a href="source/api/terrains.html#mjlab.terrains.TerrainEntityCfg.num_envs">(mjlab.terrains.TerrainEntityCfg attribute)</a>
 </li>
       </ul></li>
+      <li><a href="source/api/sensor.html#mjlab.sensor.RayCastSensor.num_frames">num_frames (mjlab.sensor.RayCastSensor property)</a>
+</li>
       <li><a href="source/api/rl.html#mjlab.rl.RslRlPpoAlgorithmCfg.num_learning_epochs">num_learning_epochs (mjlab.rl.RslRlPpoAlgorithmCfg attribute)</a>
 </li>
       <li><a href="source/api/rl.html#mjlab.rl.RslRlPpoAlgorithmCfg.num_mini_batches">num_mini_batches (mjlab.rl.RslRlPpoAlgorithmCfg attribute)</a>
@@ -1857,6 +1863,10 @@ document.write(`
       <li><a href="source/api/terrains.html#mjlab.terrains.HfDiscreteObstaclesTerrainCfg.num_obstacles">num_obstacles (mjlab.terrains.HfDiscreteObstaclesTerrainCfg attribute)</a>
 </li>
       <li><a href="source/api/terrains.html#mjlab.terrains.FlatPatchSamplingCfg.num_patches">num_patches (mjlab.terrains.FlatPatchSamplingCfg attribute)</a>
+</li>
+      <li><a href="source/api/sensor.html#mjlab.sensor.RayCastSensor.num_rays">num_rays (mjlab.sensor.RayCastSensor property)</a>
+</li>
+      <li><a href="source/api/sensor.html#mjlab.sensor.RayCastSensor.num_rays_per_frame">num_rays_per_frame (mjlab.sensor.RayCastSensor property)</a>
 </li>
       <li><a href="source/api/terrains.html#mjlab.terrains.BoxNestedRingsTerrainCfg.num_rings">num_rings (mjlab.terrains.BoxNestedRingsTerrainCfg attribute)</a>
 </li>
@@ -2690,7 +2700,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 17, 2026.
+  Last updated on Mar 18, 2026.
   <br/>
 </p>
   </div>

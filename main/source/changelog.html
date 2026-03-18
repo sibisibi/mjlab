@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 17, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 18, 2026"/>
   </head>
   
   
@@ -625,6 +625,12 @@ migrated on load.</p></li>
 to bodies with configurable duration and optional application point offset.</p></li>
 <li><p>ONNX auto-export and metadata attachment for manipulation tasks (lift cube)
 on every checkpoint save, matching the velocity and tracking task behavior.</p></li>
+<li><p>Multi-frame <code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code>: pass a tuple of <code class="docutils literal notranslate"><span class="pre">ObjRef</span></code> to <code class="docutils literal notranslate"><span class="pre">frame</span></code> for
+per-site raycasting with independent body exclusion. New properties:
+<code class="docutils literal notranslate"><span class="pre">num_frames</span></code>, <code class="docutils literal notranslate"><span class="pre">num_rays_per_frame</span></code>. New <code class="docutils literal notranslate"><span class="pre">RayCastData</span></code> fields:
+<code class="docutils literal notranslate"><span class="pre">frame_pos_w</span></code> and <code class="docutils literal notranslate"><span class="pre">frame_quat_w</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RingPatternCfg</span></code> ray pattern for concentric ring sampling around each
+frame.</p></li>
 <li><p>Cloud training support via <a class="reference external" href="https://skypilot.readthedocs.io/">SkyPilot</a>
 and Lambda Cloud, with documentation covering setup, monitoring, and
 cost management.</p></li>
@@ -975,7 +981,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 17, 2026.
+  Last updated on Mar 18, 2026.
   <br/>
 </p>
   </div>
