@@ -246,6 +246,80 @@ def geom_rgba(
   )
 
 
+@requires_model_fields("geom_rgba")
+def geom_rgba_hsv(
+  env: ManagerBasedRlEnv,
+  env_ids: torch.Tensor | None,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  hue_range: tuple[float, float] = (0.0, 1.0),
+  saturation_range: tuple[float, float] = (0.5, 1.0),
+  value_range: tuple[float, float] = (0.3, 1.0),
+) -> None:
+  """Randomize geom RGB by sampling in HSV space.
+
+  Useful for generating saturated colors that are guaranteed to be
+  distinguishable from neutral/grey backgrounds.
+
+  Args:
+    env: The environment instance.
+    env_ids: Environment indices to randomize. ``None`` means all.
+    asset_cfg: Entity and geom selection.
+    hue_range: Range for hue channel [0, 1].
+    saturation_range: Range for saturation channel [0, 1].
+    value_range: Range for value/brightness channel [0, 1].
+  """
+  asset = env.scene[asset_cfg.name]
+  if env_ids is None:
+    env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
+
+  geom_indices = _get_entity_indices(
+    asset.indexing, asset_cfg, "geom", use_address=False
+  )
+  env_grid, geom_grid = torch.meshgrid(env_ids, geom_indices, indexing="ij")
+
+  n = env_grid.shape[0]
+  h = torch.empty(n, device=env.device).uniform_(*hue_range)
+  s = torch.empty(n, device=env.device).uniform_(*saturation_range)
+  v = torch.empty(n, device=env.device).uniform_(*value_range)
+
+  # HSV to RGB conversion.
+  h6 = h * 6.0
+  c = v * s
+  x = c * (1.0 - (h6 % 2.0 - 1.0).abs())
+  m = v - c
+  hi = h6.long() % 6
+  r = (
+    torch.where(
+      (hi == 0) | (hi == 5),
+      c,
+      torch.where((hi == 1) | (hi == 4), x, torch.zeros_like(c)),
+    )
+    + m
+  )
+  g = (
+    torch.where(
+      (hi == 1) | (hi == 2),
+      c,
+      torch.where((hi == 0) | (hi == 3), x, torch.zeros_like(c)),
+    )
+    + m
+  )
+  b = (
+    torch.where(
+      (hi == 3) | (hi == 4),
+      c,
+      torch.where((hi == 2) | (hi == 5), x, torch.zeros_like(c)),
+    )
+    + m
+  )
+
+  rgba = env.sim.model.geom_rgba
+  # Broadcast to all selected geoms per env.
+  rgba[env_grid, geom_grid, 0] = r.unsqueeze(-1).expand_as(geom_grid)
+  rgba[env_grid, geom_grid, 1] = g.unsqueeze(-1).expand_as(geom_grid)
+  rgba[env_grid, geom_grid, 2] = b.unsqueeze(-1).expand_as(geom_grid)
+
+
 @requires_model_fields("geom_size", "geom_rbound", "geom_aabb")
 def geom_size(
   env: ManagerBasedRlEnv,

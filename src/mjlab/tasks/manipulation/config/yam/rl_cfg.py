@@ -14,7 +14,7 @@ def yam_lift_cube_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       distribution_cfg={
         "class_name": "GaussianDistribution",
         "init_std": 1.0,
-        "std_type": "scalar",
+        "std_type": "log",
       },
     ),
     critic=RslRlModelCfg(
@@ -26,7 +26,7 @@ def yam_lift_cube_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       value_loss_coef=1.0,
       use_clipped_value_loss=True,
       clip_param=0.2,
-      entropy_coef=0.005,
+      entropy_coef=0.01,
       num_learning_epochs=5,
       num_mini_batches=4,
       learning_rate=1.0e-3,
@@ -66,21 +66,19 @@ def yam_lift_cube_vision_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       distribution_cfg={
         "class_name": "GaussianDistribution",
         "init_std": 1.0,
-        "std_type": "scalar",
+        "std_type": "log",
       },
     ),
     critic=RslRlModelCfg(
       hidden_dims=(256, 256, 128),
       activation="elu",
       obs_normalization=True,
-      cnn_cfg=cnn_cfg,
-      class_name=class_name,
     ),
     algorithm=RslRlPpoAlgorithmCfg(
       value_loss_coef=1.0,
       use_clipped_value_loss=True,
       clip_param=0.2,
-      entropy_coef=0.005,
+      entropy_coef=0.01,
       num_learning_epochs=5,
       num_mini_batches=4,
       learning_rate=1.0e-3,
@@ -93,9 +91,9 @@ def yam_lift_cube_vision_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     experiment_name="yam_lift_cube_vision",
     save_interval=100,
     num_steps_per_env=24,
-    max_iterations=3_000,
+    max_iterations=10_000,
     obs_groups={
       "actor": ("actor", "camera"),
-      "critic": ("critic", "camera"),
+      "critic": ("critic",),
     },
   )

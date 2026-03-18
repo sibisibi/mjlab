@@ -17,6 +17,7 @@ from .geom import geom_friction as geom_friction
 from .geom import geom_pos as geom_pos
 from .geom import geom_quat as geom_quat
 from .geom import geom_rgba as geom_rgba
+from .geom import geom_rgba_hsv as geom_rgba_hsv
 from .geom import geom_size as geom_size
 
 # Body.

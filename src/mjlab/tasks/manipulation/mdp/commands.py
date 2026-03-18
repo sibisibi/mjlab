@@ -58,9 +58,6 @@ class LiftingCommand(CommandTerm):
   def _resample_command(self, env_ids: torch.Tensor) -> None:
     n = len(env_ids)
 
-    # Reset episode success for resampled envs.
-    self.episode_success[env_ids] = 0.0
-
     # Set target position based on difficulty mode.
     if self.cfg.difficulty == "fixed":
       target_pos = torch.tensor(

@@ -87,6 +87,30 @@ def target_position(
   return target_pos_ee
 
 
+def object_geom_size(
+  env: ManagerBasedRlEnv,
+  object_name: str,
+) -> torch.Tensor:
+  """Geom size of an object in the scene. Shape (B, num_geoms * 3)."""
+  obj: Entity = env.scene[object_name]
+  size = env.sim.model.geom_size[:, obj.indexing.geom_ids]
+  return size.reshape(size.shape[0], -1)
+
+
+def camera_params(
+  env: ManagerBasedRlEnv,
+  asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+  """Camera intrinsics, position, and quaternion. Shape (B, num_cams * 11)."""
+  entity: Entity = env.scene[asset_cfg.name]
+  cam_ids = entity.indexing.cam_ids[asset_cfg.camera_ids]
+  intrinsic = env.sim.model.cam_intrinsic[:, cam_ids]  # (B, C, 4)
+  pos = env.sim.model.cam_pos[:, cam_ids]  # (B, C, 3)
+  quat = env.sim.model.cam_quat[:, cam_ids]  # (B, C, 4)
+  params = torch.cat([intrinsic, pos, quat], dim=-1)  # (B, C, 11)
+  return params.reshape(params.shape[0], -1)
+
+
 def camera_rgb(env: ManagerBasedRlEnv, sensor_name: str) -> torch.Tensor:
   """RGB observation in CNN-compatible format (B, C, H, W)."""
   sensor: CameraSensor = env.scene[sensor_name]

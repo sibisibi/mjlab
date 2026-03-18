@@ -36,7 +36,7 @@ def staged_position_reward(
   reaching = torch.exp(-reach_error / reaching_std**2)
   position_error = torch.sum(torch.square(command.target_pos - obj_pos_w), dim=-1)
   bringing = torch.exp(-position_error / bringing_std**2)
-  return reaching * (1.0 + bringing)
+  return reaching * (1.0 + bringing) / 2.0
 
 
 def bring_object_reward(

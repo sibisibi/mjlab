@@ -228,6 +228,7 @@ for a in ARTICULATION.actuators:
   names = a.target_names_expr
   assert e is not None
   for n in names:
+    print(f"joint {n}: stiffness={s:.1f}, damping={a.damping:.1f}")
     YAM_ACTION_SCALE[n] = 0.25 * e / s
 
 

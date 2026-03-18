@@ -192,7 +192,6 @@ class SpatialSoftmaxCNNModel(CNNModel):
       obs_normalization=obs_normalization,
       distribution_cfg=distribution_cfg,
     )
-
     if isinstance(_cnns, nn.ModuleDict):
       self.cnns = _cnns
     else:

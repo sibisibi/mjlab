@@ -24,13 +24,33 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
   """Create base cube lifting task configuration."""
 
   actor_terms = {
-    "joint_pos": ObservationTermCfg(
+    "arm_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
+      params={
+        "biased": True,
+        "asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",)),
+      },
       noise=Unoise(n_min=-0.01, n_max=0.01),
     ),
-    "joint_vel": ObservationTermCfg(
+    "gripper_pos": ObservationTermCfg(
+      func=mdp.joint_pos_rel,
+      params={
+        "biased": True,
+        "asset_cfg": SceneEntityCfg("robot", joint_names=()),  # Set per-robot.
+      },
+      noise=Unoise(n_min=-0.0003, n_max=0.0003),
+    ),
+    "arm_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",))},
       noise=Unoise(n_min=-1.5, n_max=1.5),
+    ),
+    "gripper_vel": ObservationTermCfg(
+      func=mdp.joint_vel_rel,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=()),  # Set per-robot.
+      },
+      noise=Unoise(n_min=-0.05, n_max=0.05),
     ),
     "ee_to_cube": ObservationTermCfg(
       func=manipulation_mdp.ee_to_object_distance,
@@ -51,7 +71,47 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     "actions": ObservationTermCfg(func=mdp.last_action),
   }
 
-  critic_terms = {**actor_terms}
+  critic_terms = {
+    "arm_pos": ObservationTermCfg(
+      func=mdp.joint_pos_rel,
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",))},
+    ),
+    "gripper_pos": ObservationTermCfg(
+      func=mdp.joint_pos_rel,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=()),  # Set per-robot.
+      },
+    ),
+    "arm_vel": ObservationTermCfg(
+      func=mdp.joint_vel_rel,
+      params={"asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",))},
+    ),
+    "gripper_vel": ObservationTermCfg(
+      func=mdp.joint_vel_rel,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=()),  # Set per-robot.
+      },
+    ),
+    "ee_to_cube": ObservationTermCfg(
+      func=manipulation_mdp.ee_to_object_distance,
+      params={
+        "object_name": "cube",
+        "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
+      },
+    ),
+    "cube_to_goal": ObservationTermCfg(
+      func=manipulation_mdp.object_to_goal_distance,
+      params={
+        "object_name": "cube",
+        "command_name": "lift_height",
+      },
+    ),
+    "actions": ObservationTermCfg(func=mdp.last_action),
+    "cube_size": ObservationTermCfg(
+      func=manipulation_mdp.object_geom_size,
+      params={"object_name": "cube"},
+    ),
+  }
 
   observations = {
     "actor": ObservationGroupCfg(actor_terms, enable_corruption=True),
@@ -101,6 +161,22 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
       },
     ),
+    # # Cube size.
+    # "cube_size": EventTermCfg(
+    #   mode="startup",
+    #   func=dr.geom_size,
+    #   params={
+    #     "asset_cfg": SceneEntityCfg("cube", geom_names=("cube_geom",)),
+    #     "operation": "scale",
+    #     "distribution": "uniform",
+    #     "axes": [0, 1, 2],
+    #     "ranges": (0.8, 1.2),
+    #   },
+    # ),
+    # For randomizing gripper-object friction properties.
+    # Note that gripper fingers are given priority=1 in the asset config, hence it is
+    # sufficient to just randomize their friction properties without worrying about the
+    # object.
     "fingertip_friction_slide": EventTermCfg(
       mode="startup",
       func=dr.geom_friction,
@@ -134,6 +210,25 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "ranges": (1e-5, 5e-3),
       },
     ),
+    # Encoder noise.
+    "encoder_bias_arm": EventTermCfg(
+      mode="startup",
+      func=dr.encoder_bias,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",)),
+        "bias_range": (-0.01, 0.01),
+      },
+    ),
+    "encoder_bias_gripper": EventTermCfg(
+      mode="startup",
+      func=dr.encoder_bias,
+      params={
+        "asset_cfg": SceneEntityCfg(
+          "robot", joint_names=("left_finger", "right_finger")
+        ),
+        "bias_range": (-0.0003, 0.0003),
+      },
+    ),
   }
 
   # Collision sensor for end-effector to ground contact.
@@ -159,7 +254,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "command_name": "lift_height",
         "object_name": "cube",
         "reaching_std": 0.2,
-        "bringing_std": 0.3,
+        "bringing_std": 0.15,
         "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
       },
     ),
@@ -193,6 +288,14 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
     "ee_ground_collision": TerminationTermCfg(
       func=manipulation_mdp.illegal_contact,
       params={"sensor_name": "ee_ground_collision", "force_threshold": 10.0},
+    ),
+    "cube_out_of_bounds": TerminationTermCfg(
+      func=manipulation_mdp.object_out_of_bounds,
+      params={
+        "object_name": "cube",
+        "bounds_min": (0.0, -0.3),
+        "bounds_max": (0.5, 0.3),
+      },
     ),
   }
 
