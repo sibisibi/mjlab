@@ -66,10 +66,25 @@ DM_4310 = ElectricActuator(
   effort_limit=10.0,
 )
 
-NATURAL_FREQ = 2 * 2.0 * 3.1415926535  # 2Hz
-DAMPING_RATIO = 2.0
+# Hardware limits (12-bit encoding, all motor types).
+#   kp_hw: [0, 500],  kd_hw: [0, 5.0]
+# Real motors produce 1.3x more torque than firmware assumes.
+TORQUE_CONSTANT_CORRECTION = 1.3
+_KD_HW_MAX = {
+  "DM4340": 5.0,  # kd_sim_max = 6.50
+  "DM4310": 2.0,  # kd_sim_max = 2.60  (vibrates at 2.5)
+}
 
-# Per-joint PD gains using effective inertia, and actuator configs.
+DAMPING_RATIO = 1.0
+
+# Compliance factor: scales all joints uniformly from their hardware-max
+# frequency. At 1.0 every joint is maximally stiff (kd_hw = kd_hw_max).
+# Lower values give softer, more compliant behavior.
+COMPLIANCE = 0.7
+
+# Per-joint PD gains. Each joint's natural frequency is set by its effective
+# inertia and motor kd limit, scaled by COMPLIANCE. Heavier joints are
+# inherently slower — no clamping needed, sim = real exactly.
 _ARM_JOINTS: dict[str, ElectricActuator] = {
   "joint1": DM_4340,
   "joint2": DM_4340,
@@ -78,11 +93,35 @@ _ARM_JOINTS: dict[str, ElectricActuator] = {
   "joint5": DM_4310,
   "joint6": DM_4310,
 }
+_ARM_MOTOR_TYPE: dict[str, str] = {
+  "joint1": "DM4340",
+  "joint2": "DM4340",
+  "joint3": "DM4340",
+  "joint4": "DM4310",
+  "joint5": "DM4310",
+  "joint6": "DM4310",
+}
+
+
+MAX_FREQ = 10.0 * 2.0 * 3.1415926535  # 10 Hz cap (rad/s)
+
+
+def _arm_gains(name: str) -> tuple[float, float]:
+  """Compute (kp, kd) for an arm joint from hardware limits and compliance."""
+  m = EFFECTIVE_INERTIAS[name]
+  kd_sim_max = _KD_HW_MAX[_ARM_MOTOR_TYPE[name]] * TORQUE_CONSTANT_CORRECTION
+  omega = COMPLIANCE * kd_sim_max / (2.0 * DAMPING_RATIO * m)
+  omega = min(omega, MAX_FREQ)
+  kp = m * omega**2
+  kd = 2.0 * DAMPING_RATIO * m * omega
+  return kp, kd
+
+
 ARM_ACTUATORS = tuple(
   BuiltinPositionActuatorCfg(
     target_names_expr=(name,),
-    stiffness=EFFECTIVE_INERTIAS[name] * NATURAL_FREQ**2,
-    damping=2.0 * DAMPING_RATIO * EFFECTIVE_INERTIAS[name] * NATURAL_FREQ,
+    stiffness=_arm_gains(name)[0],
+    damping=_arm_gains(name)[1],
     effort_limit=motor.effort_limit,
     armature=motor.reflected_inertia,
   )
@@ -120,15 +159,15 @@ GRIPPER_TRANSMISSION_RATIO = GRIPPER_FINGER_STROKE / GRIPPER_MOTOR_STROKE
   transmission_ratio=GRIPPER_TRANSMISSION_RATIO,
 )
 
-# PD controller gains using effective inertia.
-NATURAL_FREQ_GRIPPER = 1.0 * 2.0 * 3.1415926535  # 1Hz
+# PD gains: kp = M_eff * omega^2, kd = 2 * zeta * M_eff * omega.
+NATURAL_FREQ_GRIPPER = 10.0 * 2.0 * 3.1415926535  # 10 Hz
 STIFFNESS_GRIPPER = EFFECTIVE_INERTIAS["left_finger"] * NATURAL_FREQ_GRIPPER**2
 DAMPING_GRIPPER = (
   2.0 * DAMPING_RATIO * EFFECTIVE_INERTIAS["left_finger"] * NATURAL_FREQ_GRIPPER
 )
 
-# Artificially limit gripper force for sim stability (must also be done on hardware).
-GRIPPER_EFFORT_LIMIT_SAFE = GRIPPER_EFFORT_LIMIT * 0.3
+# Limit gripper force to protect 3D printed tips.
+GRIPPER_EFFORT_LIMIT_SAFE = 150.0  # N
 
 # Only actuate left_finger; right_finger is coupled via equality constraint.
 GRIPPER_ACTUATOR = BuiltinPositionActuatorCfg(
