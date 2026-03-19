@@ -557,6 +557,7 @@ document.write(`
       <span class="k">def</span><span class="w"> </span><span class="nf">_debug_viz_extra</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">create_debug_vis_gui</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_sensor_debug_vis_gui</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_reward_debug_vis_gui</span><span class="p">()</span>
 
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Scene&quot;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">create_visualization_gui</span><span class="p">(</span>
@@ -646,6 +647,20 @@ document.write(`
       <span class="k">def</span><span class="w"> </span><span class="nf">_on_update</span><span class="p">(</span><span class="n">_ev</span><span class="p">,</span> <span class="n">_s</span><span class="o">=</span><span class="n">sensor</span><span class="p">,</span> <span class="n">_cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_s</span><span class="o">.</span><span class="n">_debug_vis_enabled</span> <span class="o">=</span> <span class="n">_cb</span><span class="o">.</span><span class="n">value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">needs_update</span> <span class="o">=</span> <span class="kc">True</span>
+
+      <span class="n">cb</span><span class="o">.</span><span class="n">on_update</span><span class="p">(</span><span class="n">_on_update</span><span class="p">)</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">_create_reward_debug_vis_gui</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add per-reward debug visualization checkboxes.&quot;&quot;&quot;</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">unwrapped</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">reward_manager</span><span class="o">.</span><span class="n">get_visualizable_terms</span><span class="p">():</span>
+      <span class="n">cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_checkbox</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">initial_value</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="n">_debug_vis_enabled</span><span class="p">,</span>
+      <span class="p">)</span>
+
+      <span class="k">def</span><span class="w"> </span><span class="nf">_on_update</span><span class="p">(</span><span class="n">_ev</span><span class="p">,</span> <span class="n">_f</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">_cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_f</span><span class="o">.</span><span class="n">_debug_vis_enabled</span> <span class="o">=</span> <span class="n">_cb</span><span class="o">.</span><span class="n">value</span>
 
       <span class="n">cb</span><span class="o">.</span><span class="n">on_update</span><span class="p">(</span><span class="n">_on_update</span><span class="p">)</span>
 
