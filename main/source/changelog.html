@@ -631,6 +631,11 @@ per-site raycasting with independent body exclusion. New properties:
 <code class="docutils literal notranslate"><span class="pre">frame_pos_w</span></code> and <code class="docutils literal notranslate"><span class="pre">frame_quat_w</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">RingPatternCfg</span></code> ray pattern for concentric ring sampling around each
 frame.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TerrainHeightSensor</span></code>, a <code class="docutils literal notranslate"><span class="pre">RayCastSensor</span></code> subclass that computes
+per-frame vertical clearance above terrain (<code class="docutils literal notranslate"><span class="pre">sensor.data.heights</span></code>).
+Velocity task configs now use it for <code class="docutils literal notranslate"><span class="pre">feet_clearance</span></code>,
+<code class="docutils literal notranslate"><span class="pre">feet_swing_height</span></code>, and <code class="docutils literal notranslate"><span class="pre">foot_height</span></code>, replacing the previous
+world-Z proxy that was incorrect on rough terrain.</p></li>
 <li><p>Cloud training support via <a class="reference external" href="https://skypilot.readthedocs.io/">SkyPilot</a>
 and Lambda Cloud, with documentation covering setup, monitoring, and
 cost management.</p></li>
