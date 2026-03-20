@@ -123,6 +123,8 @@ def yam_lift_cube_fixed_env_cfg(
     z=(0.02, 0.02),
     yaw=(-3.14, 3.14),
   )
+  # One goal per episode (no resampling during the episode).
+  lift_cmd.resampling_time_range = (1e9, 1e9)
 
   # Replace ee_to_cube / cube_to_goal with goal_position.
   actor_obs = cfg.observations["actor"]
