@@ -38,7 +38,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "biased": True,
         "asset_cfg": SceneEntityCfg("robot", joint_names=()),  # Set per-robot.
       },
-      noise=Unoise(n_min=-0.002, n_max=0.002),
+      noise=Unoise(n_min=-0.005, n_max=0.005),
     ),
     "arm_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
@@ -265,7 +265,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "asset_cfg": SceneEntityCfg(
           "robot", joint_names=("left_finger", "right_finger")
         ),
-        "bias_range": (-0.002, 0.002),
+        "bias_range": (-0.005, 0.005),
       },
     ),
   }
@@ -346,6 +346,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "stages": [
           {"step": 0, "weight": -0.01},
           {"step": 500 * 24, "weight": -1.0},
+          {"step": 1000 * 24, "weight": -5.0},
         ],
       },
     ),
