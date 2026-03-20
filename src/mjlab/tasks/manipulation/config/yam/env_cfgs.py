@@ -138,6 +138,10 @@ def yam_lift_cube_fixed_env_cfg(
     },
   )
 
+  # Remove gripper obs — suspected OOD on real hardware.
+  actor_obs.terms.pop("gripper_pos")
+  actor_obs.terms.pop("gripper_vel")
+
   return cfg
 
 
@@ -301,6 +305,10 @@ def yam_lift_cube_vision_env_cfg(
   actor_obs = cfg.observations["actor"]
   actor_obs.terms.pop("ee_to_cube")
   actor_obs.terms.pop("cube_to_goal")
+
+  # Remove gripper obs — OOD on real hardware (finger compliance).
+  actor_obs.terms.pop("gripper_pos")
+  actor_obs.terms.pop("gripper_vel")
 
   # Add goal_position to actor observations.
   actor_obs.terms["goal_position"] = ObservationTermCfg(

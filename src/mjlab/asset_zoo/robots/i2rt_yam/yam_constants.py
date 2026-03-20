@@ -272,6 +272,11 @@ for a in ARTICULATION.actuators:
     print(f"joint {n}: stiffness={s:.1f}, damping={a.damping:.1f}")
     YAM_ACTION_SCALE[n] = 0.25 * e / s
 
+# Override gripper action scale: the formula gives 0.000368 (too small,
+# needs raw actions of ±65 for full range). 0.01 lets ±2.4 cover
+# the full 0-0.0475m range.
+YAM_ACTION_SCALE["left_finger"] = 0.01
+
 
 if __name__ == "__main__":
   import mujoco.viewer as viewer
