@@ -8,7 +8,7 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.envs.mdp.actions import JointPositionAction
 
 
-def list_to_csv_str(arr, *, decimals: int = 3, delimiter: str = ",") -> str:
+def list_to_csv_str(arr, *, decimals: int = 6, delimiter: str = ",") -> str:
   """Convert list to CSV string with specified decimal precision."""
   fmt = f"{{:.{decimals}f}}"
   return delimiter.join(

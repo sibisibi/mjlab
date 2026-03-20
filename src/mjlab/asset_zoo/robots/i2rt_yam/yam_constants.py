@@ -167,7 +167,7 @@ DAMPING_GRIPPER = (
 )
 
 # Limit gripper force to protect 3D printed tips.
-GRIPPER_EFFORT_LIMIT_SAFE = 150.0  # N
+GRIPPER_EFFORT_LIMIT_SAFE = 50.0  # N
 
 # Only actuate left_finger; right_finger is coupled via equality constraint.
 GRIPPER_ACTUATOR = BuiltinPositionActuatorCfg(

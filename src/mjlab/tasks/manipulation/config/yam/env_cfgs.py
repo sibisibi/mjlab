@@ -19,6 +19,7 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import CameraSensorCfg, ContactSensorCfg
 from mjlab.tasks.manipulation import mdp as manipulation_mdp
 from mjlab.tasks.manipulation.lift_cube_env_cfg import make_lift_cube_env_cfg
+from mjlab.tasks.manipulation.mdp.commands import LiftingCommandCfg
 from mjlab.terrains.terrain_entity import TerrainEntityCfg
 from mjlab.utils.noise import RgbAugmentationCfg
 
@@ -98,6 +99,42 @@ def yam_lift_cube_env_cfg(
     # Higher command resampling frequency for more dynamic play.
     assert cfg.commands is not None
     cfg.commands["lift_height"].resampling_time_range = (4.0, 4.0)
+
+  return cfg
+
+
+def yam_lift_cube_fixed_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Lift cube with no camera, fixed cube position, randomized goal height.
+
+  For sim2real debugging: if this transfers, the joint-level pipeline is
+  correct and the remaining gap is visual.
+  """
+  cfg = yam_lift_cube_env_cfg(play=play)
+
+  # Restrict cube spawn to a tight box + yaw only.
+  assert cfg.commands is not None
+  lift_cmd = cfg.commands["lift_height"]
+  assert isinstance(lift_cmd, LiftingCommandCfg)
+  lift_cmd.object_pose_range = LiftingCommandCfg.ObjectPoseRangeCfg(
+    x=(0.29, 0.31),
+    y=(-0.005, 0.005),
+    z=(0.02, 0.02),
+    yaw=(-3.14, 3.14),
+  )
+
+  # Replace ee_to_cube / cube_to_goal with goal_position.
+  actor_obs = cfg.observations["actor"]
+  actor_obs.terms.pop("ee_to_cube")
+  actor_obs.terms.pop("cube_to_goal")
+  actor_obs.terms["goal_position"] = ObservationTermCfg(
+    func=manipulation_mdp.target_position,
+    params={
+      "command_name": "lift_height",
+      "asset_cfg": SceneEntityCfg("robot", site_names=("grasp_site",)),
+    },
+  )
 
   return cfg
 
