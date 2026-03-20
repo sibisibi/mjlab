@@ -210,16 +210,31 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "ranges": (1e-5, 5e-3),
       },
     ),
-    # Joint stiction (Coulomb friction). Measured range on real hardware:
-    # DM4340 (joints 1-3): 0.2-2.3 Nm, DM4310 (joints 4-6): 0.2-0.3 Nm.
-    "joint_friction_arm": EventTermCfg(
+    # Joint stiction (Coulomb friction). 20% of effort limit per motor type.
+    # DM4340 (joints 1-3): 0.2 * 28 = 5.6 Nm
+    # DM4310 (joints 4-6): 0.2 * 10 = 2.0 Nm
+    "joint_friction_4340": EventTermCfg(
       mode="startup",
       func=dr.dof_frictionloss,
       params={
-        "asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",)),
+        "asset_cfg": SceneEntityCfg(
+          "robot", joint_names=("joint1", "joint2", "joint3")
+        ),
         "operation": "abs",
         "distribution": "uniform",
-        "ranges": (0.0, 3.0),
+        "ranges": (0.0, 5.6),
+      },
+    ),
+    "joint_friction_4310": EventTermCfg(
+      mode="startup",
+      func=dr.dof_frictionloss,
+      params={
+        "asset_cfg": SceneEntityCfg(
+          "robot", joint_names=("joint4", "joint5", "joint6")
+        ),
+        "operation": "abs",
+        "distribution": "uniform",
+        "ranges": (0.0, 2.0),
       },
     ),
     # Encoder noise.
