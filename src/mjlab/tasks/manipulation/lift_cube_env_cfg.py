@@ -38,7 +38,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "biased": True,
         "asset_cfg": SceneEntityCfg("robot", joint_names=()),  # Set per-robot.
       },
-      noise=Unoise(n_min=-0.0003, n_max=0.0003),
+      noise=Unoise(n_min=-0.002, n_max=0.002),
     ),
     "arm_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
@@ -210,6 +210,18 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "ranges": (1e-5, 5e-3),
       },
     ),
+    # Joint stiction (Coulomb friction). Measured range on real hardware:
+    # DM4340 (joints 1-3): 0.2-2.3 Nm, DM4310 (joints 4-6): 0.2-0.3 Nm.
+    "joint_friction_arm": EventTermCfg(
+      mode="startup",
+      func=dr.dof_frictionloss,
+      params={
+        "asset_cfg": SceneEntityCfg("robot", joint_names=("joint.*",)),
+        "operation": "abs",
+        "distribution": "uniform",
+        "ranges": (0.0, 3.0),
+      },
+    ),
     # Encoder noise.
     "encoder_bias_arm": EventTermCfg(
       mode="startup",
@@ -219,6 +231,18 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "bias_range": (-0.01, 0.01),
       },
     ),
+    "joint_friction_gripper": EventTermCfg(
+      mode="startup",
+      func=dr.dof_frictionloss,
+      params={
+        "asset_cfg": SceneEntityCfg(
+          "robot", joint_names=("left_finger", "right_finger")
+        ),
+        "operation": "abs",
+        "distribution": "uniform",
+        "ranges": (0.0, 15.0),
+      },
+    ),
     "encoder_bias_gripper": EventTermCfg(
       mode="startup",
       func=dr.encoder_bias,
@@ -226,7 +250,7 @@ def make_lift_cube_env_cfg() -> ManagerBasedRlEnvCfg:
         "asset_cfg": SceneEntityCfg(
           "robot", joint_names=("left_finger", "right_finger")
         ),
-        "bias_range": (-0.0003, 0.0003),
+        "bias_range": (-0.002, 0.002),
       },
     ),
   }
