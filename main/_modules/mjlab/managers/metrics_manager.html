@@ -423,9 +423,16 @@ document.write(`
 <a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.MetricsTermCfg">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MetricsTermCfg</span><span class="p">(</span><span class="n">ManagerTermBaseCfg</span><span class="p">):</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Configuration for a metrics term.&quot;&quot;&quot;</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Configuration for a metrics term.</span>
 
-  <span class="k">pass</span></div>
+<span class="sd">  Attributes:</span>
+<span class="sd">    per_substep: If True, evaluate this term once per physics substep inside the</span>
+<span class="sd">    decimation loop and report the per-step mean. Only the integrated state</span>
+<span class="sd">    (qpos, qvel, act) is current mid-loop; all derived quantities (xpos, xquat,</span>
+<span class="sd">    site_xpos, actuator_force, contacts, ...) are stale.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">per_substep</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 
@@ -448,6 +455,8 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_term_cfgs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MetricsTermCfg</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_class_term_cfgs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MetricsTermCfg</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_step_term_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
@@ -457,6 +466,16 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">_episode_sums</span><span class="p">[</span><span class="n">term_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
       <span class="p">)</span>
+    <span class="c1"># Pre-resolved tensor refs for substep terms to avoid dict lookups in</span>
+    <span class="c1"># the hot loop.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_substep_accum</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_substep_episode_sums</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span><span class="p">:</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="n">buf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_substep_accum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_substep_episode_sums</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_episode_sums</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_substep_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_count</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
       <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
@@ -499,19 +518,43 @@ document.write(`
       <span class="n">extras</span><span class="p">[</span><span class="s2">&quot;Episode_Metrics/&quot;</span> <span class="o">+</span> <span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">episode_avg</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_episode_sums</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">env_ids</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_count</span><span class="p">[</span><span class="n">env_ids</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">buf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_accum</span><span class="p">:</span>
+      <span class="n">buf</span><span class="p">[</span><span class="n">env_ids</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">for</span> <span class="n">term_cfg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_class_term_cfgs</span><span class="p">:</span>
       <span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">env_ids</span><span class="o">=</span><span class="n">env_ids</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">extras</span></div>
 
 
+<div class="viewcode-block" id="MetricsManager.compute_substep">
+<a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.MetricsManager.compute_substep">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">compute_substep</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Accumulate per-substep metric values inside the decimation loop.</span>
+
+<span class="sd">    No-op when no ``per_substep`` terms are configured.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span><span class="p">):</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_cfgs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_term_cfgs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_substep_accum</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_substep_count</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+
   <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_count</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="k">for</span> <span class="n">term_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">term_cfg</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
-      <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_cfgs</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span><span class="p">):</span>
+        <span class="n">avg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_accum</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_substep_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_substep_episode_sums</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">avg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_step_values</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">avg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_substep_accum</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_substep_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_term_indices</span><span class="p">:</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="n">term_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_term_cfgs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
       <span class="n">value</span> <span class="o">=</span> <span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="p">,</span> <span class="o">**</span><span class="n">term_cfg</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_episode_sums</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_step_values</span><span class="p">[:,</span> <span class="n">term_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_step_values</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">get_active_iterable_terms</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span> <span class="n">env_idx</span><span class="p">:</span> <span class="nb">int</span>
@@ -528,8 +571,13 @@ document.write(`
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;term: </span><span class="si">{</span><span class="n">term_name</span><span class="si">}</span><span class="s2"> set to None, skipping...&quot;</span><span class="p">)</span>
         <span class="k">continue</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_common_term_cfg</span><span class="p">(</span><span class="n">term_name</span><span class="p">,</span> <span class="n">term_cfg</span><span class="p">)</span>
+      <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_term_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term_name</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_term_cfgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term_cfg</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">term_cfg</span><span class="o">.</span><span class="n">per_substep</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_substep_term_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_step_term_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
       <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="s2">&quot;reset&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">term_cfg</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">reset</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_class_term_cfgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">term_cfg</span><span class="p">)</span></div>
 
@@ -560,6 +608,9 @@ document.write(`
 
   <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
     <span class="k">return</span> <span class="p">{}</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">compute_substep</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">pass</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">pass</span></div>

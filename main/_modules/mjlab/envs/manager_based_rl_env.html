@@ -792,6 +792,7 @@ document.write(`
       <span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">write_data_to_sim</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_dt</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">metrics_manager</span><span class="o">.</span><span class="n">compute_substep</span><span class="p">()</span>
 
     <span class="c1"># Update env counters.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">episode_length_buf</span> <span class="o">+=</span> <span class="mi">1</span>
