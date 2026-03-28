@@ -59,7 +59,7 @@
     <link rel="prev" title="mjlab.actuator" href="actuator.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 24, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 28, 2026"/>
   </head>
   
   
@@ -479,6 +479,7 @@ document.write(`
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg"><code class="docutils literal notranslate"><span class="pre">SensorCfg</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg.name"><code class="docutils literal notranslate"><span class="pre">SensorCfg.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg.prefixed_name"><code class="docutils literal notranslate"><span class="pre">SensorCfg.prefixed_name</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg.build"><code class="docutils literal notranslate"><span class="pre">SensorCfg.build()</span></code></a></li>
 </ul>
 </li>
@@ -507,6 +508,7 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.obj"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.obj</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.ref"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.ref</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.cutoff"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.cutoff</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.prefixed_name"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.prefixed_name</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.build"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.build()</span></code></a></li>
 </ul>
 </li>
@@ -834,6 +836,12 @@ debug visualization.</p>
 <span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#mjlab.sensor.SensorCfg.name" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.sensor.SensorCfg.prefixed_name">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prefixed_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#mjlab.sensor.SensorCfg.prefixed_name" title="Link to this definition">#</a></dt>
+<dd><p>The sensor name as it appears in the MuJoCo model.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="mjlab.sensor.SensorCfg.build">
 <em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#mjlab.sensor.Sensor" title="mjlab.sensor.sensor.Sensor"><span class="pre">Sensor</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/mjlab/sensor/sensor.html#SensorCfg.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.sensor.SensorCfg.build" title="Link to this definition">#</a></dt>
@@ -996,6 +1004,12 @@ is ready to run. Use this to cache sensor indices, allocate buffers, etc.</p>
 <dt class="sig sig-object py" id="mjlab.sensor.BuiltinSensorCfg.cutoff">
 <span class="sig-name descname"><span class="pre">cutoff</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#mjlab.sensor.BuiltinSensorCfg.cutoff" title="Link to this definition">#</a></dt>
 <dd><p>When this value is positive, it limits the absolute value of the sensor output.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="mjlab.sensor.BuiltinSensorCfg.prefixed_name">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">prefixed_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><a class="headerlink" href="#mjlab.sensor.BuiltinSensorCfg.prefixed_name" title="Link to this definition">#</a></dt>
+<dd><p>The sensor name with entity prefix if applicable.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1999,6 +2013,7 @@ enabled.</p>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg"><code class="docutils literal notranslate"><span class="pre">SensorCfg</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg.name"><code class="docutils literal notranslate"><span class="pre">SensorCfg.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg.prefixed_name"><code class="docutils literal notranslate"><span class="pre">SensorCfg.prefixed_name</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.SensorCfg.build"><code class="docutils literal notranslate"><span class="pre">SensorCfg.build()</span></code></a></li>
 </ul>
 </li>
@@ -2027,6 +2042,7 @@ enabled.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.obj"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.obj</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.ref"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.ref</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.cutoff"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.cutoff</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.prefixed_name"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.prefixed_name</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.sensor.BuiltinSensorCfg.build"><code class="docutils literal notranslate"><span class="pre">BuiltinSensorCfg.build()</span></code></a></li>
 </ul>
 </li>
@@ -2225,7 +2241,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 24, 2026.
+  Last updated on Mar 28, 2026.
   <br/>
 </p>
   </div>
