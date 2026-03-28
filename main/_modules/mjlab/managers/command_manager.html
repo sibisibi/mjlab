@@ -600,7 +600,11 @@ document.write(`
 
 <div class="viewcode-block" id="CommandManager.create_debug_vis_gui">
 <a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandManager.create_debug_vis_gui">[docs]</a>
-  <span class="k">def</span><span class="w"> </span><span class="nf">create_debug_vis_gui</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">create_debug_vis_gui</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add per-term debug visualization checkboxes.&quot;&quot;&quot;</span>
     <span class="n">vis_terms</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">term</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terms</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">term</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">debug_vis</span><span class="p">}</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">vis_terms</span><span class="p">:</span>
@@ -613,6 +617,8 @@ document.write(`
 
       <span class="k">def</span><span class="w"> </span><span class="nf">_on_update</span><span class="p">(</span><span class="n">_ev</span><span class="p">,</span> <span class="n">_term</span><span class="p">:</span> <span class="n">CommandTerm</span> <span class="o">=</span> <span class="n">term</span><span class="p">,</span> <span class="n">_cb</span><span class="o">=</span><span class="n">cb</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_term</span><span class="o">.</span><span class="n">_debug_vis_enabled</span> <span class="o">=</span> <span class="n">_cb</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="n">on_change</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">on_change</span><span class="p">()</span>
 
       <span class="n">cb</span><span class="o">.</span><span class="n">on_update</span><span class="p">(</span><span class="n">_on_update</span><span class="p">)</span></div>
 
@@ -701,7 +707,11 @@ document.write(`
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">pass</span>
 
-  <span class="k">def</span><span class="w"> </span><span class="nf">create_debug_vis_gui</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">create_debug_vis_gui</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">pass</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">get_active_iterable_terms</span><span class="p">(</span>
