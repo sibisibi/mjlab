@@ -434,8 +434,14 @@ document.write(`
 
 <span class="sd">  ``None`` means deterministic output (use for critic).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">rnn_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;RNN type (&quot;lstm&quot; or &quot;gru&quot;). When set, class_name should be &quot;RNNModel&quot;.&quot;&quot;&quot;</span>
+  <span class="n">rnn_hidden_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Hidden state dimension for the RNN.&quot;&quot;&quot;</span>
+  <span class="n">rnn_num_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Number of stacked RNN layers.&quot;&quot;&quot;</span>
   <span class="n">class_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;MLPModel&quot;</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Model class name resolved by RSL-RL (MLPModel or CNNModel).&quot;&quot;&quot;</span></div>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Model class name resolved by RSL-RL (MLPModel, CNNModel, or RNNModel).&quot;&quot;&quot;</span></div>
 
 
 

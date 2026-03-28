@@ -512,6 +512,9 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.obs_normalization"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.obs_normalization</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.cnn_cfg"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.cnn_cfg</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.distribution_cfg"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.distribution_cfg</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.rnn_type"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.rnn_type</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.rnn_hidden_dim"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.rnn_hidden_dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.rnn_num_layers"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.rnn_num_layers</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.class_name"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.class_name</span></code></a></li>
 </ul>
 </li>
@@ -794,9 +797,27 @@ kernel_size, stride, padding, activation, global_pool, max_pool.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.rl.RslRlModelCfg.rnn_type">
+<span class="sig-name descname"><span class="pre">rnn_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.rl.RslRlModelCfg.rnn_type" title="Link to this definition">#</a></dt>
+<dd><p>RNN type (“lstm” or “gru”). When set, class_name should be “RNNModel”.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.rl.RslRlModelCfg.rnn_hidden_dim">
+<span class="sig-name descname"><span class="pre">rnn_hidden_dim</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></em><a class="headerlink" href="#mjlab.rl.RslRlModelCfg.rnn_hidden_dim" title="Link to this definition">#</a></dt>
+<dd><p>Hidden state dimension for the RNN.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.rl.RslRlModelCfg.rnn_num_layers">
+<span class="sig-name descname"><span class="pre">rnn_num_layers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#mjlab.rl.RslRlModelCfg.rnn_num_layers" title="Link to this definition">#</a></dt>
+<dd><p>Number of stacked RNN layers.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.rl.RslRlModelCfg.class_name">
 <span class="sig-name descname"><span class="pre">class_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'MLPModel'</span></em><a class="headerlink" href="#mjlab.rl.RslRlModelCfg.class_name" title="Link to this definition">#</a></dt>
-<dd><p>Model class name resolved by RSL-RL (MLPModel or CNNModel).</p>
+<dd><p>Model class name resolved by RSL-RL (MLPModel, CNNModel, or RNNModel).</p>
 </dd></dl>
 
 </dd></dl>
@@ -991,6 +1012,9 @@ False to keep metric logging but avoid storage usage. Default is True.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.obs_normalization"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.obs_normalization</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.cnn_cfg"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.cnn_cfg</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.distribution_cfg"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.distribution_cfg</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.rnn_type"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.rnn_type</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.rnn_hidden_dim"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.rnn_hidden_dim</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.rnn_num_layers"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.rnn_num_layers</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.rl.RslRlModelCfg.class_name"><code class="docutils literal notranslate"><span class="pre">RslRlModelCfg.class_name</span></code></a></li>
 </ul>
 </li>
