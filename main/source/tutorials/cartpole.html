@@ -553,7 +553,7 @@ state.</p>
 
 <span class="c1"># Tell mjlab to use the motor defined in the XML as is.</span>
 <span class="n">_CARTPOLE_ARTICULATION</span> <span class="o">=</span> <span class="n">EntityArticulationInfoCfg</span><span class="p">(</span>
-    <span class="n">actuators</span><span class="o">=</span><span class="p">(</span><span class="n">XmlMotorActuatorCfg</span><span class="p">(</span><span class="n">target_names_expr</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;slider&quot;</span><span class="p">,)),),</span>
+    <span class="n">actuators</span><span class="o">=</span><span class="p">(</span><span class="n">XmlActuatorCfg</span><span class="p">(</span><span class="n">target_names_expr</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;slider&quot;</span><span class="p">,)),),</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -705,7 +705,7 @@ you can give the critic clean observations
 <h3>Actions: what the agent does<a class="headerlink" href="#actions-what-the-agent-does" title="Link to this heading">#</a></h3>
 <p>The agent outputs a single scalar: the force on the cart.
 <code class="docutils literal notranslate"><span class="pre">JointEffortActionCfg</span></code> writes the policy output to the actuator’s
-effort target. The <code class="docutils literal notranslate"><span class="pre">XmlMotorActuator</span></code> passes it to MuJoCo’s <code class="docutils literal notranslate"><span class="pre">ctrl</span></code>
+effort target. The <code class="docutils literal notranslate"><span class="pre">XmlActuator</span></code> passes it to MuJoCo’s <code class="docutils literal notranslate"><span class="pre">ctrl</span></code>
 buffer, which clamps it to [-1, 1] and multiplies by the gear ratio:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">actions</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;effort&quot;</span><span class="p">:</span> <span class="n">JointEffortActionCfg</span><span class="p">(</span>

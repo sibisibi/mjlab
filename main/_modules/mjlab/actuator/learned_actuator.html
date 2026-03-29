@@ -545,6 +545,7 @@ document.write(`
 <span class="sd">    Args:</span>
 <span class="sd">      env_ids: Environment indices to reset. If None, reset all environments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pos_error_history</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vel_history</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 

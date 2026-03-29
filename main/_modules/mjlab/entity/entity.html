@@ -417,7 +417,6 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab</span><span class="w"> </span><span class="kn">import</span> <span class="n">actuator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">BuiltinActuatorGroup</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransmissionType</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.delayed_builtin_group</span><span class="w"> </span><span class="kn">import</span> <span class="n">DelayedBuiltinActuatorGroup</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.xml_actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">XmlActuator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">EntityData</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">spec_config</span> <span class="k">as</span> <span class="n">spec_cfg</span>
@@ -603,27 +602,75 @@ document.write(`
     <span class="c1"># Collect actuator instances and their targets.</span>
     <span class="n">pending</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">actuator</span><span class="o">.</span><span class="n">ActuatorCfg</span><span class="p">,</span> <span class="n">actuator</span><span class="o">.</span><span class="n">Actuator</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">actuator_cfg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">articulation</span><span class="o">.</span><span class="n">actuators</span><span class="p">:</span>
-      <span class="c1"># Find targets based on transmission type.</span>
-      <span class="k">if</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span> <span class="o">==</span> <span class="n">TransmissionType</span><span class="o">.</span><span class="n">JOINT</span><span class="p">:</span>
-        <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_joints</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">)</span>
-        <span class="n">target_spec_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_non_free_joints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_ids</span><span class="p">]</span>
-      <span class="k">elif</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span> <span class="o">==</span> <span class="n">TransmissionType</span><span class="o">.</span><span class="n">TENDON</span><span class="p">:</span>
-        <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_tendons</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">)</span>
-        <span class="n">target_spec_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">tendons</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_ids</span><span class="p">]</span>
-      <span class="k">elif</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span> <span class="o">==</span> <span class="n">TransmissionType</span><span class="o">.</span><span class="n">SITE</span><span class="p">:</span>
-        <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sites</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">)</span>
-        <span class="n">target_spec_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_ids</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="sa">f</span><span class="s2">&quot;Invalid transmission_type: </span><span class="si">{</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span><span class="si">}</span><span class="s2">. &quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;Must be TransmissionType.JOINT, TransmissionType.TENDON, or TransmissionType.SITE.&quot;</span>
-        <span class="p">)</span>
+      <span class="c1"># Find targets based on transmission type. resolve_matching_names raises</span>
+      <span class="c1"># ValueError when no regex matches; we catch that to produce a better error with</span>
+      <span class="c1"># namespace hints below.</span>
+      <span class="n">target_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">target_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">target_spec_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span> <span class="o">==</span> <span class="n">TransmissionType</span><span class="o">.</span><span class="n">JOINT</span><span class="p">:</span>
+          <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_joints</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">)</span>
+          <span class="n">target_spec_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_non_free_joints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_ids</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span> <span class="o">==</span> <span class="n">TransmissionType</span><span class="o">.</span><span class="n">TENDON</span><span class="p">:</span>
+          <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_tendons</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">)</span>
+          <span class="n">target_spec_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">tendons</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_ids</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span> <span class="o">==</span> <span class="n">TransmissionType</span><span class="o">.</span><span class="n">SITE</span><span class="p">:</span>
+          <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_sites</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">)</span>
+          <span class="n">target_spec_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">sites</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_ids</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Invalid transmission_type: </span><span class="si">{</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span><span class="si">}</span><span class="s2">. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Must be TransmissionType.JOINT, TransmissionType.TENDON, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;or TransmissionType.SITE.&quot;</span>
+          <span class="p">)</span>
+      <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">pass</span>  <span class="c1"># target_names stays empty, fall through to hint logic</span>
+
+      <span class="c1"># Check other namespaces for matches. If we found nothing, this produces a</span>
+      <span class="c1"># helpful error. If we did find targets, it warns about unactuated matches in</span>
+      <span class="c1"># other namespaces.</span>
+      <span class="n">current</span> <span class="o">=</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span>
+      <span class="n">other_matches</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">TransmissionType</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="n">other_namespaces</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">TransmissionType</span><span class="o">.</span><span class="n">JOINT</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;joint&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_names</span><span class="p">),</span>
+        <span class="n">TransmissionType</span><span class="o">.</span><span class="n">TENDON</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;tendon&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tendon_names</span><span class="p">),</span>
+        <span class="n">TransmissionType</span><span class="o">.</span><span class="n">SITE</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;site&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">site_names</span><span class="p">),</span>
+      <span class="p">}</span>
+      <span class="k">for</span> <span class="n">tt</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span> <span class="ow">in</span> <span class="n">other_namespaces</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">tt</span> <span class="o">==</span> <span class="n">current</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">names</span><span class="p">:</span>
+          <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">_</span><span class="p">,</span> <span class="n">matched</span> <span class="o">=</span> <span class="n">resolve_matching_names</span><span class="p">(</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+          <span class="n">other_matches</span><span class="p">[</span><span class="n">tt</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">matched</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+          <span class="k">pass</span>
 
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="sa">f</span><span class="s2">&quot;No </span><span class="si">{</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">transmission_type</span><span class="si">}</span><span class="s2">s found for actuator with &quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;expressions: </span><span class="si">{</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;No </span><span class="si">{</span><span class="n">current</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">s matched expressions: </span><span class="si">{</span><span class="n">actuator_cfg</span><span class="o">.</span><span class="n">target_names_expr</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">other_matches</span><span class="p">:</span>
+          <span class="n">hints</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">s (</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">matched</span> <span class="ow">in</span> <span class="n">other_matches</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+          <span class="p">]</span>
+          <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;. Matches were found in: </span><span class="si">{</span><span class="s1">&#39;; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hints</span><span class="p">)</span><span class="si">}</span><span class="s2">. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Check that transmission_type is correct.&quot;</span>
+          <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">tt</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">matched</span><span class="p">)</span> <span class="ow">in</span> <span class="n">other_matches</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;Actuator config matched </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">target_names</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">current</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">(s) &quot;</span>
+          <span class="sa">f</span><span class="s2">&quot;but the same expressions also match </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">(s): &quot;</span>
+          <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span><span class="si">}</span><span class="s2">. Add a separate config with &quot;</span>
+          <span class="sa">f</span><span class="s2">&quot;transmission_type=TransmissionType.</span><span class="si">{</span><span class="n">tt</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> if those should &quot;</span>
+          <span class="sa">f</span><span class="s2">&quot;be actuated too.&quot;</span><span class="p">,</span>
+          <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+
       <span class="n">actuator_instance</span> <span class="o">=</span> <span class="n">actuator_cfg</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">target_names</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_actuators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">actuator_instance</span><span class="p">)</span>
       <span class="n">pending</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">actuator_cfg</span><span class="p">,</span> <span class="n">actuator_instance</span><span class="p">,</span> <span class="n">target_spec_names</span><span class="p">))</span>
@@ -1011,12 +1058,8 @@ document.write(`
 
     <span class="c1"># Vectorize built-in actuators; we&#39;ll loop through custom ones.</span>
     <span class="n">builtin_group</span><span class="p">,</span> <span class="n">custom_actuators</span> <span class="o">=</span> <span class="n">BuiltinActuatorGroup</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_actuators</span><span class="p">)</span>
-    <span class="n">delayed_builtin_group</span><span class="p">,</span> <span class="n">custom_actuators</span> <span class="o">=</span> <span class="n">DelayedBuiltinActuatorGroup</span><span class="o">.</span><span class="n">process</span><span class="p">(</span>
-      <span class="n">custom_actuators</span>
-    <span class="p">)</span>
-    <span class="n">delayed_builtin_group</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="n">builtin_group</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_builtin_group</span> <span class="o">=</span> <span class="n">builtin_group</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_builtin_group</span> <span class="o">=</span> <span class="n">delayed_builtin_group</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_custom_actuators</span> <span class="o">=</span> <span class="n">custom_actuators</span>
 
     <span class="c1"># Root state.</span>
@@ -1665,9 +1708,9 @@ document.write(`
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_apply_actuator_controls</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_builtin_group</span><span class="o">.</span><span class="n">apply_controls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_delayed_builtin_group</span><span class="o">.</span><span class="n">apply_controls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">act</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_custom_actuators</span><span class="p">:</span>
       <span class="n">command</span> <span class="o">=</span> <span class="n">act</span><span class="o">.</span><span class="n">get_command</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+      <span class="n">command</span> <span class="o">=</span> <span class="n">act</span><span class="o">.</span><span class="n">apply_delay</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">write_ctrl</span><span class="p">(</span><span class="n">act</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">command</span><span class="p">),</span> <span class="n">act</span><span class="o">.</span><span class="n">ctrl_ids</span><span class="p">)</span></div>
 
 </pre></div>

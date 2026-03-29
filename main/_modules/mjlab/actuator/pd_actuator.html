@@ -413,7 +413,7 @@ document.write(`
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco_warp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mjwarp</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span><span class="p">,</span> <span class="n">ActuatorCfg</span><span class="p">,</span> <span class="n">ActuatorCmd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.actuator.actuator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Actuator</span><span class="p">,</span> <span class="n">ActuatorCfg</span><span class="p">,</span> <span class="n">ActuatorCmd</span><span class="p">,</span> <span class="n">CommandField</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_motor_actuator</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -449,6 +449,10 @@ document.write(`
 <a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.IdealPdActuator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">IdealPdActuator</span><span class="p">(</span><span class="n">Actuator</span><span class="p">,</span> <span class="n">Generic</span><span class="p">[</span><span class="n">IdealPdCfgT</span><span class="p">]):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Ideal PD control actuator.&quot;&quot;&quot;</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">command_field</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandField</span><span class="p">:</span>
+    <span class="k">return</span> <span class="s2">&quot;position&quot;</span>
 
 <div class="viewcode-block" id="IdealPdActuator.__init__">
 <a class="viewcode-back" href="../../../source/api/actuator.html#mjlab.actuator.IdealPdActuator.__init__">[docs]</a>

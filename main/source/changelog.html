@@ -519,8 +519,6 @@ BeyondMimic repository, which produced incompatible NPZ files when used
 with mjlab (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/777">#777</a>).</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">margin</span></code>, <code class="docutils literal notranslate"><span class="pre">gap</span></code>, and <code class="docutils literal notranslate"><span class="pre">solmix</span></code> fields to <code class="docutils literal notranslate"><span class="pre">CollisionCfg</span></code>
 for per geom contact parameter configuration (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/766">#766</a>).</p></li>
-<li><p>Added <code class="docutils literal notranslate"><span class="pre">DelayedBuiltinActuatorGroup</span></code> that fuses delayed builtin actuators
-sharing the same delay configuration into a single buffer operation.</p></li>
 <li><p>NaN guard now captures mocap body poses (<code class="docutils literal notranslate"><span class="pre">mocap_pos</span></code>, <code class="docutils literal notranslate"><span class="pre">mocap_quat</span></code>)
 when the model has mocap bodies, enabling full state reconstruction in
 the dump viewer for fixed-base entities.</p></li>
@@ -542,6 +540,16 @@ remain comparable to regular per step metrics.</p></li>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Actuator delay is now configured inline on any <code class="docutils literal notranslate"><span class="pre">ActuatorCfg</span></code> subclass
+(e.g. <code class="docutils literal notranslate"><span class="pre">BuiltinPositionActuatorCfg(...,</span> <span class="pre">delay_min_lag=2,</span> <span class="pre">delay_max_lag=5)</span></code>)
+instead of wrapping with <code class="docutils literal notranslate"><span class="pre">DelayedActuatorCfg</span></code>. <code class="docutils literal notranslate"><span class="pre">DelayedActuator</span></code>,
+<code class="docutils literal notranslate"><span class="pre">DelayedActuatorCfg</span></code>, and <code class="docutils literal notranslate"><span class="pre">DelayedBuiltinActuatorGroup</span></code> are removed.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">delay_target</span></code> from <code class="docutils literal notranslate"><span class="pre">ActuatorCfg</span></code>. Delay now always applies to
+the actuator’s <code class="docutils literal notranslate"><span class="pre">command_field</span></code> automatically. Multi-target delay
+(<code class="docutils literal notranslate"><span class="pre">delay_target=(&quot;position&quot;,</span> <span class="pre">&quot;velocity&quot;)</span></code>) is no longer supported.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">XmlPositionActuatorCfg</span></code>, <code class="docutils literal notranslate"><span class="pre">XmlVelocityActuatorCfg</span></code>, <code class="docutils literal notranslate"><span class="pre">XmlMotorActuatorCfg</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">XmlMuscleActuatorCfg</span></code> are replaced by a single <code class="docutils literal notranslate"><span class="pre">XmlActuatorCfg</span></code> that auto
+detects the actuator type from XML. Pass <code class="docutils literal notranslate"><span class="pre">command_field=...</span></code> to override detection.</p></li>
 <li><p>Replaced the viser viewer internals with the <code class="docutils literal notranslate"><span class="pre">mjviser</span></code> package. Scene
 creation, mesh conversion, and overlay rendering (contacts, forces,
 inertia, tendons, joints, frames) are now provided by mjviser. The viewer
