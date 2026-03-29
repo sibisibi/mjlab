@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Mar 28, 2026"/>
+    <meta name="docbuild:last-update" content="Mar 29, 2026"/>
   </head>
   
   
@@ -569,6 +569,11 @@ Use <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">export-scene</span></code> now writes only referenced assets and places them
+correctly under the output directory. Previously, asset keys containing
+path traversal could write files outside the output directory, and all
+spec assets were included regardless of whether the scene XML referenced
+them (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/858">#858</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">electrical_power_cost</span></code> now uses <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> (joint space) instead
 of <code class="docutils literal notranslate"><span class="pre">actuator_force</span></code> (actuation space) for mechanical power computation.
 Previously the reward was incorrect for actuators with gear ratios other
@@ -999,7 +1004,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Mar 28, 2026.
+  Last updated on Mar 29, 2026.
   <br/>
 </p>
   </div>
