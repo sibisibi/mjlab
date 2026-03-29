@@ -410,9 +410,12 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lock</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span><span class="p">,</span> <span class="n">Lock</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">viser</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
@@ -424,6 +427,7 @@ document.write(`
   <span class="n">EnvProtocol</span><span class="p">,</span>
   <span class="n">PolicyProtocol</span><span class="p">,</span>
   <span class="n">VerbosityLevel</span><span class="p">,</span>
+  <span class="n">ViewerAction</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viser.overlays</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
   <span class="n">ViserCameraOverlays</span><span class="p">,</span>
@@ -432,6 +436,26 @@ document.write(`
   <span class="n">ViserTermOverlays</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.viewer.viser.scene</span><span class="w"> </span><span class="kn">import</span> <span class="n">MjlabViserScene</span>
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CheckpointManager</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Holds checkpoint discovery and loading callbacks for the viewer.&quot;&quot;&quot;</span>
+
+  <span class="n">current_name</span><span class="p">:</span> <span class="nb">str</span>
+  <span class="n">fetch_available</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
+  <span class="n">load_checkpoint</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">PolicyProtocol</span><span class="p">]</span>
+  <span class="n">run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">run_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">run_status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">format_time_ago</span><span class="p">(</span><span class="n">seconds</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Format a duration in seconds as a human-readable time-ago string.&quot;&quot;&quot;</span>
+  <span class="k">for</span> <span class="n">div</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="p">((</span><span class="mi">86400</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">3600</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">seconds</span> <span class="o">&gt;=</span> <span class="n">div</span><span class="p">:</span>
+      <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="n">div</span><span class="si">}{</span><span class="n">unit</span><span class="si">}</span><span class="s2"> ago&quot;</span>
+  <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">seconds</span><span class="si">}</span><span class="s2">s ago&quot;</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">UpdateReason</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
@@ -454,8 +478,10 @@ document.write(`
     <span class="n">frame_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
     <span class="n">verbosity</span><span class="p">:</span> <span class="n">VerbosityLevel</span> <span class="o">=</span> <span class="n">VerbosityLevel</span><span class="o">.</span><span class="n">SILENT</span><span class="p">,</span>
     <span class="n">viser_server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">checkpoint_manager</span><span class="p">:</span> <span class="n">CheckpointManager</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">policy</span><span class="p">,</span> <span class="n">frame_rate</span><span class="p">,</span> <span class="n">verbosity</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span> <span class="o">=</span> <span class="n">checkpoint_manager</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_term_overlays</span><span class="p">:</span> <span class="n">ViserTermOverlays</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_camera_overlays</span><span class="p">:</span> <span class="n">ViserCameraOverlays</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_debug_overlays</span><span class="p">:</span> <span class="n">ViserDebugOverlays</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -589,8 +615,108 @@ document.write(`
 
     <span class="c1"># Groups tab (geom/site/joint/tendon/actuator visibility).</span>
     <span class="k">with</span> <span class="n">tabs</span><span class="o">.</span><span class="n">add_tab</span><span class="p">(</span><span class="s2">&quot;Groups&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">viser</span><span class="o">.</span><span class="n">Icon</span><span class="o">.</span><span class="n">LAYERS_INTERSECT</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">create_groups_gui</span><span class="p">()</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">create_groups_gui</span><span class="p">()</span>
 
+    <span class="c1"># Checkpoints tab (optional, when checkpoint_manager is provided).</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">is_wandb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">run_url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">with</span> <span class="n">tabs</span><span class="o">.</span><span class="n">add_tab</span><span class="p">(</span><span class="s2">&quot;Checkpoints&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">viser</span><span class="o">.</span><span class="n">Icon</span><span class="o">.</span><span class="n">DATABASE</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_wandb</span><span class="p">:</span>
+          <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">run_url</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_html</span><span class="p">(</span>
+            <span class="s1">&#39;&lt;div style=&quot;font-size:0.85em;line-height:1.25;&#39;</span>
+            <span class="s1">&#39;padding:0 1em 0.5em 1em;&quot;&gt;&#39;</span>
+            <span class="s2">&quot;&lt;strong&gt;Source:&lt;/strong&gt; W&amp;B&lt;br/&gt;&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;strong&gt;Run:&lt;/strong&gt;&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">run_name</span><span class="si">}</span><span class="s2">&lt;br/&gt;&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;strong&gt;Status:&lt;/strong&gt;&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">run_status</span><span class="si">}</span><span class="s2">&lt;br/&gt;&quot;</span>
+            <span class="sa">f</span><span class="s1">&#39;&lt;a href=&quot;</span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s1">&quot; target=&quot;_blank&quot;&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39; style=&quot;color:#3b82f6;&quot;&gt;&#39;</span>
+            <span class="sa">f</span><span class="s2">&quot;Open in W&amp;B&lt;/a&gt;&quot;</span>
+            <span class="s2">&quot;&lt;/div&gt;&quot;</span>
+          <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_html</span><span class="p">(</span>
+            <span class="s1">&#39;&lt;div style=&quot;font-size:0.85em;line-height:1.25;&#39;</span>
+            <span class="s1">&#39;padding:0 1em 0.5em 1em;&quot;&gt;&#39;</span>
+            <span class="s2">&quot;&lt;strong&gt;Source:&lt;/strong&gt; Local&quot;</span>
+            <span class="s2">&quot;&lt;/div&gt;&quot;</span>
+          <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_dropdown</span><span class="p">(</span>
+          <span class="s2">&quot;Checkpoint&quot;</span><span class="p">,</span>
+          <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">current_name</span><span class="p">],</span>
+          <span class="n">initial_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">current_name</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_user_event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_user_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="nd">@self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span><span class="o">.</span><span class="n">on_update</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_user_event</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ViewerAction</span><span class="o">.</span><span class="n">FETCH_CHECKPOINT</span><span class="p">,</span> <span class="s2">&quot;selected&quot;</span><span class="p">))</span>
+
+        <span class="n">ckpt_buttons</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_button_group</span><span class="p">(</span>
+          <span class="s2">&quot;&quot;</span><span class="p">,</span>
+          <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Sync&quot;</span><span class="p">,</span> <span class="s2">&quot;Use Latest&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="nd">@ckpt_buttons</span><span class="o">.</span><span class="n">on_click</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s2">&quot;Sync&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ViewerAction</span><span class="o">.</span><span class="n">FETCH_CHECKPOINT</span><span class="p">,</span> <span class="s2">&quot;refresh&quot;</span><span class="p">))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ViewerAction</span><span class="o">.</span><span class="n">FETCH_CHECKPOINT</span><span class="p">,</span> <span class="s2">&quot;latest&quot;</span><span class="p">))</span>
+
+      <span class="c1"># Populate the dropdown on startup.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_actions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ViewerAction</span><span class="o">.</span><span class="n">FETCH_CHECKPOINT</span><span class="p">,</span> <span class="s2">&quot;refresh&quot;</span><span class="p">))</span></div>
+
+
+  <span class="nd">@override</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">_handle_custom_action</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">action</span><span class="p">:</span> <span class="n">ViewerAction</span><span class="p">,</span>
+    <span class="n">payload</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">action</span> <span class="o">!=</span> <span class="n">ViewerAction</span><span class="o">.</span><span class="n">FETCH_CHECKPOINT</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">payload</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="s2">&quot;latest&quot;</span><span class="p">):</span>
+      <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">fetch_available</span><span class="p">()</span>
+      <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">  (</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">)&quot;</span> <span class="k">if</span> <span class="n">t</span> <span class="k">else</span> <span class="n">n</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_user_event</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">labels</span>
+      <span class="n">cur</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">lbl</span> <span class="k">for</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="n">labels</span> <span class="k">if</span> <span class="n">lbl</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">current_name</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">current_name</span><span class="p">,</span>
+      <span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">cur</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_user_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">payload</span> <span class="o">==</span> <span class="s2">&quot;refresh&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+      <span class="c1"># &quot;latest&quot; -- select the last entry.</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># &quot;selected&quot; -- extract name from dropdown label.</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;  (&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">current_name</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO]: Loading </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">policy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span><span class="o">.</span><span class="n">current_name</span> <span class="o">=</span> <span class="n">name</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_updating</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">cur</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">lbl</span> <span class="k">for</span> <span class="n">lbl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span><span class="o">.</span><span class="n">options</span> <span class="k">if</span> <span class="n">lbl</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">name</span><span class="p">)),</span>
+        <span class="n">name</span><span class="p">,</span>
+      <span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_dropdown</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">cur</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_user_event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">reset_environment</span><span class="p">()</span>
+      <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO]: Loaded </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span>
 
   <span class="nd">@override</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">_process_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
