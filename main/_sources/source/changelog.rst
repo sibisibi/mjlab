@@ -83,6 +83,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ONNX export path resolution in the velocity, manipulation, and
+  tracking runners when a parent directory name contains the word
+  ``"model"`` (:issue:`867`). Contribution by @gokulp01.
 - ``export-scene`` now writes only referenced assets and places them
   correctly under the output directory. Previously, asset keys containing
   path traversal could write files outside the output directory, and all
