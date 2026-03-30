@@ -484,17 +484,35 @@ document.write(`
   <span class="k">def</span><span class="w"> </span><span class="nf">create_gui</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">,</span>
     <span class="n">get_env_idx</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">request_action</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create interactive GUI controls for this command term.</span>
 
-<span class="sd">    Override in subclasses to add task-specific controls (e.g., velocity</span>
-<span class="sd">    sliders) to the Viser viewer. Called once during viewer setup.</span>
+<span class="sd">    Override in subclasses to add task-specific controls (e.g., velocity sliders) to</span>
+<span class="sd">    the Viser viewer. Called once during viewer setup.</span>
 
-<span class="sd">    The *name* argument is the term&#39;s key in the command manager config</span>
-<span class="sd">    (e.g., ``&quot;twist&quot;``).</span>
+<span class="sd">    The *name* argument is the term&#39;s key in the command manager config (e.g.,</span>
+<span class="sd">    ``&quot;twist&quot;``).</span>
 <span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="CommandTerm.on_viewer_pause">
+<a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandTerm.on_viewer_pause">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">on_viewer_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paused</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Called when the viewer pause state changes.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="CommandTerm.apply_gui_reset">
+<a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandTerm.apply_gui_reset">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">apply_gui_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply GUI-selected state as an env reset override.</span>
+
+<span class="sd">    Returns True if this term wrote state to sim.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
 
 
   <span class="nd">@property</span>
@@ -590,19 +608,45 @@ document.write(`
 <a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandManager.create_gui">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">create_gui</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
-    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">,</span>
     <span class="n">get_env_idx</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">request_action</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Let each command term create its GUI controls.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">term</span><span class="o">.</span><span class="n">create_gui</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">server</span><span class="p">,</span> <span class="n">get_env_idx</span><span class="p">)</span></div>
+      <span class="n">term</span><span class="o">.</span><span class="n">create_gui</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">server</span><span class="p">,</span>
+        <span class="n">get_env_idx</span><span class="p">,</span>
+        <span class="n">on_change</span><span class="o">=</span><span class="n">on_change</span><span class="p">,</span>
+        <span class="n">request_action</span><span class="o">=</span><span class="n">request_action</span><span class="p">,</span>
+      <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CommandManager.on_viewer_pause">
+<a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandManager.on_viewer_pause">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">on_viewer_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paused</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notify all command terms of viewer pause state change.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terms</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="n">term</span><span class="o">.</span><span class="n">on_viewer_pause</span><span class="p">(</span><span class="n">paused</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CommandManager.apply_gui_reset">
+<a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandManager.apply_gui_reset">[docs]</a>
+  <span class="k">def</span><span class="w"> </span><span class="nf">apply_gui_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply GUI-selected state from all terms. Returns True if any applied.&quot;&quot;&quot;</span>
+    <span class="n">applied</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_terms</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+      <span class="n">applied</span> <span class="o">|=</span> <span class="n">term</span><span class="o">.</span><span class="n">apply_gui_reset</span><span class="p">(</span><span class="n">env_ids</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">applied</span></div>
 
 
 <div class="viewcode-block" id="CommandManager.create_debug_vis_gui">
 <a class="viewcode-back" href="../../../source/api/managers.html#mjlab.managers.CommandManager.create_debug_vis_gui">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">create_debug_vis_gui</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
-    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">,</span>
     <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Add per-term debug visualization checkboxes.&quot;&quot;&quot;</span>
@@ -702,14 +746,22 @@ document.write(`
 
   <span class="k">def</span><span class="w"> </span><span class="nf">create_gui</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
-    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">,</span>
     <span class="n">get_env_idx</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">request_action</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">pass</span>
 
+  <span class="k">def</span><span class="w"> </span><span class="nf">on_viewer_pause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paused</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+  <span class="k">def</span><span class="w"> </span><span class="nf">apply_gui_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
   <span class="k">def</span><span class="w"> </span><span class="nf">create_debug_vis_gui</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
-    <span class="n">server</span><span class="p">:</span> <span class="s2">&quot;viser.ViserServer&quot;</span><span class="p">,</span>
+    <span class="n">server</span><span class="p">:</span> <span class="n">viser</span><span class="o">.</span><span class="n">ViserServer</span><span class="p">,</span>
     <span class="n">on_change</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">pass</span>

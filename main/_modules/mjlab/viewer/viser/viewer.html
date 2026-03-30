@@ -417,6 +417,7 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Event</span><span class="p">,</span> <span class="n">Lock</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">viser</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">override</span>
 
@@ -577,7 +578,12 @@ document.write(`
       <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">unwrapped</span>
       <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">active_terms</span><span class="p">:</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">gui</span><span class="o">.</span><span class="n">add_folder</span><span class="p">(</span><span class="s2">&quot;Commands&quot;</span><span class="p">):</span>
-          <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">create_gui</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_idx</span><span class="p">)</span>
+          <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">create_gui</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_server</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_idx</span><span class="p">,</span>
+            <span class="n">on_change</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">request_update</span><span class="p">,</span>
+            <span class="n">request_action</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request_action</span><span class="p">,</span>
+          <span class="p">)</span>
 
       <span class="c1"># Add standard visualization options from MjlabViserScene.</span>
       <span class="k">def</span><span class="w"> </span><span class="nf">_debug_viz_extra</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -679,6 +685,9 @@ document.write(`
     <span class="n">action</span><span class="p">:</span> <span class="n">ViewerAction</span><span class="p">,</span>
     <span class="n">payload</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
   <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">payload</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;gui_reset&quot;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_handle_gui_reset</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;all_envs&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+      <span class="k">return</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="n">action</span> <span class="o">!=</span> <span class="n">ViewerAction</span><span class="o">.</span><span class="n">FETCH_CHECKPOINT</span><span class="p">:</span>
       <span class="k">return</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_mgr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -718,6 +727,26 @@ document.write(`
       <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO]: Loaded </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">True</span>
 
+  <span class="k">def</span><span class="w"> </span><span class="nf">_handle_gui_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_envs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reset environment(s) and apply GUI-selected command state.&quot;&quot;&quot;</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">unwrapped</span>
+    <span class="k">if</span> <span class="n">all_envs</span><span class="p">:</span>
+      <span class="n">env_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">env</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">env_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_scene</span><span class="o">.</span><span class="n">env_idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">env</span><span class="o">.</span><span class="n">device</span>
+      <span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_lock</span><span class="p">:</span>
+      <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">env_ids</span><span class="o">=</span><span class="n">env_ids</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">apply_gui_reset</span><span class="p">(</span><span class="n">env_ids</span><span class="p">):</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">write_data_to_sim</span><span class="p">()</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">forward</span><span class="p">()</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">sense</span><span class="p">()</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pending_update_reasons</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">UpdateReason</span><span class="o">.</span><span class="n">ACTION</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sync_ui_state</span><span class="p">()</span>
+
   <span class="nd">@override</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">_process_actions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Process queued actions and sync UI state.&quot;&quot;&quot;</span>
@@ -734,6 +763,7 @@ document.write(`
       <span class="n">viser</span><span class="o">.</span><span class="n">Icon</span><span class="o">.</span><span class="n">PLAYER_PLAY</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_paused</span> <span class="k">else</span> <span class="n">viser</span><span class="o">.</span><span class="n">Icon</span><span class="o">.</span><span class="n">PLAYER_PAUSE</span>
     <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_update_status_display</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">unwrapped</span><span class="o">.</span><span class="n">command_manager</span><span class="o">.</span><span class="n">on_viewer_pause</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_paused</span><span class="p">)</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_update_env_dependent_plots</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Refresh reward/metric plots and histories for the selected environment.&quot;&quot;&quot;</span>
