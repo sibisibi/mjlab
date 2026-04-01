@@ -609,13 +609,11 @@ everything into a shared <code class="docutils literal notranslate"><span class=
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">spec_fn</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;robot.xml&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>For anything more involved, use a regular function. The asset zoo robots
-all follow this pattern: load the XML, attach mesh assets, and return
-the spec.</p>
+<p>For anything more involved, use a regular function. MuJoCo resolves mesh
+assets from disk automatically, so <code class="docutils literal notranslate"><span class="pre">get_spec</span></code> only needs to load the
+XML:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_spec</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">:</span>
-    <span class="n">spec</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ROBOT_XML</span><span class="p">))</span>
-    <span class="n">spec</span><span class="o">.</span><span class="n">assets</span> <span class="o">=</span> <span class="n">get_assets</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">meshdir</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">spec</span>
+    <span class="k">return</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ROBOT_XML</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Because <code class="docutils literal notranslate"><span class="pre">spec_fn</span></code> is an arbitrary callable, you can perform any
