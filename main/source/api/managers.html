@@ -501,6 +501,8 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.light_ids"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.light_ids</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.material_names"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.material_names</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.material_ids"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.material_ids</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.pair_names"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.pair_names</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.pair_ids"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.pair_ids</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.preserve_order"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.preserve_order</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.resolve"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.resolve()</span></code></a></li>
 </ul>
@@ -920,6 +922,18 @@ optimize to slice(None) when all components are selected.</p>
 <dt class="sig sig-object py" id="mjlab.managers.SceneEntityCfg.material_ids">
 <span class="sig-name descname"><span class="pre">material_ids</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a></em><a class="headerlink" href="#mjlab.managers.SceneEntityCfg.material_ids" title="Link to this definition">#</a></dt>
 <dd><p>IDs of materials to include. Can be a list or slice.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.managers.SceneEntityCfg.pair_names">
+<span class="sig-name descname"><span class="pre">pair_names</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.managers.SceneEntityCfg.pair_names" title="Link to this definition">#</a></dt>
+<dd><p>Names of contact pairs to include. Can be a single string or tuple.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.managers.SceneEntityCfg.pair_ids">
+<span class="sig-name descname"><span class="pre">pair_ids</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.14)"><span class="pre">slice</span></a></em><a class="headerlink" href="#mjlab.managers.SceneEntityCfg.pair_ids" title="Link to this definition">#</a></dt>
+<dd><p>IDs of contact pairs to include. Can be a list or slice.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1779,6 +1793,8 @@ in the logger.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.light_ids"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.light_ids</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.material_names"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.material_names</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.material_ids"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.material_ids</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.pair_names"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.pair_names</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.pair_ids"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.pair_ids</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.preserve_order"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.preserve_order</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.SceneEntityCfg.resolve"><code class="docutils literal notranslate"><span class="pre">SceneEntityCfg.resolve()</span></code></a></li>
 </ul>

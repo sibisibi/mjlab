@@ -451,6 +451,7 @@ document.write(`
     <span class="s2">&quot;num_materials&quot;</span><span class="p">,</span>
     <span class="s2">&quot;material&quot;</span><span class="p">,</span>
   <span class="p">),</span>
+  <span class="n">_FieldConfig</span><span class="p">(</span><span class="s2">&quot;pair_names&quot;</span><span class="p">,</span> <span class="s2">&quot;pair_ids&quot;</span><span class="p">,</span> <span class="s2">&quot;find_pairs&quot;</span><span class="p">,</span> <span class="s2">&quot;num_pairs&quot;</span><span class="p">,</span> <span class="s2">&quot;pair&quot;</span><span class="p">),</span>
 <span class="p">]</span>
 
 
@@ -521,6 +522,12 @@ document.write(`
 
   <span class="n">material_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;IDs of materials to include. Can be a list or slice.&quot;&quot;&quot;</span>
+
+  <span class="n">pair_names</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Names of contact pairs to include. Can be a single string or tuple.&quot;&quot;&quot;</span>
+
+  <span class="n">pair_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;IDs of contact pairs to include. Can be a list or slice.&quot;&quot;&quot;</span>
 
   <span class="n">preserve_order</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;If True, maintains the order of components as specified.&quot;&quot;&quot;</span>
