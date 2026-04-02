@@ -85,6 +85,8 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``SceneEntityCfg`` names and IDs ordering mismatch when
+  ``preserve_order=False`` (:issue:`876`). Contribution by @jsw7460.
 - Fixed ONNX export path resolution in the velocity, manipulation, and
   tracking runners when a parent directory name contains the word
   ``"model"`` (:issue:`867`). Contribution by @gokulp01.
