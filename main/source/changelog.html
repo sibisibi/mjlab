@@ -507,6 +507,9 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">reduce</span></code> field to <code class="docutils literal notranslate"><span class="pre">MetricsTermCfg</span></code>. Setting <code class="docutils literal notranslate"><span class="pre">reduce=&quot;last&quot;</span></code>
+reports the value from the final step of the episode rather than the
+episode mean, which is useful for binary success metrics.</p></li>
 <li><p>Added <code class="xref py py-class docutils literal notranslate"><span class="pre">RelativeJointPositionAction</span></code> for
 joint position control relative to the current configuration. The target is
 <code class="docutils literal notranslate"><span class="pre">current_pos</span> <span class="pre">+</span> <span class="pre">action</span> <span class="pre">*</span> <span class="pre">scale</span></code>, so a zero action holds the current

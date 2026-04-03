@@ -666,6 +666,7 @@ document.write(`
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.MetricsTermCfg"><code class="docutils literal notranslate"><span class="pre">MetricsTermCfg</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.MetricsTermCfg.per_substep"><code class="docutils literal notranslate"><span class="pre">MetricsTermCfg.per_substep</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.MetricsTermCfg.reduce"><code class="docutils literal notranslate"><span class="pre">MetricsTermCfg.reduce</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1707,6 +1708,37 @@ in the logger.</p>
 <span class="sig-name descname"><span class="pre">site_xpos,</span> <span class="pre">actuator_force,</span> <span class="pre">contacts,</span> <span class="pre">...)</span> <span class="pre">are</span> <span class="pre">stale.</span></span></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.managers.MetricsTermCfg.reduce">
+<span class="sig-name descname"><span class="pre">reduce</span></span><a class="headerlink" href="#mjlab.managers.MetricsTermCfg.reduce" title="Link to this definition">#</a></dt>
+<dd><p>How to aggregate per-step values into an episode metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Literal[‘mean’, ‘last’]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">``&quot;mean&quot;``</span></span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>default</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">the</span> <span class="pre">value</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">final</span> <span class="pre">step</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">episode,</span> <span class="pre">which</span> <span class="pre">is</span> <span class="pre">useful</span> <span class="pre">for</span> <span class="pre">binary</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">success</span> <span class="pre">metrics</span> <span class="pre">that</span> <span class="pre">should</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">averaged</span> <span class="pre">over</span> <span class="pre">timesteps.</span></span></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
@@ -1958,6 +1990,7 @@ in the logger.</p>
 </li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.MetricsTermCfg"><code class="docutils literal notranslate"><span class="pre">MetricsTermCfg</span></code></a><ul class="nav section-nav flex-column">
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.MetricsTermCfg.per_substep"><code class="docutils literal notranslate"><span class="pre">MetricsTermCfg.per_substep</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.managers.MetricsTermCfg.reduce"><code class="docutils literal notranslate"><span class="pre">MetricsTermCfg.reduce</span></code></a></li>
 </ul>
 </li>
 </ul>
