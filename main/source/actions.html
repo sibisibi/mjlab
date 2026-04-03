@@ -59,7 +59,7 @@
     <link rel="prev" title="Observations" href="observations.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 02, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 03, 2026"/>
   </head>
   
   
@@ -551,24 +551,29 @@ Encoder bias from <code class="docutils literal notranslate"><span class="pre">d
 so that randomized offsets propagate correctly to the control
 command.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">JointVelocityAction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RelativeJointPositionAction</span></code></p></td>
+<td><p>Sets joint position targets relative to the current joint positions.
+The target is <code class="docutils literal notranslate"><span class="pre">current_pos</span> <span class="pre">+</span> <span class="pre">action</span> <span class="pre">*</span> <span class="pre">scale</span></code>, so a policy output of
+zero holds the robot in place regardless of its current configuration.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">JointVelocityAction</span></code></p></td>
 <td><p>Sets joint velocity targets. <code class="docutils literal notranslate"><span class="pre">use_default_offset=True</span></code> uses the
 default joint velocities (typically zero).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">JointEffortAction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">JointEffortAction</span></code></p></td>
 <td><p>Sets joint effort (torque) targets directly. No default offset.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TendonLengthAction</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TendonLengthAction</span></code></p></td>
 <td><p>Sets tendon length targets. Targets are resolved by matching
 <code class="docutils literal notranslate"><span class="pre">actuator_names</span></code> against tendon names.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TendonVelocityAction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TendonVelocityAction</span></code></p></td>
 <td><p>Sets tendon velocity targets.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TendonEffortAction</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TendonEffortAction</span></code></p></td>
 <td><p>Sets tendon effort targets.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SiteEffortAction</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SiteEffortAction</span></code></p></td>
 <td><p>Applies forces and torques at named sites. Useful for
 quadrotors and drones where thrust is applied at rotor sites
 rather than through joint actuators.</p></td>
@@ -726,7 +731,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 02, 2026.
+  Last updated on Apr 03, 2026.
   <br/>
 </p>
   </div>
