@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 04, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 05, 2026"/>
   </head>
   
   
@@ -507,6 +507,11 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added <code class="xref py py-func docutils literal notranslate"><span class="pre">termination_curriculum()</span></code> for
+scheduling changes to termination term parameters during training,
+matching the existing <code class="docutils literal notranslate"><span class="pre">reward_curriculum</span></code> pattern. Both now share a
+single internal engine with init-time validation of stage ordering,
+field existence, and param keys.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">reduce</span></code> field to <code class="docutils literal notranslate"><span class="pre">MetricsTermCfg</span></code>. Setting <code class="docutils literal notranslate"><span class="pre">reduce=&quot;last&quot;</span></code>
 reports the value from the final step of the episode rather than the
 episode mean, which is useful for binary success metrics.</p></li>
@@ -1035,7 +1040,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 04, 2026.
+  Last updated on Apr 05, 2026.
   <br/>
 </p>
   </div>
