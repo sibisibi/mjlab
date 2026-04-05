@@ -215,6 +215,7 @@
 <li class="toctree-l1"><a class="reference internal" href="source/randomization.html">Domain Randomization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="source/curriculum.html">Curriculum</a></li>
 <li class="toctree-l1"><a class="reference internal" href="source/metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source/recorders.html">Recorders</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
 <ul class="nav bd-sidenav">
@@ -489,7 +490,13 @@ document.write(`
 </li>
         <li><a href="source/api/managers.html#mjlab.managers.NullMetricsManager.__init__">(mjlab.managers.NullMetricsManager method)</a>
 </li>
+        <li><a href="source/api/managers.html#mjlab.managers.NullRecorderManager.__init__">(mjlab.managers.NullRecorderManager method)</a>
+</li>
         <li><a href="source/api/managers.html#mjlab.managers.ObservationManager.__init__">(mjlab.managers.ObservationManager method)</a>
+</li>
+        <li><a href="source/api/managers.html#mjlab.managers.RecorderManager.__init__">(mjlab.managers.RecorderManager method)</a>
+</li>
+        <li><a href="source/api/managers.html#mjlab.managers.RecorderTerm.__init__">(mjlab.managers.RecorderTerm method)</a>
 </li>
         <li><a href="source/api/managers.html#mjlab.managers.RewardManager.__init__">(mjlab.managers.RewardManager method)</a>
 </li>
@@ -850,9 +857,13 @@ document.write(`
 </li>
       <li><a href="source/api/sensor.html#mjlab.sensor.CameraSensorCfg.clone_data">clone_data (mjlab.sensor.CameraSensorCfg attribute)</a>
 </li>
-      <li><a href="source/api/viewer.html#mjlab.viewer.NativeMujocoViewer.close">close() (mjlab.viewer.NativeMujocoViewer method)</a>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderManager.close">close() (mjlab.managers.RecorderManager method)</a>
 
       <ul>
+        <li><a href="source/api/managers.html#mjlab.managers.RecorderTerm.close">(mjlab.managers.RecorderTerm method)</a>
+</li>
+        <li><a href="source/api/viewer.html#mjlab.viewer.NativeMujocoViewer.close">(mjlab.viewer.NativeMujocoViewer method)</a>
+</li>
         <li><a href="source/api/viewer.html#mjlab.viewer.ViserPlayViewer.close">(mjlab.viewer.ViserPlayViewer method)</a>
 </li>
       </ul></li>
@@ -886,10 +897,10 @@ document.write(`
 </li>
       <li><a href="source/api/managers.html#mjlab.managers.CommandTerm">CommandTerm (class in mjlab.managers)</a>
 </li>
-      <li><a href="source/api/managers.html#mjlab.managers.CommandTermCfg">CommandTermCfg (class in mjlab.managers)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/api/managers.html#mjlab.managers.CommandTermCfg">CommandTermCfg (class in mjlab.managers)</a>
+</li>
       <li><a href="source/api/entity.html#mjlab.entity.Entity.compile">compile() (mjlab.entity.Entity method)</a>
 </li>
       <li><a href="source/api/actuator.html#mjlab.actuator.Actuator.compute">compute() (mjlab.actuator.Actuator method)</a>
@@ -1844,11 +1855,13 @@ document.write(`
 </li>
       <li><a href="source/api/managers.html#mjlab.managers.NullCommandManager">NullCommandManager (class in mjlab.managers)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/managers.html#mjlab.managers.NullCurriculumManager">NullCurriculumManager (class in mjlab.managers)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/managers.html#mjlab.managers.NullMetricsManager">NullMetricsManager (class in mjlab.managers)</a>
+</li>
+      <li><a href="source/api/managers.html#mjlab.managers.NullRecorderManager">NullRecorderManager (class in mjlab.managers)</a>
 </li>
       <li><a href="source/api/terrains.html#mjlab.terrains.BoxNarrowBeamsTerrainCfg.num_beams">num_beams (mjlab.terrains.BoxNarrowBeamsTerrainCfg attribute)</a>
 </li>
@@ -2078,6 +2091,32 @@ document.write(`
 </li>
       <li><a href="source/api/sim.html#mjlab.sim.Simulation.recompute_constants">recompute_constants() (mjlab.sim.Simulation method)</a>
 </li>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderManager.record_post_reset">record_post_reset() (mjlab.managers.RecorderManager method)</a>
+
+      <ul>
+        <li><a href="source/api/managers.html#mjlab.managers.RecorderTerm.record_post_reset">(mjlab.managers.RecorderTerm method)</a>
+</li>
+      </ul></li>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderManager.record_post_step">record_post_step() (mjlab.managers.RecorderManager method)</a>
+
+      <ul>
+        <li><a href="source/api/managers.html#mjlab.managers.RecorderTerm.record_post_step">(mjlab.managers.RecorderTerm method)</a>
+</li>
+      </ul></li>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderManager.record_pre_reset">record_pre_reset() (mjlab.managers.RecorderManager method)</a>
+
+      <ul>
+        <li><a href="source/api/managers.html#mjlab.managers.RecorderTerm.record_pre_reset">(mjlab.managers.RecorderTerm method)</a>
+</li>
+      </ul></li>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderManager">RecorderManager (class in mjlab.managers)</a>
+</li>
+      <li><a href="source/api/envs.html#mjlab.envs.ManagerBasedRlEnvCfg.recorders">recorders (mjlab.envs.ManagerBasedRlEnvCfg attribute)</a>
+</li>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderTerm">RecorderTerm (class in mjlab.managers)</a>
+</li>
+      <li><a href="source/api/managers.html#mjlab.managers.RecorderTermCfg">RecorderTermCfg (class in mjlab.managers)</a>
+</li>
       <li><a href="source/api/sensor.html#mjlab.sensor.SensorContext.recreate">recreate() (mjlab.sensor.SensorContext method)</a>
 </li>
       <li><a href="source/api/managers.html#mjlab.managers.MetricsTermCfg.reduce">reduce (mjlab.managers.MetricsTermCfg attribute)</a>
@@ -2134,14 +2173,14 @@ document.write(`
         <li><a href="source/api/sensor.html#mjlab.sensor.Sensor.reset">(mjlab.sensor.Sensor method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/viewer.html#mjlab.viewer.NativeMujocoViewer.reset_environment">reset_environment() (mjlab.viewer.NativeMujocoViewer method)</a>
 
       <ul>
         <li><a href="source/api/viewer.html#mjlab.viewer.ViserPlayViewer.reset_environment">(mjlab.viewer.ViserPlayViewer method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/sensor.html#mjlab.sensor.GridPatternCfg.resolution">resolution (mjlab.sensor.GridPatternCfg attribute)</a>
 
       <ul>

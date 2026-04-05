@@ -216,6 +216,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../randomization.html">Domain Randomization</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../curriculum.html">Curriculum</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../metrics.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../recorders.html">Recorders</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Training &amp; Debugging</span></p>
 <ul class="nav bd-sidenav">
@@ -494,6 +495,7 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.commands"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.commands</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.curriculum"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.curriculum</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.metrics"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.metrics</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.recorders"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.recorders</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.is_finite_horizon</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.scale_rewards_by_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.scale_rewards_by_dt</span></code></a></li>
 </ul>
@@ -735,6 +737,13 @@ contact parameters, and NaN guarding.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.recorders">
+<span class="sig-name descname"><span class="pre">recorders</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="managers.html#mjlab.managers.RecorderTermCfg" title="mjlab.managers.recorder_manager.RecorderTermCfg"><span class="pre">RecorderTermCfg</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.recorders" title="Link to this definition">#</a></dt>
+<dd><p>Recorder terms for logging observations, actions, or other data during rollouts.
+If empty, a no-op manager is used with zero overhead.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon">
 <span class="sig-name descname"><span class="pre">is_finite_horizon</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon" title="Link to this definition">#</a></dt>
 <dd><p>Whether the task has a finite or infinite horizon. Defaults to False (infinite).</p>
@@ -857,6 +866,7 @@ If iterable is specified the tuple is initialized from iterable’s items.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.commands"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.commands</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.curriculum"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.curriculum</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.metrics"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.metrics</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.recorders"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.recorders</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.is_finite_horizon"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.is_finite_horizon</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.envs.ManagerBasedRlEnvCfg.scale_rewards_by_dt"><code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.scale_rewards_by_dt</span></code></a></li>
 </ul>
