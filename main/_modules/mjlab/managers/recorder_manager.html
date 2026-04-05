@@ -426,9 +426,8 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">RecorderTermCfg</span><span class="p">(</span><span class="n">ManagerTermBaseCfg</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Configuration for a recorder term.</span>
 
-<span class="sd">  ``func`` must be a :class:`RecorderTerm` subclass. Function-based terms are</span>
-<span class="sd">  not supported because recorder terms are stateful (file handles, buffers,</span>
-<span class="sd">  etc.).</span>
+<span class="sd">  ``func`` must be a :class:`RecorderTerm` subclass. Function-based terms are not</span>
+<span class="sd">  supported because recorder terms are stateful (file handles, buffers, etc.).</span>
 <span class="sd">  &quot;&quot;&quot;</span></div>
 
 
@@ -438,40 +437,39 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">RecorderTerm</span><span class="p">(</span><span class="n">ManagerTermBase</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Base class for recorder terms.</span>
 
-<span class="sd">  Override only the lifecycle methods you need. Each method is a no-op by</span>
-<span class="sd">  default so subclasses are not required to implement all of them.</span>
+<span class="sd">  Override only the lifecycle methods you need. Each method is a no-op by default so</span>
+<span class="sd">  subclasses are not required to implement all of them.</span>
 
-<span class="sd">  The environment is available as ``self._env``, giving access to</span>
-<span class="sd">  ``self._env.obs_buf``, ``self._env.action_manager.action``, and all</span>
-<span class="sd">  other environment state.</span>
+<span class="sd">  The environment is available as ``self._env``, giving access to ``self._env.obs_buf``,</span>
+<span class="sd">  ``self._env.action_manager.action``, and all other environment state.</span>
 
 <span class="sd">  Example::</span>
 
 <span class="sd">    class CsvRecorder(RecorderTerm):</span>
-<span class="sd">        def __init__(self, cfg, env):</span>
-<span class="sd">            super().__init__(cfg, env)</span>
-<span class="sd">            self._file = open(cfg.params[&quot;path&quot;], &quot;w&quot;, newline=&quot;&quot;)</span>
-<span class="sd">            self._writer = csv.writer(self._file)</span>
+<span class="sd">      def __init__(self, cfg, env):</span>
+<span class="sd">        super().__init__(cfg, env)</span>
+<span class="sd">        self._file = open(cfg.params[&quot;path&quot;], &quot;w&quot;, newline=&quot;&quot;)</span>
+<span class="sd">        self._writer = csv.writer(self._file)</span>
 
-<span class="sd">        def record_pre_reset(self, env_ids):</span>
-<span class="sd">            # Terminal transition: action is still intact here.</span>
-<span class="sd">            # It will be zeroed by _reset_idx immediately after this returns.</span>
-<span class="sd">            obs = self._env.obs_buf[&quot;actor&quot;][env_ids].cpu().numpy()</span>
-<span class="sd">            act = self._env.action_manager.action[env_ids].cpu().numpy()</span>
-<span class="sd">            for o, a in zip(obs, act):</span>
-<span class="sd">                self._writer.writerow(o.tolist() + a.tolist())</span>
+<span class="sd">      def record_pre_reset(self, env_ids):</span>
+<span class="sd">        # Terminal transition: action is still intact here.</span>
+<span class="sd">        # It will be zeroed by _reset_idx immediately after this returns.</span>
+<span class="sd">        obs = self._env.obs_buf[&quot;actor&quot;][env_ids].cpu().numpy()</span>
+<span class="sd">        act = self._env.action_manager.action[env_ids].cpu().numpy()</span>
+<span class="sd">        for o, a in zip(obs, act):</span>
+<span class="sd">          self._writer.writerow(o.tolist() + a.tolist())</span>
 
-<span class="sd">        def record_post_step(self):</span>
-<span class="sd">            # Skip envs that just reset: their terminal pair was written</span>
-<span class="sd">            # in record_pre_reset and their action is now zeroed.</span>
-<span class="sd">            mask = ~self._env.reset_buf</span>
-<span class="sd">            obs = self._env.obs_buf[&quot;actor&quot;][mask].cpu().numpy()</span>
-<span class="sd">            act = self._env.action_manager.action[mask].cpu().numpy()</span>
-<span class="sd">            for o, a in zip(obs, act):</span>
-<span class="sd">                self._writer.writerow(o.tolist() + a.tolist())</span>
+<span class="sd">      def record_post_step(self):</span>
+<span class="sd">        # Skip envs that just reset: their terminal pair was written in record_pre_reset</span>
+<span class="sd">        # and their action is now zeroed.</span>
+<span class="sd">        mask = ~self._env.reset_buf</span>
+<span class="sd">        obs = self._env.obs_buf[&quot;actor&quot;][mask].cpu().numpy()</span>
+<span class="sd">        act = self._env.action_manager.action[mask].cpu().numpy()</span>
+<span class="sd">        for o, a in zip(obs, act):</span>
+<span class="sd">          self._writer.writerow(o.tolist() + a.tolist())</span>
 
-<span class="sd">        def close(self):</span>
-<span class="sd">            self._file.close()</span>
+<span class="sd">      def close(self):</span>
+<span class="sd">        self._file.close()</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="RecorderTerm.__init__">
@@ -488,22 +486,20 @@ document.write(`
 
 <span class="sd">    **What is available:**</span>
 
-<span class="sd">    - ``obs_buf`` contains the observation from the *end of the previous</span>
-<span class="sd">      step* (the input the agent used to choose the terminal action). It</span>
-<span class="sd">      does **not** contain the post-action terminal observation (the state</span>
-<span class="sd">      reached after applying the action), which is never computed for</span>
-<span class="sd">      resetting environments.</span>
-<span class="sd">    - ``action_manager.action`` contains the action applied during this</span>
-<span class="sd">      step. This is the correct terminal action. It will be zeroed for</span>
-<span class="sd">      these environments by ``_reset_idx`` immediately after this hook</span>
-<span class="sd">      returns, so capture it here if you need it later.</span>
+<span class="sd">    - ``obs_buf`` contains the observation from the *end of the previous step* (the</span>
+<span class="sd">      input the agent used to choose the terminal action). It does **not** contain the</span>
+<span class="sd">      post-action terminal observation (the state reached after applying the action),</span>
+<span class="sd">      which is never computed for resetting environments.</span>
+<span class="sd">    - ``action_manager.action`` contains the action applied during this step. This is</span>
+<span class="sd">      the correct terminal action. It will be zeroed for these environments by</span>
+<span class="sd">      ``_reset_idx`` immediately after this hook returns, so capture it here if you</span>
+<span class="sd">      need it later.</span>
 <span class="sd">    - ``reward_buf`` contains the reward for this terminal step.</span>
-<span class="sd">    - ``reset_terminated`` and ``reset_time_outs`` reflect why each</span>
-<span class="sd">      environment is resetting.</span>
+<span class="sd">    - ``reset_terminated`` and ``reset_time_outs`` reflect why each environment is</span>
+<span class="sd">      resetting.</span>
 
 <span class="sd">    This is the right hook to record the terminal transition</span>
-<span class="sd">    ``(obs_t, action_t, reward_t, done=True)`` for each resetting</span>
-<span class="sd">    environment.</span>
+<span class="sd">    ``(obs_t, action_t, reward_t, done=True)`` for each resetting environment.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      env_ids: Indices of environments that are about to be reset.</span>
@@ -516,17 +512,16 @@ document.write(`
   <span class="k">def</span><span class="w"> </span><span class="nf">record_post_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Called after a reset completes with fresh observations computed.</span>
 
-<span class="sd">    Fires at the end of ``env.reset()`` (covering all environments on</span>
-<span class="sd">    the initial call) and within ``env.step()`` for each batch of</span>
-<span class="sd">    environments that terminates, after state has been overwritten and</span>
-<span class="sd">    new observations computed.</span>
+<span class="sd">    Fires at the end of ``env.reset()`` (covering all environments on the initial call)</span>
+<span class="sd">    and within ``env.step()`` for each batch of environments that terminates, after</span>
+<span class="sd">    state has been overwritten and new observations computed.</span>
 
-<span class="sd">    At this point ``obs_buf[env_ids]`` holds the initial observation of</span>
-<span class="sd">    the new episode and ``action_manager.action[env_ids]`` is zero (no</span>
-<span class="sd">    action has been taken in the new episode yet).</span>
+<span class="sd">    At this point ``obs_buf[env_ids]`` holds the initial observation of the new episode</span>
+<span class="sd">    and ``action_manager.action[env_ids]`` is zero (no action has been taken in the new</span>
+<span class="sd">    episode yet).</span>
 
-<span class="sd">    Use this hook to initialize per-episode state or record the first</span>
-<span class="sd">    observation of a new episode.</span>
+<span class="sd">    Use this hook to initialize per-episode state or record the first observation of a</span>
+<span class="sd">    new episode.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      env_ids: Indices of environments that were reset.</span>
@@ -539,14 +534,13 @@ document.write(`
   <span class="k">def</span><span class="w"> </span><span class="nf">record_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Called at the end of every ``env.step()`` with fresh observations.</span>
 
-<span class="sd">    At this point ``obs_buf`` holds the new observation for every</span>
-<span class="sd">    environment and ``action_manager.action`` holds the action that was</span>
-<span class="sd">    applied during this step. **Exception:** for environments that reset</span>
-<span class="sd">    during this step, ``action_manager.action`` has been zeroed by</span>
-<span class="sd">    ``_reset_idx`` and ``obs_buf`` holds the initial observation of the</span>
-<span class="sd">    new episode rather than the post-action terminal observation. Use</span>
-<span class="sd">    ``record_pre_reset`` to capture the terminal ``(obs, action)`` pair</span>
-<span class="sd">    for those environments. Resetting environments are identified by</span>
+<span class="sd">    At this point ``obs_buf`` holds the new observation for every environment and</span>
+<span class="sd">    ``action_manager.action`` holds the action that was applied during this step.</span>
+<span class="sd">    **Exception:** for environments that reset during this step,</span>
+<span class="sd">    ``action_manager.action`` has been zeroed by ``_reset_idx`` and ``obs_buf`` holds</span>
+<span class="sd">    the initial observation of the new episode rather than the post-action terminal</span>
+<span class="sd">    observation. Use ``record_pre_reset`` to capture the terminal ``(obs, action)``</span>
+<span class="sd">    pair for those environments. Resetting environments are identified by</span>
 <span class="sd">    ``self._env.reset_buf``.</span>
 <span class="sd">    &quot;&quot;&quot;</span></div>
 
@@ -573,14 +567,13 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">RecorderManager</span><span class="p">(</span><span class="n">ManagerBase</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Orchestrates recorder terms during environment rollouts.</span>
 
-<span class="sd">  Holds a collection of :class:`RecorderTerm` instances and calls their</span>
-<span class="sd">  lifecycle methods at the appropriate points in the environment loop. The</span>
-<span class="sd">  manager has no opinion on how data is stored; each term handles its own</span>
-<span class="sd">  I/O entirely.</span>
+<span class="sd">  Holds a collection of :class:`RecorderTerm` instances and calls their lifecycle</span>
+<span class="sd">  methods at the appropriate points in the environment loop. The manager has no opinion</span>
+<span class="sd">  on how data is stored; each term handles its own I/O entirely.</span>
 
 <span class="sd">  Register terms by adding them to the ``recorders`` dict on</span>
-<span class="sd">  :class:`~mjlab.envs.ManagerBasedRlEnvCfg`. If the dict is empty, the</span>
-<span class="sd">  environment substitutes a :class:`NullRecorderManager` with zero overhead.</span>
+<span class="sd">  :class:`~mjlab.envs.ManagerBasedRlEnvCfg`. If the dict is empty, the environment</span>
+<span class="sd">  substitutes a :class:`NullRecorderManager` with zero overhead.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="RecorderManager.__init__">

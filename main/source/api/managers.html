@@ -1778,13 +1778,12 @@ in the logger.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.managers.</span></span><span class="sig-name descname"><span class="pre">RecorderManager</span></span><a class="reference internal" href="../../_modules/mjlab/managers/recorder_manager.html#RecorderManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.managers.RecorderManager" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#mjlab.managers.ManagerBase" title="mjlab.managers.manager_base.ManagerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBase</span></code></a></p>
 <p>Orchestrates recorder terms during environment rollouts.</p>
-<p>Holds a collection of <a class="reference internal" href="#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> instances and calls their
-lifecycle methods at the appropriate points in the environment loop. The
-manager has no opinion on how data is stored; each term handles its own
-I/O entirely.</p>
+<p>Holds a collection of <a class="reference internal" href="#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> instances and calls their lifecycle
+methods at the appropriate points in the environment loop. The manager has no opinion
+on how data is stored; each term handles its own I/O entirely.</p>
 <p>Register terms by adding them to the <code class="docutils literal notranslate"><span class="pre">recorders</span></code> dict on
-<a class="reference internal" href="envs.html#mjlab.envs.ManagerBasedRlEnvCfg" title="mjlab.envs.ManagerBasedRlEnvCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code></a>. If the dict is empty, the
-environment substitutes a <a class="reference internal" href="#mjlab.managers.NullRecorderManager" title="mjlab.managers.NullRecorderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">NullRecorderManager</span></code></a> with zero overhead.</p>
+<a class="reference internal" href="envs.html#mjlab.envs.ManagerBasedRlEnvCfg" title="mjlab.envs.ManagerBasedRlEnvCfg"><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code></a>. If the dict is empty, the environment
+substitutes a <a class="reference internal" href="#mjlab.managers.NullRecorderManager" title="mjlab.managers.NullRecorderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">NullRecorderManager</span></code></a> with zero overhead.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="mjlab.managers.RecorderManager.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#mjlab.managers.RecorderTermCfg" title="mjlab.managers.RecorderTermCfg"><span class="pre">RecorderTermCfg</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="envs.html#mjlab.envs.ManagerBasedRlEnv" title="mjlab.envs.ManagerBasedRlEnv"><span class="pre">ManagerBasedRlEnv</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/mjlab/managers/recorder_manager.html#RecorderManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.managers.RecorderManager.__init__" title="Link to this definition">#</a></dt>
@@ -1835,37 +1834,36 @@ so it carries zero overhead.</p>
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.managers.</span></span><span class="sig-name descname"><span class="pre">RecorderTerm</span></span><a class="reference internal" href="../../_modules/mjlab/managers/recorder_manager.html#RecorderTerm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.managers.RecorderTerm" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#mjlab.managers.ManagerTermBase" title="mjlab.managers.manager_base.ManagerTermBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ManagerTermBase</span></code></a></p>
 <p>Base class for recorder terms.</p>
-<p>Override only the lifecycle methods you need. Each method is a no-op by
-default so subclasses are not required to implement all of them.</p>
-<p>The environment is available as <code class="docutils literal notranslate"><span class="pre">self._env</span></code>, giving access to
-<code class="docutils literal notranslate"><span class="pre">self._env.obs_buf</span></code>, <code class="docutils literal notranslate"><span class="pre">self._env.action_manager.action</span></code>, and all
-other environment state.</p>
+<p>Override only the lifecycle methods you need. Each method is a no-op by default so
+subclasses are not required to implement all of them.</p>
+<p>The environment is available as <code class="docutils literal notranslate"><span class="pre">self._env</span></code>, giving access to <code class="docutils literal notranslate"><span class="pre">self._env.obs_buf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">self._env.action_manager.action</span></code>, and all other environment state.</p>
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CsvRecorder</span><span class="p">(</span><span class="n">RecorderTerm</span><span class="p">):</span>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+  <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_pre_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">):</span>
-        <span class="c1"># Terminal transition: action is still intact here.</span>
-        <span class="c1"># It will be zeroed by _reset_idx immediately after this returns.</span>
-        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">obs_buf</span><span class="p">[</span><span class="s2">&quot;actor&quot;</span><span class="p">][</span><span class="n">env_ids</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">action_manager</span><span class="o">.</span><span class="n">action</span><span class="p">[</span><span class="n">env_ids</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">o</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">act</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">record_pre_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env_ids</span><span class="p">):</span>
+    <span class="c1"># Terminal transition: action is still intact here.</span>
+    <span class="c1"># It will be zeroed by _reset_idx immediately after this returns.</span>
+    <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">obs_buf</span><span class="p">[</span><span class="s2">&quot;actor&quot;</span><span class="p">][</span><span class="n">env_ids</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">action_manager</span><span class="o">.</span><span class="n">action</span><span class="p">[</span><span class="n">env_ids</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">o</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">act</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">record_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># Skip envs that just reset: their terminal pair was written</span>
-        <span class="c1"># in record_pre_reset and their action is now zeroed.</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">reset_buf</span>
-        <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">obs_buf</span><span class="p">[</span><span class="s2">&quot;actor&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">action_manager</span><span class="o">.</span><span class="n">action</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">o</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">act</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">record_post_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Skip envs that just reset: their terminal pair was written in record_pre_reset</span>
+    <span class="c1"># and their action is now zeroed.</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">reset_buf</span>
+    <span class="n">obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">obs_buf</span><span class="p">[</span><span class="s2">&quot;actor&quot;</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="o">.</span><span class="n">action_manager</span><span class="o">.</span><span class="n">action</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">o</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">act</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+  <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -1879,22 +1877,20 @@ other environment state.</p>
 <dd><p>Called in <code class="docutils literal notranslate"><span class="pre">env.step()</span></code> before terminated environments are reset.</p>
 <p><strong>What is available:</strong></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">obs_buf</span></code> contains the observation from the <em>end of the previous
-step</em> (the input the agent used to choose the terminal action). It
-does <strong>not</strong> contain the post-action terminal observation (the state
-reached after applying the action), which is never computed for
-resetting environments.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">action_manager.action</span></code> contains the action applied during this
-step. This is the correct terminal action. It will be zeroed for
-these environments by <code class="docutils literal notranslate"><span class="pre">_reset_idx</span></code> immediately after this hook
-returns, so capture it here if you need it later.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">obs_buf</span></code> contains the observation from the <em>end of the previous step</em> (the
+input the agent used to choose the terminal action). It does <strong>not</strong> contain the
+post-action terminal observation (the state reached after applying the action),
+which is never computed for resetting environments.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">action_manager.action</span></code> contains the action applied during this step. This is
+the correct terminal action. It will be zeroed for these environments by
+<code class="docutils literal notranslate"><span class="pre">_reset_idx</span></code> immediately after this hook returns, so capture it here if you
+need it later.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">reward_buf</span></code> contains the reward for this terminal step.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">reset_terminated</span></code> and <code class="docutils literal notranslate"><span class="pre">reset_time_outs</span></code> reflect why each
-environment is resetting.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reset_terminated</span></code> and <code class="docutils literal notranslate"><span class="pre">reset_time_outs</span></code> reflect why each environment is
+resetting.</p></li>
 </ul>
 <p>This is the right hook to record the terminal transition
-<code class="docutils literal notranslate"><span class="pre">(obs_t,</span> <span class="pre">action_t,</span> <span class="pre">reward_t,</span> <span class="pre">done=True)</span></code> for each resetting
-environment.</p>
+<code class="docutils literal notranslate"><span class="pre">(obs_t,</span> <span class="pre">action_t,</span> <span class="pre">reward_t,</span> <span class="pre">done=True)</span></code> for each resetting environment.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>env_ids</strong> – Indices of environments that are about to be reset.</p>
@@ -1906,15 +1902,14 @@ environment.</p>
 <dt class="sig sig-object py" id="mjlab.managers.RecorderTerm.record_post_reset">
 <span class="sig-name descname"><span class="pre">record_post_reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/managers/recorder_manager.html#RecorderTerm.record_post_reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.managers.RecorderTerm.record_post_reset" title="Link to this definition">#</a></dt>
 <dd><p>Called after a reset completes with fresh observations computed.</p>
-<p>Fires at the end of <code class="docutils literal notranslate"><span class="pre">env.reset()</span></code> (covering all environments on
-the initial call) and within <code class="docutils literal notranslate"><span class="pre">env.step()</span></code> for each batch of
-environments that terminates, after state has been overwritten and
-new observations computed.</p>
-<p>At this point <code class="docutils literal notranslate"><span class="pre">obs_buf[env_ids]</span></code> holds the initial observation of
-the new episode and <code class="docutils literal notranslate"><span class="pre">action_manager.action[env_ids]</span></code> is zero (no
-action has been taken in the new episode yet).</p>
-<p>Use this hook to initialize per-episode state or record the first
-observation of a new episode.</p>
+<p>Fires at the end of <code class="docutils literal notranslate"><span class="pre">env.reset()</span></code> (covering all environments on the initial call)
+and within <code class="docutils literal notranslate"><span class="pre">env.step()</span></code> for each batch of environments that terminates, after
+state has been overwritten and new observations computed.</p>
+<p>At this point <code class="docutils literal notranslate"><span class="pre">obs_buf[env_ids]</span></code> holds the initial observation of the new episode
+and <code class="docutils literal notranslate"><span class="pre">action_manager.action[env_ids]</span></code> is zero (no action has been taken in the new
+episode yet).</p>
+<p>Use this hook to initialize per-episode state or record the first observation of a
+new episode.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>env_ids</strong> – Indices of environments that were reset.</p>
@@ -1926,14 +1921,13 @@ observation of a new episode.</p>
 <dt class="sig sig-object py" id="mjlab.managers.RecorderTerm.record_post_step">
 <span class="sig-name descname"><span class="pre">record_post_step</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../../_modules/mjlab/managers/recorder_manager.html#RecorderTerm.record_post_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.managers.RecorderTerm.record_post_step" title="Link to this definition">#</a></dt>
 <dd><p>Called at the end of every <code class="docutils literal notranslate"><span class="pre">env.step()</span></code> with fresh observations.</p>
-<p>At this point <code class="docutils literal notranslate"><span class="pre">obs_buf</span></code> holds the new observation for every
-environment and <code class="docutils literal notranslate"><span class="pre">action_manager.action</span></code> holds the action that was
-applied during this step. <strong>Exception:</strong> for environments that reset
-during this step, <code class="docutils literal notranslate"><span class="pre">action_manager.action</span></code> has been zeroed by
-<code class="docutils literal notranslate"><span class="pre">_reset_idx</span></code> and <code class="docutils literal notranslate"><span class="pre">obs_buf</span></code> holds the initial observation of the
-new episode rather than the post-action terminal observation. Use
-<code class="docutils literal notranslate"><span class="pre">record_pre_reset</span></code> to capture the terminal <code class="docutils literal notranslate"><span class="pre">(obs,</span> <span class="pre">action)</span></code> pair
-for those environments. Resetting environments are identified by
+<p>At this point <code class="docutils literal notranslate"><span class="pre">obs_buf</span></code> holds the new observation for every environment and
+<code class="docutils literal notranslate"><span class="pre">action_manager.action</span></code> holds the action that was applied during this step.
+<strong>Exception:</strong> for environments that reset during this step,
+<code class="docutils literal notranslate"><span class="pre">action_manager.action</span></code> has been zeroed by <code class="docutils literal notranslate"><span class="pre">_reset_idx</span></code> and <code class="docutils literal notranslate"><span class="pre">obs_buf</span></code> holds
+the initial observation of the new episode rather than the post-action terminal
+observation. Use <code class="docutils literal notranslate"><span class="pre">record_pre_reset</span></code> to capture the terminal <code class="docutils literal notranslate"><span class="pre">(obs,</span> <span class="pre">action)</span></code>
+pair for those environments. Resetting environments are identified by
 <code class="docutils literal notranslate"><span class="pre">self._env.reset_buf</span></code>.</p>
 </dd></dl>
 
@@ -1950,9 +1944,8 @@ for those environments. Resetting environments are identified by
 <dt class="sig sig-object py" id="mjlab.managers.RecorderTermCfg">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.managers.</span></span><span class="sig-name descname"><span class="pre">RecorderTermCfg</span></span><a class="reference internal" href="../../_modules/mjlab/managers/recorder_manager.html#RecorderTermCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.managers.RecorderTermCfg" title="Link to this definition">#</a></dt>
 <dd><p>Configuration for a recorder term.</p>
-<p><code class="docutils literal notranslate"><span class="pre">func</span></code> must be a <a class="reference internal" href="#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> subclass. Function-based terms are
-not supported because recorder terms are stateful (file handles, buffers,
-etc.).</p>
+<p><code class="docutils literal notranslate"><span class="pre">func</span></code> must be a <a class="reference internal" href="#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> subclass. Function-based terms are not
+supported because recorder terms are stateful (file handles, buffers, etc.).</p>
 </dd></dl>
 
 </section>
