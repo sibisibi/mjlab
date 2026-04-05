@@ -9,10 +9,9 @@ loop. They exist purely to let you capture observations, actions, or any
 other environment state without modifying mjlab internals.
 
 Each recorder term is a class that you implement. mjlab calls its methods
-at the right moments and leaves all I/O decisions to you.
-
-If the ``recorders`` dictionary on ``ManagerBasedRlEnvCfg`` is empty, the
-environment substitutes a lightweight no-op manager with zero overhead.
+at the right moments and leaves all I/O decisions to you. If the ``recorders``
+dictionary on ``ManagerBasedRlEnvCfg`` is empty, the environment substitutes a
+lightweight no-op manager with zero overhead.
 
 
 Lifecycle hooks

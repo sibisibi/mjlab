@@ -487,9 +487,9 @@ rollouts. Unlike rewards, recorders have no effect on the optimization
 loop. They exist purely to let you capture observations, actions, or any
 other environment state without modifying mjlab internals.</p>
 <p>Each recorder term is a class that you implement. mjlab calls its methods
-at the right moments and leaves all I/O decisions to you.</p>
-<p>If the <code class="docutils literal notranslate"><span class="pre">recorders</span></code> dictionary on <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code> is empty, the
-environment substitutes a lightweight no-op manager with zero overhead.</p>
+at the right moments and leaves all I/O decisions to you. If the <code class="docutils literal notranslate"><span class="pre">recorders</span></code>
+dictionary on <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg</span></code> is empty, the environment substitutes a
+lightweight no-op manager with zero overhead.</p>
 <section id="lifecycle-hooks">
 <h2>Lifecycle hooks<a class="headerlink" href="#lifecycle-hooks" title="Link to this heading">#</a></h2>
 <p>The manager exposes three hooks per term:</p>
