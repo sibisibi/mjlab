@@ -491,6 +491,7 @@ document.write(`
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.transmission_type"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.transmission_type</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.armature"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.armature</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.frictionloss"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.frictionloss</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.viscous_damping"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.viscous_damping</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.delay_min_lag"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.delay_min_lag</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.delay_max_lag"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.delay_max_lag</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.delay_hold_prob"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.delay_hold_prob</span></code></a></li>
@@ -895,6 +896,17 @@ transmission_type.</p>
 <dd><p>Friction loss force limit. None preserves the XML value.</p>
 <p>Applies a constant friction force opposing motion, independent of load or velocity.
 Also known as dry friction or load-independent friction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mjlab.actuator.ActuatorCfg.viscous_damping">
+<span class="sig-name descname"><span class="pre">viscous_damping</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.actuator.ActuatorCfg.viscous_damping" title="Link to this definition">#</a></dt>
+<dd><p>Passive viscous damping coefficient. None preserves the XML value.</p>
+<p>Produces a dissipative force f(v) = -b·v proportional to velocity. Always present
+regardless of actuator activity. Unlike <code class="docutils literal notranslate"><span class="pre">damping</span></code> (the PD derivative gain kv, which
+is active control), this is a passive property.</p>
+<p>Maps to <code class="docutils literal notranslate"><span class="pre">&lt;joint</span> <span class="pre">damping&gt;</span></code> for JOINT transmission and <code class="docutils literal notranslate"><span class="pre">&lt;tendon</span> <span class="pre">damping&gt;</span></code>
+for TENDON transmission. Ignored for SITE.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2009,6 +2021,7 @@ position errors and velocities as inputs.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.transmission_type"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.transmission_type</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.armature"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.armature</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.frictionloss"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.frictionloss</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.viscous_damping"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.viscous_damping</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.delay_min_lag"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.delay_min_lag</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.delay_max_lag"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.delay_max_lag</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#mjlab.actuator.ActuatorCfg.delay_hold_prob"><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.delay_hold_prob</span></code></a></li>

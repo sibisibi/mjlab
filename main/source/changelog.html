@@ -508,6 +508,11 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">ActuatorCfg.viscous_damping</span></code> for passive velocity proportional
+damping (<code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">=</span> <span class="pre">-b·v</span></code>), distinct from the PD derivative gain <code class="docutils literal notranslate"><span class="pre">damping</span></code>
+used by position and velocity actuators. Maps to <code class="docutils literal notranslate"><span class="pre">&lt;joint</span> <span class="pre">damping&gt;</span></code> for
+JOINT transmission and <code class="docutils literal notranslate"><span class="pre">&lt;tendon</span> <span class="pre">damping&gt;</span></code> for TENDON transmission.
+Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code> (preserves the XML value).</p></li>
 <li><p>Added <a class="reference internal" href="api/managers.html#mjlab.managers.RecorderManager" title="mjlab.managers.RecorderManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderManager</span></code></a> for logging observations,
 actions, or arbitrary environment data during rollouts. Implement a
 <a class="reference internal" href="api/managers.html#mjlab.managers.RecorderTerm" title="mjlab.managers.RecorderTerm"><code class="xref py py-class docutils literal notranslate"><span class="pre">RecorderTerm</span></code></a> subclass and register it in the
