@@ -570,6 +570,12 @@ Contribution by &#64;pthangeda.</p></li>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.armature</span></code> and <code class="docutils literal notranslate"><span class="pre">ActuatorCfg.frictionloss</span></code> now default to
+<code class="docutils literal notranslate"><span class="pre">None</span></code> instead of <code class="docutils literal notranslate"><span class="pre">0.0</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> preserves the value defined in the
+XML. Previously, builtin actuators would silently overwrite XML joint and
+tendon properties with zero when these fields were not explicitly set.
+To restore the old behavior, pass <code class="docutils literal notranslate"><span class="pre">armature=0.0</span></code> or <code class="docutils literal notranslate"><span class="pre">frictionloss=0.0</span></code>
+explicitly.</p></li>
 <li><p>Actuator delay is now configured inline on any <code class="docutils literal notranslate"><span class="pre">ActuatorCfg</span></code> subclass
 (e.g. <code class="docutils literal notranslate"><span class="pre">BuiltinPositionActuatorCfg(...,</span> <span class="pre">delay_min_lag=2,</span> <span class="pre">delay_max_lag=5)</span></code>)
 instead of wrapping with <code class="docutils literal notranslate"><span class="pre">DelayedActuatorCfg</span></code>. <code class="docutils literal notranslate"><span class="pre">DelayedActuator</span></code>,

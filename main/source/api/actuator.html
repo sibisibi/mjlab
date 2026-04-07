@@ -885,14 +885,14 @@ transmission_type.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.actuator.ActuatorCfg.armature">
-<span class="sig-name descname"><span class="pre">armature</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#mjlab.actuator.ActuatorCfg.armature" title="Link to this definition">#</a></dt>
-<dd><p>Reflected rotor inertia.</p>
+<span class="sig-name descname"><span class="pre">armature</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.actuator.ActuatorCfg.armature" title="Link to this definition">#</a></dt>
+<dd><p>Reflected rotor inertia. None preserves the XML value.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.actuator.ActuatorCfg.frictionloss">
-<span class="sig-name descname"><span class="pre">frictionloss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#mjlab.actuator.ActuatorCfg.frictionloss" title="Link to this definition">#</a></dt>
-<dd><p>Friction loss force limit.</p>
+<span class="sig-name descname"><span class="pre">frictionloss</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mjlab.actuator.ActuatorCfg.frictionloss" title="Link to this definition">#</a></dt>
+<dd><p>Friction loss force limit. None preserves the XML value.</p>
 <p>Applies a constant friction force opposing motion, independent of load or velocity.
 Also known as dry friction or load-independent friction.</p>
 </dd></dl>
@@ -1090,9 +1090,9 @@ appear in the spec. When the entity’s <code class="docutils literal notranslat
 <dt class="sig sig-object py" id="mjlab.actuator.BuiltinMotorActuatorCfg">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.actuator.</span></span><span class="sig-name descname"><span class="pre">BuiltinMotorActuatorCfg</span></span><a class="reference internal" href="../../_modules/mjlab/actuator/builtin_actuator.html#BuiltinMotorActuatorCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.actuator.BuiltinMotorActuatorCfg" title="Link to this definition">#</a></dt>
 <dd><p>Configuration for MuJoCo built-in motor actuator.</p>
-<p>Under the hood, this creates a &lt;motor&gt; actuator for each target and sets
-its effort limit and gear ratio accordingly. It also modifies the target’s
-properties, namely armature and frictionloss.</p>
+<p>Under the hood, this creates a &lt;motor&gt; actuator for each target and sets its effort
+limit and gear ratio accordingly. If armature or frictionloss are set, they override
+the corresponding joint/tendon properties from XML.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.actuator.BuiltinMotorActuatorCfg.effort_limit">
 <span class="sig-name descname"><span class="pre">effort_limit</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.actuator.BuiltinMotorActuatorCfg.effort_limit" title="Link to this definition">#</a></dt>
@@ -1181,9 +1181,9 @@ appear in the spec. When the entity’s <code class="docutils literal notranslat
 <dt class="sig sig-object py" id="mjlab.actuator.BuiltinPositionActuatorCfg">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.actuator.</span></span><span class="sig-name descname"><span class="pre">BuiltinPositionActuatorCfg</span></span><a class="reference internal" href="../../_modules/mjlab/actuator/builtin_actuator.html#BuiltinPositionActuatorCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.actuator.BuiltinPositionActuatorCfg" title="Link to this definition">#</a></dt>
 <dd><p>Configuration for MuJoCo built-in position actuator.</p>
-<p>Under the hood, this creates a &lt;position&gt; actuator for each target and sets
-the stiffness, damping and effort limits accordingly. It also modifies the target’s
-properties, namely armature and frictionloss.</p>
+<p>Under the hood, this creates a &lt;position&gt; actuator for each target and sets the
+stiffness, damping and effort limits accordingly. If armature or frictionloss are
+set, they override the corresponding joint/tendon properties from XML.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.actuator.BuiltinPositionActuatorCfg.stiffness">
 <span class="sig-name descname"><span class="pre">stiffness</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.actuator.BuiltinPositionActuatorCfg.stiffness" title="Link to this definition">#</a></dt>
@@ -1279,8 +1279,8 @@ appear in the spec. When the entity’s <code class="docutils literal notranslat
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mjlab.actuator.</span></span><span class="sig-name descname"><span class="pre">BuiltinVelocityActuatorCfg</span></span><a class="reference internal" href="../../_modules/mjlab/actuator/builtin_actuator.html#BuiltinVelocityActuatorCfg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mjlab.actuator.BuiltinVelocityActuatorCfg" title="Link to this definition">#</a></dt>
 <dd><p>Configuration for MuJoCo built-in velocity actuator.</p>
 <p>Under the hood, this creates a &lt;velocity&gt; actuator for each target and sets the
-damping gain. It also modifies the target’s properties, namely armature and
-frictionloss.</p>
+damping gain. If armature or frictionloss are set, they override the corresponding
+joint/tendon properties from XML.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.actuator.BuiltinVelocityActuatorCfg.damping">
 <span class="sig-name descname"><span class="pre">damping</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></em><a class="headerlink" href="#mjlab.actuator.BuiltinVelocityActuatorCfg.damping" title="Link to this definition">#</a></dt>

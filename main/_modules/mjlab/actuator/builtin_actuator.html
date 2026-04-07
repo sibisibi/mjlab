@@ -441,9 +441,9 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">BuiltinPositionActuatorCfg</span><span class="p">(</span><span class="n">ActuatorCfg</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Configuration for MuJoCo built-in position actuator.</span>
 
-<span class="sd">  Under the hood, this creates a &lt;position&gt; actuator for each target and sets</span>
-<span class="sd">  the stiffness, damping and effort limits accordingly. It also modifies the target&#39;s</span>
-<span class="sd">  properties, namely armature and frictionloss.</span>
+<span class="sd">  Under the hood, this creates a &lt;position&gt; actuator for each target and sets the</span>
+<span class="sd">  stiffness, damping and effort limits accordingly. If armature or frictionloss are</span>
+<span class="sd">  set, they override the corresponding joint/tendon properties from XML.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">stiffness</span><span class="p">:</span> <span class="nb">float</span>
@@ -524,9 +524,9 @@ document.write(`
 <span class="k">class</span><span class="w"> </span><span class="nc">BuiltinMotorActuatorCfg</span><span class="p">(</span><span class="n">ActuatorCfg</span><span class="p">):</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Configuration for MuJoCo built-in motor actuator.</span>
 
-<span class="sd">  Under the hood, this creates a &lt;motor&gt; actuator for each target and sets</span>
-<span class="sd">  its effort limit and gear ratio accordingly. It also modifies the target&#39;s</span>
-<span class="sd">  properties, namely armature and frictionloss.</span>
+<span class="sd">  Under the hood, this creates a &lt;motor&gt; actuator for each target and sets its effort</span>
+<span class="sd">  limit and gear ratio accordingly. If armature or frictionloss are set, they override</span>
+<span class="sd">  the corresponding joint/tendon properties from XML.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">effort_limit</span><span class="p">:</span> <span class="nb">float</span>
@@ -597,8 +597,8 @@ document.write(`
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Configuration for MuJoCo built-in velocity actuator.</span>
 
 <span class="sd">  Under the hood, this creates a &lt;velocity&gt; actuator for each target and sets the</span>
-<span class="sd">  damping gain. It also modifies the target&#39;s properties, namely armature and</span>
-<span class="sd">  frictionloss.</span>
+<span class="sd">  damping gain. If armature or frictionloss are set, they override the corresponding</span>
+<span class="sd">  joint/tendon properties from XML.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">damping</span><span class="p">:</span> <span class="nb">float</span>
