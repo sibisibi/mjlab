@@ -150,8 +150,26 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   for reward_name in ["foot_clearance", "foot_slip"]:
     cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
 
-  cfg.rewards["body_ang_vel"].weight = -0.05
-  cfg.rewards["angular_momentum"].weight = -0.02
+  cfg.rewards["gait"] = RewardTermCfg(
+    func=mdp.gait_reward,
+    weight=1.0,
+    params={
+      "sensor_name": "feet_ground_contact",
+      "height_sensor_name": "foot_height_scan",
+      "target_height": 0.08,
+      "target_air_time": 0.25,
+      "clearance_std": 0.08,
+      "air_time_std": 0.15,
+      "command_name": "twist",
+      "command_threshold": 0.05,
+    },
+  )
+  cfg.rewards["energy"].weight = -0.001
+  # cfg.rewards["body_ang_vel"].weight = -0.05
+  # cfg.rewards["angular_momentum"].weight = -0.02
+  cfg.rewards["joint_vel_l2"] = RewardTermCfg(func=mdp.joint_vel_l2, weight=0.0)
+  cfg.rewards["joint_acc_l2"] = RewardTermCfg(func=mdp.joint_acc_l2, weight=0.0)
+  cfg.rewards["action_rate_l2"].weight = -0.1
   cfg.rewards["air_time"].weight = 0.0
 
   cfg.rewards["self_collisions"] = RewardTermCfg(
