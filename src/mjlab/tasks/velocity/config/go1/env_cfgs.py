@@ -23,6 +23,7 @@ from mjlab.sensor import (
   TerrainHeightSensorCfg,
 )
 from mjlab.tasks.velocity import mdp
+from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 TerrainType = Literal["rough", "obstacles"]
@@ -35,7 +36,7 @@ def unitree_go1_rough_env_cfg(
   cfg = make_velocity_env_cfg()
 
   cfg.sim.njmax = 120
-  cfg.sim.nconmax = 20
+  cfg.sim.nconmax = 50
 
   cfg.sim.mujoco.impratio = 10
   cfg.sim.mujoco.cone = "elliptic"
@@ -183,17 +184,22 @@ def unitree_go1_rough_env_cfg(
   )
   cfg.events["base_com"].params["asset_cfg"].body_names = ("trunk",)
 
+  # Keep hip tight (abduction), let thigh swing freely (flexion/extension),
+  # calf gets slightly more freedom than thigh since knees bend a bit more.
   cfg.rewards["pose"].params["std_standing"] = {
-    r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.05,
-    r".*(FR|FL|RR|RL)_calf_joint.*": 0.1,
+    r".*(FR|FL|RR|RL)_hip_joint.*": 0.08,
+    r".*(FR|FL|RR|RL)_thigh_joint.*": 0.12,
+    r".*(FR|FL|RR|RL)_calf_joint.*": 0.18,
   }
   cfg.rewards["pose"].params["std_walking"] = {
-    r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
+    r".*(FR|FL|RR|RL)_hip_joint.*": 0.2,
+    r".*(FR|FL|RR|RL)_thigh_joint.*": 0.5,
     r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
   }
   cfg.rewards["pose"].params["std_running"] = {
-    r".*(FR|FL|RR|RL)_(hip|thigh)_joint.*": 0.3,
-    r".*(FR|FL|RR|RL)_calf_joint.*": 0.6,
+    r".*(FR|FL|RR|RL)_hip_joint.*": 0.3,
+    r".*(FR|FL|RR|RL)_thigh_joint.*": 0.7,
+    r".*(FR|FL|RR|RL)_calf_joint.*": 0.8,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("trunk",)
@@ -203,11 +209,26 @@ def unitree_go1_rough_env_cfg(
   for reward_name in ["foot_clearance", "foot_slip"]:
     cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
 
-  cfg.rewards["body_ang_vel"].weight = -1e-4
-  cfg.rewards["angular_momentum"].weight = -1e-4
-  cfg.rewards["air_time"].weight = 0.0
-  cfg.rewards["joint_vel_l2"] = RewardTermCfg(func=mdp.joint_vel_l2, weight=-1e-5)
+  cfg.rewards["gait"] = RewardTermCfg(
+    func=mdp.gait_reward,
+    weight=1.0,
+    params={
+      "sensor_name": "feet_ground_contact",
+      "height_sensor_name": "foot_height_scan",
+      "target_height": 0.08,
+      "target_air_time": 0.25,
+      "clearance_std": 0.08,
+      "air_time_std": 0.15,
+      "command_name": "twist",
+      "command_threshold": 0.05,
+    },
+  )
+  cfg.rewards["energy"].weight = -0.001
+  # cfg.rewards["body_ang_vel"].weight = -1e-4
+  # cfg.rewards["angular_momentum"].weight = -1e-4
+  cfg.rewards["joint_vel_l2"] = RewardTermCfg(func=mdp.joint_vel_l2, weight=-1e-4)
   cfg.rewards["joint_acc_l2"] = RewardTermCfg(func=mdp.joint_acc_l2, weight=-1e-7)
+  cfg.rewards["action_rate_l2"].weight = -0.1
 
   # Per-body-group collision penalties.
   cfg.rewards["self_collisions"] = RewardTermCfg(
@@ -240,6 +261,12 @@ def unitree_go1_rough_env_cfg(
     params={"sensor_name": thigh_ground_cfg.name},
   )
 
+  twist_cmd = cfg.commands["twist"]
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  twist_cmd.ranges.lin_vel_x = (-1.5, 1.5)
+  twist_cmd.ranges.lin_vel_y = (-0.8, 0.8)
+  twist_cmd.ranges.ang_vel_z = (-1.2, 1.2)
+
   # Apply play mode overrides.
   if play:
     # Effectively infinite episode length.
@@ -269,7 +296,7 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Unitree Go1 flat terrain velocity configuration."""
   cfg = unitree_go1_rough_env_cfg(play=play)
 
-  cfg.sim.njmax = 50
+  cfg.sim.njmax = 75
 
   # Switch to flat terrain.
   assert cfg.scene.terrain is not None

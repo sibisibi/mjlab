@@ -21,13 +21,13 @@ def unitree_go1_ppo_runner_cfg(
       distribution_cfg={
         "class_name": "GaussianDistribution",
         "init_std": 1.0,
-        "std_type": "scalar",
+        "std_type": "log",
       },
     ),
     critic=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
       activation="elu",
-      obs_normalization=False,
+      obs_normalization=True,
     ),
     algorithm=RslRlPpoAlgorithmCfg(
       value_loss_coef=1.0,
@@ -51,5 +51,5 @@ def unitree_go1_ppo_runner_cfg(
 
 
 unitree_go1_flat_ppo_runner_cfg = partial(
-  unitree_go1_ppo_runner_cfg, max_iterations=1_500
+  unitree_go1_ppo_runner_cfg, max_iterations=2_000
 )
