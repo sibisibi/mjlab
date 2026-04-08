@@ -339,3 +339,23 @@ def unitree_go1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.curriculum.pop("terrain_levels", None)
 
   return cfg
+
+
+def _strip_lin_vel(cfg: ManagerBasedRlEnvCfg) -> ManagerBasedRlEnvCfg:
+  """Remove base linear velocity from actor observations."""
+  del cfg.observations["actor"].terms["base_lin_vel"]
+  return cfg
+
+
+def unitree_go1_rough_blind_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Go1 rough terrain without base linear velocity observation."""
+  return _strip_lin_vel(unitree_go1_rough_env_cfg(play=play))
+
+
+def unitree_go1_flat_blind_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """Go1 flat terrain without base linear velocity observation."""
+  return _strip_lin_vel(unitree_go1_flat_env_cfg(play=play))

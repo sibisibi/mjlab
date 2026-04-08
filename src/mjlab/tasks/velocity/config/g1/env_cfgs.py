@@ -10,7 +10,6 @@ from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
-from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -31,8 +30,8 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.sim.njmax = 200
   cfg.sim.nconmax = 30
 
-  cfg.sim.mujoco.impratio = 10
-  cfg.sim.mujoco.cone = "elliptic"
+  # cfg.sim.mujoco.impratio = 10
+  # cfg.sim.mujoco.cone = "elliptic"
 
   cfg.scene.entities = {"robot": get_g1_robot_cfg()}
 
@@ -97,43 +96,44 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
   twist_cmd.viz.z_offset = 1.15
 
-  # Replace the base foot_friction with per-axis friction events for condim 6.
-  del cfg.events["foot_friction"]
-  cfg.events["foot_friction_slide"] = EventTermCfg(
-    mode="startup",
-    func=envs_mdp.dr.geom_friction,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
-      "operation": "abs",
-      "axes": [0],
-      "ranges": (0.3, 1.5),
-      "shared_random": True,
-    },
-  )
-  cfg.events["foot_friction_spin"] = EventTermCfg(
-    mode="startup",
-    func=envs_mdp.dr.geom_friction,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
-      "operation": "abs",
-      "distribution": "log_uniform",
-      "axes": [1],
-      "ranges": (1e-4, 2e-2),
-      "shared_random": True,
-    },
-  )
-  cfg.events["foot_friction_roll"] = EventTermCfg(
-    mode="startup",
-    func=envs_mdp.dr.geom_friction,
-    params={
-      "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
-      "operation": "abs",
-      "distribution": "log_uniform",
-      "axes": [2],
-      "ranges": (1e-5, 5e-3),
-      "shared_random": True,
-    },
-  )
+  # # Per-axis friction events for condim 6.
+  # del cfg.events["foot_friction"]
+  # cfg.events["foot_friction_slide"] = EventTermCfg(
+  #   mode="startup",
+  #   func=envs_mdp.dr.geom_friction,
+  #   params={
+  #     "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
+  #     "operation": "abs",
+  #     "axes": [0],
+  #     "ranges": (0.3, 1.5),
+  #     "shared_random": True,
+  #   },
+  # )
+  # cfg.events["foot_friction_spin"] = EventTermCfg(
+  #   mode="startup",
+  #   func=envs_mdp.dr.geom_friction,
+  #   params={
+  #     "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
+  #     "operation": "abs",
+  #     "distribution": "log_uniform",
+  #     "axes": [1],
+  #     "ranges": (1e-4, 2e-2),
+  #     "shared_random": True,
+  #   },
+  # )
+  # cfg.events["foot_friction_roll"] = EventTermCfg(
+  #   mode="startup",
+  #   func=envs_mdp.dr.geom_friction,
+  #   params={
+  #     "asset_cfg": SceneEntityCfg("robot", geom_names=geom_names),
+  #     "operation": "abs",
+  #     "distribution": "log_uniform",
+  #     "axes": [2],
+  #     "ranges": (1e-5, 5e-3),
+  #     "shared_random": True,
+  #   },
+  # )
+  cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
 
   # Rationale for std values:
@@ -205,8 +205,8 @@ def unitree_g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     },
   )
   cfg.rewards["energy"].weight = -0.001
-  # cfg.rewards["body_ang_vel"].weight = -0.05
-  # cfg.rewards["angular_momentum"].weight = -0.02
+  cfg.rewards["body_ang_vel"].weight = -0.05
+  cfg.rewards["angular_momentum"].weight = -0.02
   cfg.rewards["joint_vel_l2"] = RewardTermCfg(func=mdp.joint_vel_l2, weight=0.0)
   cfg.rewards["joint_acc_l2"] = RewardTermCfg(func=mdp.joint_acc_l2, weight=0.0)
   cfg.rewards["action_rate_l2"].weight = -0.1
@@ -292,3 +292,23 @@ def unitree_g1_flat_run_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.ang_vel_z = (-2.0, 2.0)
 
   return cfg
+
+
+def _strip_lin_vel(cfg: ManagerBasedRlEnvCfg) -> ManagerBasedRlEnvCfg:
+  """Remove base linear velocity from actor observations."""
+  del cfg.observations["actor"].terms["base_lin_vel"]
+  return cfg
+
+
+def unitree_g1_rough_blind_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """G1 rough terrain without base linear velocity observation."""
+  return _strip_lin_vel(unitree_g1_rough_env_cfg(play=play))
+
+
+def unitree_g1_flat_blind_env_cfg(
+  play: bool = False,
+) -> ManagerBasedRlEnvCfg:
+  """G1 flat terrain without base linear velocity observation."""
+  return _strip_lin_vel(unitree_g1_flat_env_cfg(play=play))
