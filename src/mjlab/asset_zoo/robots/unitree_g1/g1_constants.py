@@ -219,6 +219,8 @@ KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
 # are given condim=6 (elliptic cone with spin/roll friction).
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=(".*_collision",),
+  # Harden all collision geoms.
+  solref=(0.01, 1),
   condim={r"^(left|right)_foot[1-7]_collision$": 6, ".*_collision": 1},
   priority={r"^(left|right)_foot[1-7]_collision$": 1},
   friction={r"^(left|right)_foot[1-7]_collision$": (0.6,)},
@@ -228,6 +230,8 @@ FULL_COLLISION_WITHOUT_SELF = CollisionCfg(
   geom_names_expr=(".*_collision",),
   contype=0,
   conaffinity=1,
+  # Harden all collision geoms.
+  solref=(0.01, 1),
   condim={r"^(left|right)_foot[1-7]_collision$": 6, ".*_collision": 1},
   priority={r"^(left|right)_foot[1-7]_collision$": 1},
   friction={r"^(left|right)_foot[1-7]_collision$": (0.6,)},
@@ -240,6 +244,7 @@ FEET_ONLY_COLLISION = CollisionCfg(
   geom_names_expr=(r"^(left|right)_foot[1-7]_collision$",),
   contype=0,
   conaffinity=1,
+  solref=(0.01, 1),
   condim=6,
   priority=1,
   friction=(0.6,),
