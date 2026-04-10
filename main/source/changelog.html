@@ -613,7 +613,7 @@ after teleporting the robot to a new pose.</p></li>
 <li><p>Removed <code class="docutils literal notranslate"><span class="pre">EntityData.generalized_force</span></code>. The property was bugged (indexed
 free joint DOFs instead of articulated DOFs) and the name was ambiguous.
 Use <code class="docutils literal notranslate"><span class="pre">qfrc_actuator</span></code> or <code class="docutils literal notranslate"><span class="pre">qfrc_external</span></code> instead (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/776">#776</a>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">fetch_wandb_checkpoint</span></code> now filters checkpoints server-side via the
+<li><p><code class="docutils literal notranslate"><span class="pre">get_wandb_checkpoint_path</span></code> now filters checkpoints server-side via the
 <code class="docutils literal notranslate"><span class="pre">pattern</span></code> parameter, avoiding unnecessary pagination and tolerance to
 corrupted metadata (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/898">#898</a>).</p></li>
 </ul>
