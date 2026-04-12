@@ -1543,5 +1543,20 @@
       "ee_pos_error": 0.04777224361896515,
       "ee_ori_error": 0.17731669545173645
     }
+  },
+  {
+    "id": "fsi97zvs",
+    "name": "2026-04-12_02-11-12",
+    "url": "https://wandb.ai/gcbc_researchers/mjlab/runs/fsi97zvs",
+    "created_at": "2026-04-12T09:11:18Z",
+    "commit": "0cdbf25",
+    "metrics": {
+      "success_rate": 0.986328125,
+      "mpkpe": 0.02918694168329239,
+      "r_mpkpe": 0.027711812406778336,
+      "joint_vel_error": 3.1106064319610596,
+      "ee_pos_error": 0.0464877113699913,
+      "ee_ori_error": 0.17088595032691956
+    }
   }
 ]
