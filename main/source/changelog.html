@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 10, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 12, 2026"/>
   </head>
   
   
@@ -508,6 +508,15 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnvCfg.auto_reset</span></code> flag. When <code class="docutils literal notranslate"><span class="pre">True</span></code> (default),
+<code class="docutils literal notranslate"><span class="pre">step()</span></code> continues to reset done environments in place and returns the
+post-reset observation. When <code class="docutils literal notranslate"><span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">step()</span></code> skips the reset block
+and returns the terminal observation directly; the caller must call
+<code class="docutils literal notranslate"><span class="pre">reset(env_ids=...)</span></code> for done environments before the next <code class="docutils literal notranslate"><span class="pre">step()</span></code>
+or a <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code> is raised. Enables access to the true terminal
+state for algorithms that need it. Note that mjlab’s bundled <code class="docutils literal notranslate"><span class="pre">train.py</span></code>
+uses rsl_rl’s <code class="docutils literal notranslate"><span class="pre">OnPolicyRunner</span></code>, which does not drive manual resets, so
+<code class="docutils literal notranslate"><span class="pre">auto_reset=False</span></code> is intended for custom training loops (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/900">#900</a>).</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">ActuatorCfg.viscous_damping</span></code> for passive velocity proportional
 damping (<code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">=</span> <span class="pre">-b·v</span></code>), distinct from the PD derivative gain <code class="docutils literal notranslate"><span class="pre">damping</span></code>
 used by position and velocity actuators. Maps to <code class="docutils literal notranslate"><span class="pre">&lt;joint</span> <span class="pre">damping&gt;</span></code> for
@@ -1068,7 +1077,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 10, 2026.
+  Last updated on Apr 12, 2026.
   <br/>
 </p>
   </div>

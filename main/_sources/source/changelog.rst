@@ -8,6 +8,15 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added ``ManagerBasedRlEnvCfg.auto_reset`` flag. When ``True`` (default),
+  ``step()`` continues to reset done environments in place and returns the
+  post-reset observation. When ``False``, ``step()`` skips the reset block
+  and returns the terminal observation directly; the caller must call
+  ``reset(env_ids=...)`` for done environments before the next ``step()``
+  or a ``RuntimeError`` is raised. Enables access to the true terminal
+  state for algorithms that need it. Note that mjlab's bundled ``train.py``
+  uses rsl_rl's ``OnPolicyRunner``, which does not drive manual resets, so
+  ``auto_reset=False`` is intended for custom training loops (:issue:`900`).
 - Added ``ActuatorCfg.viscous_damping`` for passive velocity proportional
   damping (``f = -b·v``), distinct from the PD derivative gain ``damping``
   used by position and velocity actuators. Maps to ``<joint damping>`` for
