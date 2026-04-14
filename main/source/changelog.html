@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 12, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 14, 2026"/>
   </head>
   
   
@@ -584,6 +584,9 @@ Contribution by &#64;pthangeda.</p></li>
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Renamed the <code class="docutils literal notranslate"><span class="pre">list_envs</span></code> console script to <code class="docutils literal notranslate"><span class="pre">list-envs</span></code> for consistency
+with the other hyphenated entry points (<code class="docutils literal notranslate"><span class="pre">viz-nan</span></code>, <code class="docutils literal notranslate"><span class="pre">export-scene</span></code>).
+Invoke via <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">list-envs</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ActuatorCfg.armature</span></code> and <code class="docutils literal notranslate"><span class="pre">ActuatorCfg.frictionloss</span></code> now default to
 <code class="docutils literal notranslate"><span class="pre">None</span></code> instead of <code class="docutils literal notranslate"><span class="pre">0.0</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> preserves the value defined in the
 XML. Previously, builtin actuators would silently overwrite XML joint and
@@ -630,6 +633,9 @@ corrupted metadata (<a class="extlink-issue reference external" href="https://gi
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">train</span></code> and <code class="docutils literal notranslate"><span class="pre">play</span></code> now print a top-level usage message when invoked
+with <code class="docutils literal notranslate"><span class="pre">-h</span></code> / <code class="docutils literal notranslate"><span class="pre">--help</span></code> and no task argument, pointing users at
+<code class="docutils literal notranslate"><span class="pre">list-envs</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;TASK&gt;</span> <span class="pre">--help</span></code> (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/905">#905</a>).</p></li>
 <li><p>Fixed ghost geom filtering in the Viser viewer. Ghost geoms were selected
 by collision flags, so collision-disabled robot geoms appeared as ghosts.
 The viewer now uses visual alpha to determine which geoms to render.</p></li>
@@ -1077,7 +1083,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 12, 2026.
+  Last updated on Apr 14, 2026.
   <br/>
 </p>
   </div>
