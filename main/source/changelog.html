@@ -550,6 +550,15 @@ Added a regression test (<code class="docutils literal notranslate"><span class=
 notebook cell and verifies that every <code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">mjlab...</span> <span class="pre">import</span> <span class="pre">X</span></code>
 reference resolves, so future renames in the mjlab public API can’t
 silently rot the tutorials (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/913">#913</a>).</p></li>
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> silently sharing a single <code class="docutils literal notranslate"><span class="pre">NoiseModelCfg</span></code>
+instance across observation groups that declared terms with the same
+name. <code class="docutils literal notranslate"><span class="pre">_group_obs_class_instances</span></code> was keyed by term name alone, so
+the last group processed in <code class="docutils literal notranslate"><span class="pre">_prepare_terms</span></code> overwrote earlier
+groups’ instances. Symptoms included the wrong noise config being
+applied, shared per-episode state for <code class="docutils literal notranslate"><span class="pre">NoiseModelWithAdditiveBias</span></code>
+(e.g. bias drawn from the wrong <code class="docutils literal notranslate"><span class="pre">bias_noise_cfg</span></code>), and missed
+<code class="docutils literal notranslate"><span class="pre">reset()</span></code> calls for overwritten instances. Instances are now keyed
+by <code class="docutils literal notranslate"><span class="pre">(group_name,</span> <span class="pre">term_name)</span></code> so each group owns its own noise model.</p></li>
 </ul>
 </section>
 </section>
