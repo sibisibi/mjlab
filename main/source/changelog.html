@@ -559,6 +559,11 @@ applied, shared per-episode state for <code class="docutils literal notranslate"
 (e.g. bias drawn from the wrong <code class="docutils literal notranslate"><span class="pre">bias_noise_cfg</span></code>), and missed
 <code class="docutils literal notranslate"><span class="pre">reset()</span></code> calls for overwritten instances. Instances are now keyed
 by <code class="docutils literal notranslate"><span class="pre">(group_name,</span> <span class="pre">term_name)</span></code> so each group owns its own noise model.</p></li>
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">CurriculumManager.get_active_iterable_terms</span></code> raising
+<code class="docutils literal notranslate"><span class="pre">TypeError</span></code> when a term’s state was a dict. The dict branch indexed
+the output list by term name instead of appending to the local <code class="docutils literal notranslate"><span class="pre">data</span></code>
+list. No in-tree caller currently invokes this method, so the bug was
+latent.</p></li>
 </ul>
 </section>
 </section>
