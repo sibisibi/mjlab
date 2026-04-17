@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 16, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 17, 2026"/>
   </head>
   
   
@@ -540,6 +540,11 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> now raises a clear <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> when an
+observation group ends up with zero active terms (e.g. all terms set
+to <code class="docutils literal notranslate"><span class="pre">None</span></code>), instead of failing later with an opaque <code class="docutils literal notranslate"><span class="pre">torch.stack</span></code>
+or <code class="docutils literal notranslate"><span class="pre">torch.cat</span></code> error. To disable a group, set the entire group to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 <li><p>Fixed a runtime broadcast error in <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code> when combining
 <code class="docutils literal notranslate"><span class="pre">num_slots</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> with <code class="docutils literal notranslate"><span class="pre">track_air_time=True</span></code> and more than one primary.
 Air-time tracking now reduces <code class="docutils literal notranslate"><span class="pre">found</span></code> across slots so that a primary is
@@ -1155,7 +1160,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 16, 2026.
+  Last updated on Apr 17, 2026.
   <br/>
 </p>
   </div>

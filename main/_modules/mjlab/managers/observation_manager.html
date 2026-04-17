@@ -56,7 +56,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 16, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 17, 2026"/>
   </head>
   
   
@@ -903,6 +903,13 @@ document.write(`
             <span class="n">obs_dims</span> <span class="o">=</span> <span class="p">(</span><span class="n">obs_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">obs_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:])))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_group_obs_term_dim</span><span class="p">[</span><span class="n">group_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obs_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_obs_term_names</span><span class="p">[</span><span class="n">group_name</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;Observation group &#39;</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">&#39; has no active terms. &quot;</span>
+          <span class="s2">&quot;Set the entire group to None to disable it.&quot;</span>
+        <span class="p">)</span>
+
       <span class="bp">self</span><span class="o">.</span><span class="n">_group_obs_term_delay_buffer</span><span class="p">[</span><span class="n">group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">group_entry_delay_buffer</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_group_obs_term_history_buffer</span><span class="p">[</span><span class="n">group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">group_entry_history_buffer</span></div>
 
@@ -953,7 +960,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 16, 2026.
+  Last updated on Apr 17, 2026.
   <br/>
 </p>
   </div>
