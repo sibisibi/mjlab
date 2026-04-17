@@ -540,6 +540,13 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">out_of_terrain_bounds</span></code> using stale terrain dimensions. It read
+<code class="docutils literal notranslate"><span class="pre">TerrainGeneratorCfg.num_cols</span></code> directly, which is ignored in curriculum
+mode (the generator uses <code class="docutils literal notranslate"><span class="pre">len(sub_terrains)</span></code> columns instead), and it
+did not account for <code class="docutils literal notranslate"><span class="pre">border_width</span></code>. The termination now reads the
+effective grid shape from <code class="docutils literal notranslate"><span class="pre">terrain.terrain_origins</span></code> and includes the
+border in the footprint, so robots no longer reset while still on valid
+terrain (or fail to reset after running off it) (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/923">#923</a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> now raises a clear <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> when an
 observation group ends up with zero active terms (e.g. all terms set
 to <code class="docutils literal notranslate"><span class="pre">None</span></code>), instead of failing later with an opaque <code class="docutils literal notranslate"><span class="pre">torch.stack</span></code>
