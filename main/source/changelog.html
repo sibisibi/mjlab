@@ -547,11 +547,12 @@ did not account for <code class="docutils literal notranslate"><span class="pre"
 effective grid shape from <code class="docutils literal notranslate"><span class="pre">terrain.terrain_origins</span></code> and includes the
 border in the footprint, so robots no longer reset while still on valid
 terrain (or fail to reset after running off it) (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/923">#923</a>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> now raises a clear <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> when an
-observation group ends up with zero active terms (e.g. all terms set
-to <code class="docutils literal notranslate"><span class="pre">None</span></code>), instead of failing later with an opaque <code class="docutils literal notranslate"><span class="pre">torch.stack</span></code>
-or <code class="docutils literal notranslate"><span class="pre">torch.cat</span></code> error. To disable a group, set the entire group to
-<code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ObservationManager</span></code> now skips observation groups that end up with
+zero active terms (e.g. all terms set to <code class="docutils literal notranslate"><span class="pre">None</span></code>) with a log message,
+instead of crashing later in <code class="docutils literal notranslate"><span class="pre">torch.stack</span></code>/<code class="docutils literal notranslate"><span class="pre">torch.cat</span></code>. This lets
+a shared runner config define groups that become empty under certain
+runtime flags (e.g. model-specific terms all disabled for one variant).
+The whole group can still be set to <code class="docutils literal notranslate"><span class="pre">None</span></code> to disable it explicitly.</p></li>
 <li><p>Fixed a runtime broadcast error in <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code> when combining
 <code class="docutils literal notranslate"><span class="pre">num_slots</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> with <code class="docutils literal notranslate"><span class="pre">track_air_time=True</span></code> and more than one primary.
 Air-time tracking now reduces <code class="docutils literal notranslate"><span class="pre">found</span></code> across slots so that a primary is
