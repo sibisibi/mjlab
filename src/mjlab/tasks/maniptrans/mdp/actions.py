@@ -33,7 +33,7 @@ class ManipTransActionCfg(ActionTermCfg):
 
   entity_name: str
   command_name: str
-  wrist_actuator_names: tuple[str, ...] = (".*forearm.*|.*pos_[xyz].*",)
+  wrist_actuator_names: tuple[str, ...] = (".*forearm.*|.*pos_[xyz].*|.*rot_[xyz].*",)
   finger_actuator_names: tuple[str, ...] = (".*hand.*|.*finger.*|.*thumb.*|.*index.*|.*mid.*|.*ring.*|.*pinky.*",)
   wrist_residual_scale: float = 0.05
   finger_residual_scale: float = 1.0

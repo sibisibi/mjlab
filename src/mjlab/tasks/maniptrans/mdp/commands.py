@@ -385,7 +385,9 @@ class ManipTransCommand(CommandTerm):
       self._all_mano_indices[side] = mano_ids
 
     # Resolve wrist (translation + rotation) and finger joint IDs for noise
-    wrist_ids, wrist_names = self.robot.find_joints_by_actuator_names((".*forearm.*",))
+    wrist_ids, wrist_names = self.robot.find_joints_by_actuator_names(
+      (".*forearm.*|.*pos_[xyz].*|.*rot_[xyz].*",)
+    )
     finger_ids, _ = self.robot.find_joints_by_actuator_names(
       (".*thumb.*", ".*index.*", ".*mid.*", ".*ring.*", ".*pinky.*")
     )

@@ -96,7 +96,7 @@ def make_maniptrans_env_cfg() -> ManagerBasedRlEnvCfg:
     "maniptrans": ManipTransActionCfg(
       entity_name="hand",
       command_name="motion",
-      wrist_actuator_names=(".*forearm.*",),
+      wrist_actuator_names=(".*forearm.*|.*pos_[xyz].*|.*rot_[xyz].*",),
       finger_actuator_names=(".*thumb.*", ".*index.*", ".*mid.*", ".*ring.*", ".*pinky.*"),
       wrist_residual_scale=0.05,  # Override via CLI
       finger_residual_scale=1.0,  # Override via CLI
