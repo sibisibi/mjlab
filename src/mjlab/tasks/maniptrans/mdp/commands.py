@@ -316,39 +316,15 @@ class ManipTransCommand(CommandTerm):
       contact_ids, _ = self.robot.find_sites(contact_names, preserve_order=True)
       self._contact_site_indices[side] = contact_ids
 
-    # All tracked bodies (17 per side, matching ManipTrans body_names minus wrist).
+    # All tracked bodies (per side, matching the hand's body_names minus wrist).
     # Each maps to a MANO joint for delta obs and tracking rewards.
-    # ManipTrans xhand.py: hand2dex_mapping defines which robot bodies map to which MANO joints.
-    _ALL_BODIES_MANO = (
-      ("hand_thumb_bend_link", "thumb_proximal"),
-      ("hand_thumb_rota_link1", "thumb_proximal"),
-      ("hand_thumb_rota_link2", "thumb_intermediate"),
-      ("hand_index_bend_link", "index_proximal"),
-      ("hand_index_rota_link1", "index_proximal"),
-      ("hand_index_rota_link2", "index_intermediate"),
-      ("hand_mid_link1", "middle_proximal"),
-      ("hand_mid_link2", "middle_intermediate"),
-      ("hand_ring_link1", "ring_proximal"),
-      ("hand_ring_link2", "ring_intermediate"),
-      ("hand_pinky_link1", "pinky_proximal"),
-      ("hand_pinky_link2", "pinky_intermediate"),
-    )
+    # Per-hand mapping is supplied via `cfg.body_mapping` from the hand's
+    # asset_zoo constants module (e.g. asset_zoo.hands.xhand.constants.BODY_MAPPING).
+    _ALL_BODIES_MANO = cfg.body_mapping["all"]
 
-    # Level 1/2 for rewards (one body per finger per level, same as before)
-    _LEVEL1_BODIES = {
-      "thumb": "hand_thumb_bend_link",
-      "index": "hand_index_bend_link",
-      "middle": "hand_mid_link1",
-      "ring": "hand_ring_link1",
-      "pinky": "hand_pinky_link1",
-    }
-    _LEVEL2_BODIES = {
-      "thumb": "hand_thumb_rota_link2",
-      "index": "hand_index_rota_link2",
-      "middle": "hand_mid_link2",
-      "ring": "hand_ring_link2",
-      "pinky": "hand_pinky_link2",
-    }
+    # Level 1/2 for rewards (one body per finger per level).
+    _LEVEL1_BODIES = cfg.body_mapping["level1"]
+    _LEVEL2_BODIES = cfg.body_mapping["level2"]
     _LEVEL1_MANO = {
       "thumb": "thumb_proximal",
       "index": "index_proximal",
@@ -1152,6 +1128,12 @@ class ManipTransCommandCfg(CommandTermCfg):
   entity_name: str
   sides: tuple[str, ...]
   wrist_body_names: dict[str, str]
+  body_mapping: dict
+  """Per-hand body-name mapping. Keys: 'all' (sequence of (body, mano_joint)
+  pairs for all tracked non-tip bodies), 'level1' and 'level2' (dicts from
+  finger name to the body used for the L1/L2 tracking reward). Supplied by
+  the hand's asset_zoo constants module (e.g. BODY_MAPPING in
+  asset_zoo.hands.xhand.constants). Side prefix is applied at lookup time."""
   object_entity_names: dict[str, str] = None  # side → entity name, e.g. {"right": "object_right"}
   pin_objects: bool = False  # If True, override object root state every step to match reference trajectory
   pin_mode: Literal["hard", "actuated", "xfrc", "none"] = "hard"

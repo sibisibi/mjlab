@@ -121,6 +121,7 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
 def _set_command_params(
   cfg: ManagerBasedRlEnvCfg,
   root_bodies: dict[str, str],
+  body_mapping: dict,
   side: str,
 ) -> None:
   """Set ManipTransCommand params and per-side rewards from side and root_bodies."""
@@ -131,6 +132,7 @@ def _set_command_params(
   assert isinstance(motion_cmd, ManipTransCommandCfg)
   motion_cmd.sides = sides
   motion_cmd.wrist_body_names = wrist_body_names
+  motion_cmd.body_mapping = body_mapping
 
   _add_per_side_rewards(cfg, sides)
 
@@ -138,13 +140,14 @@ def _set_command_params(
 def make_hand_env_cfg(
   get_cfg: Callable[[str], EntityCfg],
   root_bodies: dict[str, str],
+  body_mapping: dict,
   side: str,
   play: bool = False,
 ) -> ManagerBasedRlEnvCfg:
   cfg = make_maniptrans_env_cfg()
   cfg.scene.entities = {"hand": get_cfg(side)}
   cfg.viewer.body_name = root_bodies[side]
-  _set_command_params(cfg, root_bodies, side)
+  _set_command_params(cfg, root_bodies, body_mapping, side)
 
   if play:
     cfg.scene.num_envs = 4
@@ -199,13 +202,16 @@ def register_hand(
   robot_name: str,
   get_cfg: Callable[[str], EntityCfg],
   root_bodies: dict[str, str],
+  body_mapping: dict,
 ) -> None:
   """Register right, left, and bimanual tasks for a hand type."""
   for side in ("right", "left", "bimanual"):
     register_mjlab_task(
       task_id=f"mjlab-maniptrans-{robot_name}-{side}",
-      env_cfg=make_hand_env_cfg(get_cfg, root_bodies, side),
-      play_env_cfg=make_hand_env_cfg(get_cfg, root_bodies, side, play=True),
+      env_cfg=make_hand_env_cfg(get_cfg, root_bodies, body_mapping, side),
+      play_env_cfg=make_hand_env_cfg(
+        get_cfg, root_bodies, body_mapping, side, play=True
+      ),
       rl_cfg=make_ppo_cfg(f"maniptrans_{robot_name}"),
       runner_cls=MjlabOnPolicyRunner,
     )
