@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 19, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 22, 2026"/>
   </head>
   
   
@@ -540,6 +540,14 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">ContactSensor.compute_first_contact</span></code> and <code class="docutils literal notranslate"><span class="pre">compute_first_air</span></code>
+occasionally missing events when a contact began or ended right at the
+last physics substep of a control step. <code class="docutils literal notranslate"><span class="pre">current_contact_time</span></code> /
+<code class="docutils literal notranslate"><span class="pre">current_air_time</span></code> accumulate in float32 and can drift a few ULPs past
+<code class="docutils literal notranslate"><span class="pre">dt</span></code>, but the default <code class="docutils literal notranslate"><span class="pre">abs_tol</span></code> of <code class="docutils literal notranslate"><span class="pre">1e-8</span></code> sat at the noise floor
+and rejected the comparison. Raised the default to <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>, which stays
+well below typical control <code class="docutils literal notranslate"><span class="pre">dt</span></code> while comfortably covering float32
+accumulation noise (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/933">#933</a>). Contribution by &#64;paLeziart.</p></li>
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">out_of_terrain_bounds</span></code> using stale terrain dimensions. It read
 <code class="docutils literal notranslate"><span class="pre">TerrainGeneratorCfg.num_cols</span></code> directly, which is ignored in curriculum
 mode (the generator uses <code class="docutils literal notranslate"><span class="pre">len(sub_terrains)</span></code> columns instead), and it
@@ -1168,7 +1176,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 19, 2026.
+  Last updated on Apr 22, 2026.
   <br/>
 </p>
   </div>
