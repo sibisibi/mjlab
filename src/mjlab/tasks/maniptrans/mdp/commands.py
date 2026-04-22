@@ -32,44 +32,58 @@ FINGER_NAMES = ("thumb", "index", "middle", "ring", "pinky")
 
 
 class ManipTransMotionData:
-  """Loads motion.npz and organizes robot + MANO data.
+  """Loads one or more motion.npz files and organizes robot + MANO data.
 
-  Supports multi-motion via ``from_multiple()``: N single-motion datasets are
-  concatenated along the frame axis (ProtoMotions-style). Per-motion metadata
-  (``num_motions``, ``motion_num_frames``, ``length_starts``) enable O(1)
-  per-env dispatch with ``flat_idx = length_starts[motion_id] + frame_idx``.
-  When loaded from a single file, ``num_motions == 1`` and the flat index
-  degenerates to just the frame index (backward-compatible).
+  Single- and multi-trajectory loading share the same code path. All
+  per-frame tensors are stacked into shape (M, T_max, ...) where M is the
+  number of trajectories and T_max the longest trajectory length. Shorter
+  trajectories are tail-padded by replicating their final frame along the
+  time axis; ManipTransCommand double-indexes with (env_traj_idx, time_steps)
+  and clamps to per-traj length, so padded tail frames are never read in
+  normal rollouts (the padding just guards against pathological reads).
+
+  All trajectories in a multi-traj run must share the same MANO joint
+  layout (joint_names identical per side) and the same presence of optional
+  fields (obj_*, contact_*, tips_distance are all-or-none across trajs).
   """
-
-  # --- Multi-motion metadata (set by from_multiple, or defaults for single) ---
-  num_motions: int = 1
-  motion_num_frames: torch.Tensor | None = None  # (num_motions,)
-  length_starts: torch.Tensor | None = None       # (num_motions,) cumulative offsets
 
   def __init__(
     self,
-    motion_file: str,
+    motion_file: str | list[str],
     sides: tuple[str, ...],
     n_hand_dofs: int,
     device: str,
   ) -> None:
-    data = np.load(motion_file, allow_pickle=True)
+    motion_files = (
+      [motion_file] if isinstance(motion_file, (str, bytes)) else list(motion_file)
+    )
+    if len(motion_files) == 0:
+      raise ValueError("motion_file must be a non-empty path or list of paths")
 
+    datas = [np.load(p, allow_pickle=True) for p in motion_files]
+    M = len(datas)
+    time_lens = [int(d["joint_pos"].shape[0]) for d in datas]
+    T_max = max(time_lens)
+
+    self.num_trajectories: int = M
+    self.time_step_totals: torch.Tensor = torch.tensor(
+      time_lens, dtype=torch.long, device=device
+    )
+
+    # Robot data for warm-start reset.
+    # Motion.npz joint order: [right_hand, left_hand, objects].
+    # For right-only: take first n_hand_dofs.
+    # For left-only: skip right hand joints (offset = n_hand_dofs).
+    # For bimanual: take first n_hand_dofs (= right + left).
     joint_offset = n_hand_dofs if sides == ("left",) else 0
-    self.joint_pos = torch.tensor(
-      data["joint_pos"][:, joint_offset:joint_offset + n_hand_dofs],
-      dtype=torch.float32, device=device,
+    self.joint_pos = self._stack_pad(
+      [d["joint_pos"][:, joint_offset:joint_offset + n_hand_dofs] for d in datas],
+      T_max, device,
     )
-    self.joint_vel = torch.tensor(
-      data["joint_vel"][:, joint_offset:joint_offset + n_hand_dofs],
-      dtype=torch.float32, device=device,
+    self.joint_vel = self._stack_pad(
+      [d["joint_vel"][:, joint_offset:joint_offset + n_hand_dofs] for d in datas],
+      T_max, device,
     )
-    self.time_step_total = self.joint_pos.shape[0]
-    # Single-motion defaults
-    self.num_motions = 1
-    self.motion_num_frames = torch.tensor([self.time_step_total], dtype=torch.long, device=device)
-    self.length_starts = torch.tensor([0], dtype=torch.long, device=device)
 
     # Per-side MANO data for tracking targets
     self.wrist_pos: dict[str, torch.Tensor] = {}
@@ -83,57 +97,73 @@ class ManipTransMotionData:
 
     for side in sides:
       prefix = f"mano_{side}_"
-      self.wrist_pos[side] = torch.tensor(
-        data[prefix + "wrist_pos"], dtype=torch.float32, device=device
+      self.wrist_pos[side] = self._stack_pad(
+        [d[prefix + "wrist_pos"] for d in datas], T_max, device,
       )
-      self.wrist_rot[side] = torch.tensor(
-        data[prefix + "wrist_rot"], dtype=torch.float32, device=device
+      self.wrist_rot[side] = self._stack_pad(
+        [d[prefix + "wrist_rot"] for d in datas], T_max, device,
       )
-      self.wrist_vel[side] = torch.tensor(
-        data[prefix + "wrist_vel"], dtype=torch.float32, device=device
+      self.wrist_vel[side] = self._stack_pad(
+        [d[prefix + "wrist_vel"] for d in datas], T_max, device,
       )
-      self.wrist_angvel[side] = torch.tensor(
-        data[prefix + "wrist_angvel"], dtype=torch.float32, device=device
+      self.wrist_angvel[side] = self._stack_pad(
+        [d[prefix + "wrist_angvel"] for d in datas], T_max, device,
       )
-      self.joints[side] = torch.tensor(
-        data[prefix + "joints"], dtype=torch.float32, device=device
+      self.joints[side] = self._stack_pad(
+        [d[prefix + "joints"] for d in datas], T_max, device,
       )
-      self.joints_vel[side] = torch.tensor(
-        data[prefix + "joints_vel"], dtype=torch.float32, device=device
+      self.joints_vel[side] = self._stack_pad(
+        [d[prefix + "joints_vel"] for d in datas], T_max, device,
       )
 
-      names = list(data[prefix + "joint_names"])
-      self.joint_names[side] = names
-
-      # Find tip indices in the 20-joint array
-      tip_idx = []
-      for finger in FINGER_NAMES:
-        tip_idx.append(names.index(f"{finger}_tip"))
-      self.tip_indices[side] = torch.tensor(tip_idx, dtype=torch.long, device=device)
+      # Joint names must be identical across trajs so tip_indices and the
+      # level1/2/all body-to-MANO indices built by ManipTransCommand stay
+      # valid regardless of which trajectory an env is currently running.
+      names_lists = [list(d[prefix + "joint_names"]) for d in datas]
+      base_names = names_lists[0]
+      for i, names in enumerate(names_lists[1:], start=1):
+        if names != base_names:
+          raise ValueError(
+            f"joint_names mismatch for side {side!r}: traj 0 vs traj {i} "
+            f"({motion_files[0]} vs {motion_files[i]}). All motion files "
+            f"in a multi-trajectory run must share the same MANO joint layout."
+          )
+      self.joint_names[side] = base_names
+      tip_idx = [base_names.index(f"{finger}_tip") for finger in FINGER_NAMES]
+      self.tip_indices[side] = torch.tensor(
+        tip_idx, dtype=torch.long, device=device
+      )
 
     # Per-side tips_distance: MANO tip to object surface (precomputed)
     self.tips_distance: dict[str, torch.Tensor] = {}
     for side in sides:
       key = f"tips_distance_{side}"
-      if key in data:
-        self.tips_distance[side] = torch.tensor(
-          data[key], dtype=torch.float32, device=device
+      present = [key in d for d in datas]
+      if any(present):
+        self._require_all_or_none(present, key, motion_files)
+        self.tips_distance[side] = self._stack_pad(
+          [d[key] for d in datas], T_max, device,
         )
 
     # Per-side per-frame contact position on object (object-local frame)
-    # Shape: (T, 5, 3). contact[t, i] = target contact point on object for finger i at frame t.
+    # Shape: (M, T_max, 5, 3). contact[m, t, i] = target contact point on
+    # object for finger i at frame t of trajectory m.
     self.contact_pos_full: dict[str, torch.Tensor] = {}
     self.contact_flags: dict[str, torch.Tensor] = {}
     for side in sides:
       key = f"contact_contact_pos_full_{side}"
-      if key in data:
-        self.contact_pos_full[side] = torch.tensor(
-          data[key], dtype=torch.float32, device=device
+      present = [key in d for d in datas]
+      if any(present):
+        self._require_all_or_none(present, key, motion_files)
+        self.contact_pos_full[side] = self._stack_pad(
+          [d[key] for d in datas], T_max, device,
         )
       flag_key = f"contact_contact_{side}"
-      if flag_key in data:
-        self.contact_flags[side] = torch.tensor(
-          data[flag_key], dtype=torch.float32, device=device
+      present_f = [flag_key in d for d in datas]
+      if any(present_f):
+        self._require_all_or_none(present_f, flag_key, motion_files)
+        self.contact_flags[side] = self._stack_pad(
+          [d[flag_key] for d in datas], T_max, device,
         )
 
     # Per-side object trajectory data
@@ -145,90 +175,84 @@ class ManipTransMotionData:
     # [rot_x, rot_y, rot_z]. Computed from obj_rotmat and unwrapped across
     # time so the ctrl target is continuous (no ±π canonicalization jumps
     # that would otherwise send the position actuator spinning 360°).
-    # Used only by pin_mode="actuated".
+    # Used only by pin_mode="actuated". Shape: (M, T_max, 3).
     self.obj_euler: dict[str, torch.Tensor] = {}
     # Hinge joint velocities = d/dt of the unwrapped Euler. Populated by the
-    # command term once env step_dt is known (not here — this class has no
-    # env reference). Shape: (T, 3).
+    # command term once env step_dt is known (this class has no env ref).
+    # Shape: (M, T_max, 3).
     self.obj_euler_vel: dict[str, torch.Tensor] = {}
 
     for side in sides:
       prefix = f"obj_{side}_"
-      if prefix + "pos" in data:
-        self.obj_pos[side] = torch.tensor(
-          data[prefix + "pos"], dtype=torch.float32, device=device
-        )
-        R = data[prefix + "rotmat"]  # (T, 3, 3) numpy
-        self.obj_rotmat[side] = torch.tensor(R, dtype=torch.float32, device=device)
-        self.obj_vel[side] = torch.tensor(
-          data[prefix + "vel"], dtype=torch.float32, device=device
-        )
-        self.obj_angvel[side] = torch.tensor(
-          data[prefix + "angvel"], dtype=torch.float32, device=device
-        )
-        # Intrinsic XYZ euler from rotmat: R = R_x(α) R_y(β) R_z(γ)
-        # → β = asin(R[0,2]), α = atan2(-R[1,2], R[2,2]), γ = atan2(-R[0,1], R[0,0])
-        beta = np.arcsin(np.clip(R[:, 0, 2], -0.9999, 0.9999))
-        alpha = np.arctan2(-R[:, 1, 2], R[:, 2, 2])
-        gamma = np.arctan2(-R[:, 0, 1], R[:, 0, 0])
-        euler = np.stack([alpha, beta, gamma], axis=-1)  # (T, 3)
-        euler = np.unwrap(euler, axis=0)  # unwrap each axis across time
-        self.obj_euler[side] = torch.tensor(
-          euler, dtype=torch.float32, device=device
-        )
+      key_pos = prefix + "pos"
+      present = [key_pos in d for d in datas]
+      if not any(present):
+        continue
+      self._require_all_or_none(present, key_pos, motion_files)
 
-  @classmethod
-  def from_multiple(
-    cls,
-    motion_files: list[str],
-    sides: tuple[str, ...],
-    n_hand_dofs: int,
+      self.obj_pos[side] = self._stack_pad(
+        [d[key_pos] for d in datas], T_max, device,
+      )
+      rotmats_np = [d[prefix + "rotmat"] for d in datas]  # each (T_m, 3, 3)
+      self.obj_rotmat[side] = self._stack_pad(rotmats_np, T_max, device)
+      self.obj_vel[side] = self._stack_pad(
+        [d[prefix + "vel"] for d in datas], T_max, device,
+      )
+      self.obj_angvel[side] = self._stack_pad(
+        [d[prefix + "angvel"] for d in datas], T_max, device,
+      )
+
+      # Intrinsic XYZ euler from rotmat: R = R_x(α) R_y(β) R_z(γ)
+      # → β = asin(R[0,2]), α = atan2(-R[1,2], R[2,2]), γ = atan2(-R[0,1], R[0,0])
+      # Unwrap along time per-trajectory on the valid (non-padded) prefix so
+      # the replicate pad doesn't pollute ±π jumps across the padding seam.
+      euler_list = []
+      for R, T_m in zip(rotmats_np, time_lens):
+        R_valid = R[:T_m]
+        beta = np.arcsin(np.clip(R_valid[:, 0, 2], -0.9999, 0.9999))
+        alpha = np.arctan2(-R_valid[:, 1, 2], R_valid[:, 2, 2])
+        gamma = np.arctan2(-R_valid[:, 0, 1], R_valid[:, 0, 0])
+        euler = np.stack([alpha, beta, gamma], axis=-1)  # (T_m, 3)
+        euler = np.unwrap(euler, axis=0)
+        euler_list.append(euler)
+      self.obj_euler[side] = self._stack_pad(euler_list, T_max, device)
+
+  @staticmethod
+  def _stack_pad(
+    arrays: list[np.ndarray],
+    T_max: int,
     device: str,
-  ) -> "ManipTransMotionData":
-    """Concatenate N single-motion datasets into one with offset indexing.
-
-    All motions must share the same sides, n_hand_dofs, and MANO joint_names.
-    Different-length motions are natively supported via per-motion
-    ``motion_num_frames`` / ``length_starts``. Access motion_id=i, frame=t
-    via flat index ``length_starts[i] + t``.
+    dtype: torch.dtype = torch.float32,
+  ) -> torch.Tensor:
+    """Stack per-traj arrays `(T_m, *rest)` into `(M, T_max, *rest)` with
+    replicate padding along the time axis (tail frames copied from the last
+    valid frame). Padding is defensive; callers clamp reads by per-traj
+    length so pad frames are not seen during normal rollouts.
     """
-    singles = [cls(f, sides, n_hand_dofs, device) for f in motion_files]
-    combined = object.__new__(cls)
+    padded = []
+    for arr in arrays:
+      T_m = arr.shape[0]
+      if T_m == T_max:
+        padded.append(arr)
+        continue
+      last = arr[-1:]
+      pad = np.broadcast_to(last, (T_max - T_m, *arr.shape[1:]))
+      padded.append(np.concatenate([arr, pad], axis=0))
+    stacked = np.stack(padded, axis=0)
+    return torch.tensor(stacked, dtype=dtype, device=device)
 
-    # Concat frame-indexed tensors along dim 0
-    combined.joint_pos = torch.cat([m.joint_pos for m in singles], dim=0)
-    combined.joint_vel = torch.cat([m.joint_vel for m in singles], dim=0)
-    combined.time_step_total = combined.joint_pos.shape[0]
-
-    # Per-side dicts: concat each side's tensor
-    for attr in ("wrist_pos", "wrist_rot", "wrist_vel", "wrist_angvel",
-                 "joints", "joints_vel", "tips_distance", "contact_pos_full",
-                 "contact_flags", "obj_pos", "obj_rotmat", "obj_vel",
-                 "obj_angvel", "obj_euler"):
-      d: dict[str, torch.Tensor] = {}
-      for side in sides:
-        parts = [getattr(m, attr).get(side) for m in singles if side in getattr(m, attr)]
-        if parts and all(p is not None for p in parts):
-          d[side] = torch.cat(parts, dim=0)
-      setattr(combined, attr, d)
-
-    # Non-concat per-side metadata (same across motions)
-    combined.joint_names = singles[0].joint_names
-    combined.tip_indices = singles[0].tip_indices
-
-    # Euler vel computed later by the command term (needs env step_dt)
-    combined.obj_euler_vel = {}
-
-    # Multi-motion metadata
-    n = len(singles)
-    frames = torch.tensor([m.time_step_total for m in singles], dtype=torch.long, device=device)
-    starts = torch.zeros(n, dtype=torch.long, device=device)
-    starts[1:] = frames[:-1].cumsum(0)
-    combined.num_motions = n
-    combined.motion_num_frames = frames
-    combined.length_starts = starts
-
-    return combined
+  @staticmethod
+  def _require_all_or_none(
+    present: list[bool], key: str, motion_files: list[str]
+  ) -> None:
+    if not all(present):
+      havers = [motion_files[i] for i, p in enumerate(present) if p]
+      missing = [motion_files[i] for i, p in enumerate(present) if not p]
+      raise ValueError(
+        f"Field {key!r} is present in some motion files but not others — "
+        f"all-or-none required across a multi-trajectory run.\n"
+        f"  present in: {havers}\n  missing in: {missing}"
+      )
 
 
 class ManipTransCommand(CommandTerm):
@@ -248,30 +272,32 @@ class ManipTransCommand(CommandTerm):
     self.robot: Entity = env.scene[cfg.entity_name]
     n_hand_dofs = self.robot.num_joints
 
-    if isinstance(cfg.motion_file, list):
-      self.motion = ManipTransMotionData.from_multiple(
-        cfg.motion_file, cfg.sides, n_hand_dofs, device=self.device
-      )
-    else:
-      self.motion = ManipTransMotionData(
-        cfg.motion_file, cfg.sides, n_hand_dofs, device=self.device
-      )
-
-    # Per-env motion assignment (for multi-motion). Initialized to 0 for
-    # single-motion backward compatibility.
-    self.motion_ids = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+    self.motion = ManipTransMotionData(
+      cfg.motion_file, cfg.sides, n_hand_dofs, device=self.device
+    )
 
     # Populate per-side hinge-joint velocity trajectories now that env step
     # dt is known. Used at reset to give actuated objects a non-cold-start
     # initial velocity. Stored on `self.motion` for symmetry with obj_euler.
+    # Computed per-trajectory on each traj's valid (non-padded) prefix so the
+    # gradient at the pad seam doesn't leak into the last valid velocity.
+    # Shape: (M, T_max, 3); padded tail replicated to match obj_euler.
     step_dt = env.step_dt
+    time_lens = self.motion.time_step_totals.tolist()
+    T_max = int(self.motion.time_step_totals.max().item())
     for side in cfg.sides:
-      if side in self.motion.obj_euler:
-        euler_np = self.motion.obj_euler[side].cpu().numpy()
-        euler_vel = np.gradient(euler_np, axis=0) / step_dt  # (T, 3) rad/s
-        self.motion.obj_euler_vel[side] = torch.tensor(
-          euler_vel, dtype=torch.float32, device=self.device
-        )
+      if side not in self.motion.obj_euler:
+        continue
+      euler_all = self.motion.obj_euler[side].cpu().numpy()  # (M, T_max, 3)
+      vel_all = np.zeros_like(euler_all)
+      for m, T_m in enumerate(time_lens):
+        vel_valid = np.gradient(euler_all[m, :T_m], axis=0) / step_dt  # (T_m, 3)
+        vel_all[m, :T_m] = vel_valid
+        if T_m < T_max:
+          vel_all[m, T_m:] = vel_valid[-1:]
+      self.motion.obj_euler_vel[side] = torch.tensor(
+        vel_all, dtype=torch.float32, device=self.device
+      )
 
     # Per-side: wrist body index and tip site indices
     self._side_list = list(cfg.sides)
@@ -395,21 +421,32 @@ class ManipTransCommand(CommandTerm):
     self._wrist_joint_ids = torch.tensor(wrist_ids, dtype=torch.long, device=self.device)
     self._finger_joint_ids = torch.tensor(finger_ids, dtype=torch.long, device=self.device)
 
-    # Time stepping
+    # Time stepping + per-env trajectory assignment. `env_traj_idx[i]` is
+    # the trajectory (index into motion.num_trajectories) that env i is
+    # currently running; it is uniformly resampled on every reset. Single-
+    # traj runs keep it at 0 forever (M=1, trivially correct).
     self.time_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+    self.env_traj_idx = torch.zeros(
+      self.num_envs, dtype=torch.long, device=self.device
+    )
 
-    # Adaptive sampling state — per-trajectory bins so multi-ref doesn't
-    # cross-contaminate failure statistics between different motions.
-    max_motion_frames = int(self.motion.motion_num_frames.max().item()) if self.motion.num_motions > 1 else self.motion.time_step_total
+    # Adaptive sampling state — per-trajectory bins. `bin_count` is sized to
+    # the longest trajectory (bins beyond each traj's own length are never
+    # read because sampling clamps by `bins_per_traj`). Time constant: each
+    # bin represents ~1 second of motion (`1 / env.step_dt` frames per bin).
+    M = self.motion.num_trajectories
     self.bin_count = int(
-      max_motion_frames // (1 / env.step_dt)
+      int(self.motion.time_step_totals.max().item()) // (1 / env.step_dt)
     ) + 1
-    n_motions = max(self.motion.num_motions, 1)
+    # Valid bin count per trajectory (sampling restricts to [0, bins_per_traj[m])).
+    self.bins_per_traj = (
+      self.motion.time_step_totals.float() // (1 / env.step_dt)
+    ).long() + 1
     self.bin_failed_count = torch.zeros(
-      n_motions, self.bin_count, dtype=torch.float, device=self.device
+      M, self.bin_count, dtype=torch.float, device=self.device
     )
     self._current_bin_failed = torch.zeros(
-      n_motions, self.bin_count, dtype=torch.float, device=self.device
+      M, self.bin_count, dtype=torch.float, device=self.device
     )
     self.kernel = torch.tensor(
       [cfg.adaptive_lambda**i for i in range(cfg.adaptive_kernel_size)],
@@ -424,17 +461,6 @@ class ManipTransCommand(CommandTerm):
     if cfg.object_entity_names is not None:
       self.metrics["error_obj_pos"] = torch.zeros(self.num_envs, device=self.device)
 
-  # --- Flat index for multi-motion dispatch ---
-
-  @property
-  def _flat_idx(self) -> torch.Tensor:
-    """Per-env flat frame index into the concatenated motion tensors.
-
-    ``length_starts[motion_ids[i]] + time_steps[i]`` for each env i.
-    For single-motion (num_motions=1), degenerates to ``time_steps``.
-    """
-    return self.motion.length_starts[self.motion_ids] + self.time_steps
-
   # --- Command property ---
 
   @property
@@ -445,11 +471,11 @@ class ManipTransCommand(CommandTerm):
 
   @property
   def ref_joint_pos(self) -> torch.Tensor:
-    return self.motion.joint_pos[self._flat_idx]
+    return self.motion.joint_pos[self.env_traj_idx, self.time_steps]
 
   @property
   def ref_joint_vel(self) -> torch.Tensor:
-    return self.motion.joint_vel[self._flat_idx]
+    return self.motion.joint_vel[self.env_traj_idx, self.time_steps]
 
   # --- MANO tracking targets ---
 
@@ -458,7 +484,7 @@ class ManipTransCommand(CommandTerm):
     """MANO wrist positions. Shape: (B, n_sides, 3)."""
     parts = []
     for side in self._side_list:
-      pos = self.motion.wrist_pos[side][self._flat_idx]  # (B, 3)
+      pos = self.motion.wrist_pos[side][self.env_traj_idx, self.time_steps]  # (B, 3)
       pos = pos + self._env.scene.env_origins
       parts.append(pos)
     return torch.stack(parts, dim=1)
@@ -468,7 +494,7 @@ class ManipTransCommand(CommandTerm):
     """MANO wrist rotation matrices. Shape: (B, n_sides, 3, 3)."""
     parts = []
     for side in self._side_list:
-      parts.append(self.motion.wrist_rot[side][self._flat_idx])
+      parts.append(self.motion.wrist_rot[side][self.env_traj_idx, self.time_steps])
     return torch.stack(parts, dim=1)
 
   @property
@@ -481,7 +507,7 @@ class ManipTransCommand(CommandTerm):
     """MANO wrist linear velocities. Shape: (B, n_sides, 3)."""
     parts = []
     for side in self._side_list:
-      parts.append(self.motion.wrist_vel[side][self._flat_idx])
+      parts.append(self.motion.wrist_vel[side][self.env_traj_idx, self.time_steps])
     return torch.stack(parts, dim=1)
 
   @property
@@ -489,7 +515,7 @@ class ManipTransCommand(CommandTerm):
     """MANO wrist angular velocities. Shape: (B, n_sides, 3)."""
     parts = []
     for side in self._side_list:
-      parts.append(self.motion.wrist_angvel[side][self._flat_idx])
+      parts.append(self.motion.wrist_angvel[side][self.env_traj_idx, self.time_steps])
     return torch.stack(parts, dim=1)
 
   @property
@@ -497,7 +523,7 @@ class ManipTransCommand(CommandTerm):
     """MANO fingertip positions (5 per side). Shape: (B, n_sides, 5, 3)."""
     parts = []
     for side in self._side_list:
-      all_joints = self.motion.joints[side][self._flat_idx]  # (B, 20, 3)
+      all_joints = self.motion.joints[side][self.env_traj_idx, self.time_steps]  # (B, 20, 3)
       tips = all_joints[:, self.motion.tip_indices[side]]  # (B, 5, 3)
       tips = tips + self._env.scene.env_origins[:, None, :]
       parts.append(tips)
@@ -508,7 +534,7 @@ class ManipTransCommand(CommandTerm):
     """MANO fingertip velocities (5 per side). Shape: (B, n_sides, 5, 3)."""
     parts = []
     for side in self._side_list:
-      all_vel = self.motion.joints_vel[side][self._flat_idx]  # (B, 20, 3)
+      all_vel = self.motion.joints_vel[side][self.env_traj_idx, self.time_steps]  # (B, 20, 3)
       tips = all_vel[:, self.motion.tip_indices[side]]  # (B, 5, 3)
       parts.append(tips)
     return torch.stack(parts, dim=1)
@@ -586,7 +612,9 @@ class ManipTransCommand(CommandTerm):
     sim_obj_pos = self.sim_obj_pos_w  # (B, n_sides, 3)
     for side in self._side_list:
       si = self._side_list.index(side)
-      local_pts = self.motion.contact_pos_full[side][self._flat_idx]  # (B, 5, 3)
+      local_pts = self.motion.contact_pos_full[side][
+        self.env_traj_idx, self.time_steps
+      ]  # (B, 5, 3)
       obj_pos = sim_obj_pos[:, si]  # (B, 3)
       obj_rot = matrix_from_quat(sim_obj_quat[:, si])  # (B, 3, 3)
       world_pts = obj_pos[:, None, :] + torch.einsum("bij,bkj->bki", obj_rot, local_pts)
@@ -598,7 +626,9 @@ class ManipTransCommand(CommandTerm):
     """Binary contact expected per finger per side. Shape: (B, n_sides, 5)."""
     parts = []
     for side in self._side_list:
-      parts.append(self.motion.contact_flags[side][self._flat_idx])
+      parts.append(
+        self.motion.contact_flags[side][self.env_traj_idx, self.time_steps]
+      )
     return torch.stack(parts, dim=1)
 
   @property
@@ -606,7 +636,9 @@ class ManipTransCommand(CommandTerm):
     """Precomputed MANO tip-to-object-surface distance. Shape: (B, n_sides, 5)."""
     parts = []
     for side in self._side_list:
-      parts.append(self.motion.tips_distance[side][self._flat_idx])
+      parts.append(
+        self.motion.tips_distance[side][self.env_traj_idx, self.time_steps]
+      )
     return torch.stack(parts, dim=1)
 
   # --- All body joint tracking (17 per side: 12 non-tip + 5 tip) ---
@@ -614,7 +646,7 @@ class ManipTransCommand(CommandTerm):
   def mano_all_joints_pos_w(self, side: str) -> torch.Tensor:
     """MANO positions for all 12 non-tip joints. Shape: (B, 12, 3)."""
     mano_indices = self._all_mano_indices[side]
-    all_joints = self.motion.joints[side][self._flat_idx]  # (B, 20, 3)
+    all_joints = self.motion.joints[side][self.env_traj_idx, self.time_steps]  # (B, 20, 3)
     pts = all_joints[:, mano_indices]  # (B, 12, 3)
     return pts + self._env.scene.env_origins[:, None, :]
 
@@ -626,7 +658,7 @@ class ManipTransCommand(CommandTerm):
   def mano_all_joints_vel_w(self, side: str) -> torch.Tensor:
     """MANO velocities for all 12 non-tip joints. Shape: (B, 12, 3)."""
     mano_indices = self._all_mano_indices[side]
-    all_vel = self.motion.joints_vel[side][self._flat_idx]  # (B, 20, 3)
+    all_vel = self.motion.joints_vel[side][self.env_traj_idx, self.time_steps]  # (B, 20, 3)
     return all_vel[:, mano_indices]  # (B, 12, 3)
 
   def robot_all_joints_vel_w(self, side: str) -> torch.Tensor:
@@ -639,7 +671,7 @@ class ManipTransCommand(CommandTerm):
   def mano_level_pos_w(self, side: str, level: int) -> torch.Tensor:
     """MANO joint positions for level 1 or 2. Shape: (B, 5, 3)."""
     mano_indices = self._level1_mano_indices[side] if level == 1 else self._level2_mano_indices[side]
-    all_joints = self.motion.joints[side][self._flat_idx]  # (B, 20, 3)
+    all_joints = self.motion.joints[side][self.env_traj_idx, self.time_steps]  # (B, 20, 3)
     pts = all_joints[:, mano_indices]  # (B, 5, 3)
     return pts + self._env.scene.env_origins[:, None, :]
 
@@ -660,7 +692,7 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_pos:
-        pos = self.motion.obj_pos[side][self._flat_idx]
+        pos = self.motion.obj_pos[side][self.env_traj_idx, self.time_steps]
         pos = pos + self._env.scene.env_origins
         parts.append(pos)
     return torch.stack(parts, dim=1)
@@ -671,7 +703,9 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_rotmat:
-        parts.append(self.motion.obj_rotmat[side][self._flat_idx])
+        parts.append(
+          self.motion.obj_rotmat[side][self.env_traj_idx, self.time_steps]
+        )
     return torch.stack(parts, dim=1)
 
   @property
@@ -685,7 +719,9 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_vel:
-        parts.append(self.motion.obj_vel[side][self._flat_idx])
+        parts.append(
+          self.motion.obj_vel[side][self.env_traj_idx, self.time_steps]
+        )
     return torch.stack(parts, dim=1)
 
   # --- Sim object state ---
@@ -737,7 +773,9 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_angvel:
-        parts.append(self.motion.obj_angvel[side][self._flat_idx])
+        parts.append(
+          self.motion.obj_angvel[side][self.env_traj_idx, self.time_steps]
+        )
     return torch.stack(parts, dim=1)
 
   @property
@@ -754,8 +792,9 @@ class ManipTransCommand(CommandTerm):
   # --- Future trajectory targets (1-step lookahead) ---
 
   def _next_time_steps(self) -> torch.Tensor:
-    """Next frame index, clamped to motion length."""
-    return torch.clamp(self.time_steps + 1, max=self.motion.time_step_total - 1)
+    """Next frame index per env, clamped to each env's trajectory length."""
+    cap = self.motion.time_step_totals[self.env_traj_idx] - 1
+    return torch.minimum(self.time_steps + 1, cap)
 
   @property
   def next_obj_pos_w(self) -> torch.Tensor:
@@ -764,7 +803,7 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_pos:
-        pos = self.motion.obj_pos[side][next_t] + self._env.scene.env_origins
+        pos = self.motion.obj_pos[side][self.env_traj_idx, next_t] + self._env.scene.env_origins
         parts.append(pos)
     return torch.stack(parts, dim=1)
 
@@ -775,7 +814,7 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_rotmat:
-        rotmat = self.motion.obj_rotmat[side][next_t]
+        rotmat = self.motion.obj_rotmat[side][self.env_traj_idx, next_t]
         parts.append(quat_from_matrix(rotmat))
     return torch.stack(parts, dim=1)
 
@@ -786,7 +825,7 @@ class ManipTransCommand(CommandTerm):
     parts = []
     for side in self._side_list:
       if side in self.motion.obj_vel:
-        parts.append(self.motion.obj_vel[side][next_t])
+        parts.append(self.motion.obj_vel[side][self.env_traj_idx, next_t])
     return torch.stack(parts, dim=1)
 
   # --- CommandTerm abstract methods ---
@@ -814,10 +853,12 @@ class ManipTransCommand(CommandTerm):
       self.metrics["error_obj_pos"] = obj_err
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
-    # Multi-motion: sample a new motion_id per env at each reset
-    if self.motion.num_motions > 1:
-      self.motion_ids[env_ids] = torch.randint(
-        0, self.motion.num_motions, (len(env_ids),), device=self.device
+    # Random per-reset trajectory assignment: each resetting env draws a
+    # fresh traj_idx uniformly from [0, M). For M=1 this is a no-op.
+    if self.motion.num_trajectories > 1:
+      self.env_traj_idx[env_ids] = torch.randint(
+        0, self.motion.num_trajectories,
+        (len(env_ids),), device=self.device, dtype=torch.long,
       )
 
     if self.cfg.sampling_mode == "start":
@@ -871,6 +912,8 @@ class ManipTransCommand(CommandTerm):
     # Reset objects to demo trajectory pose
     if self.has_objects:
       pin_mode = getattr(self.cfg, "pin_mode", "hard")
+      tr = self.env_traj_idx[env_ids]
+      t = self.time_steps[env_ids]
       for side in self._side_list:
         if side not in self.motion.obj_pos:
           continue
@@ -884,7 +927,7 @@ class ManipTransCommand(CommandTerm):
           # from reference; xfrc holds it there each step via external wrench
           # instead of overwriting root_state.
           obj_vel = self.ref_obj_vel_w[env_ids][:, si]
-          obj_angvel = self.motion.obj_angvel[side][self._flat_idx[env_ids]]
+          obj_angvel = self.motion.obj_angvel[side][tr, t]
           root_state = torch.cat([obj_pos, obj_quat, obj_vel, obj_angvel], dim=-1)
           obj.write_root_state_to_sim(root_state, env_ids=env_ids)
           obj.reset(env_ids=env_ids)
@@ -893,16 +936,15 @@ class ManipTransCommand(CommandTerm):
           # unwrapped intrinsic-XYZ Euler to avoid the ±π canonicalization
           # jump that would send the actuator target spinning 360° between
           # frames (the "light object rotates" bug).
-          t = self._flat_idx[env_ids]
-          local_pos = self.motion.obj_pos[side][t]       # (N, 3)
-          euler = self.motion.obj_euler[side][t]         # (N, 3)
+          local_pos = self.motion.obj_pos[side][tr, t]       # (N, 3)
+          euler = self.motion.obj_euler[side][tr, t]         # (N, 3)
           joint_pos = torch.cat([local_pos, euler], dim=-1)  # (N, 6)
           # Initial joint velocities to match the reference trajectory (no
           # cold start from rest):
           #   slide qvel = world linear velocity (slide axes are world-aligned)
           #   hinge qvel = d/dt of unwrapped Euler (precomputed)
-          lin_vel = self.motion.obj_vel[side][t]         # (N, 3)
-          euler_vel = self.motion.obj_euler_vel[side][t]  # (N, 3)
+          lin_vel = self.motion.obj_vel[side][tr, t]         # (N, 3)
+          euler_vel = self.motion.obj_euler_vel[side][tr, t]  # (N, 3)
           joint_vel = torch.cat([lin_vel, euler_vel], dim=-1)  # (N, 6)
           obj.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
           # `obj.reset()` zeros joint_pos_target, so seed it AFTER the reset
@@ -915,10 +957,10 @@ class ManipTransCommand(CommandTerm):
   def _update_command(self) -> None:
     self.time_steps += 1
 
-    # Wrap around envs that exceeded their motion's length (per-motion for
-    # multi-motion, global time_step_total for single-motion).
-    per_env_max = self.motion.motion_num_frames[self.motion_ids]
-    wrap_ids = torch.where(self.time_steps >= per_env_max)[0]
+    # Wrap around envs that exceeded their trajectory's length.
+    wrap_ids = torch.where(
+      self.time_steps >= self.motion.time_step_totals[self.env_traj_idx]
+    )[0]
     if wrap_ids.numel() > 0:
       self._resample_command(wrap_ids)
 
@@ -935,6 +977,8 @@ class ManipTransCommand(CommandTerm):
         pin_mask = (ep_len > 0) & ((ep_len % T) == 0)
         pin_ids = torch.where(pin_mask)[0]
         if pin_ids.numel() > 0:
+          tr_pin = self.env_traj_idx[pin_ids]
+          t_pin = self.time_steps[pin_ids]
           for side in self._side_list:
             if side not in self.motion.obj_pos:
               continue
@@ -943,8 +987,8 @@ class ManipTransCommand(CommandTerm):
             si = self._side_list.index(side)
             obj_pos = self.ref_obj_pos_w[pin_ids, si]
             obj_quat = self.ref_obj_quat_w[pin_ids, si]
-            obj_vel = self.motion.obj_vel[side][self._flat_idx[pin_ids]]
-            obj_angvel = self.motion.obj_angvel[side][self._flat_idx[pin_ids]]
+            obj_vel = self.motion.obj_vel[side][tr_pin, t_pin]
+            obj_angvel = self.motion.obj_angvel[side][tr_pin, t_pin]
             root_state = torch.cat([obj_pos, obj_quat, obj_vel, obj_angvel], dim=-1)
             obj.write_root_state_to_sim(root_state, env_ids=pin_ids)
       elif pin_mode == "actuated":
@@ -958,8 +1002,8 @@ class ManipTransCommand(CommandTerm):
             continue
           obj_name = self.cfg.object_entity_names[side]
           obj: Entity = self._env.scene[obj_name]
-          local_pos = self.motion.obj_pos[side][self._flat_idx]  # (B, 3)
-          euler = self.motion.obj_euler[side][self._flat_idx]  # (B, 3)
+          local_pos = self.motion.obj_pos[side][self.env_traj_idx, self.time_steps]  # (B, 3)
+          euler = self.motion.obj_euler[side][self.env_traj_idx, self.time_steps]  # (B, 3)
           target = torch.cat([local_pos, euler], dim=-1)  # (B, 6)
           obj.set_joint_position_target(target)
       elif pin_mode == "xfrc":
@@ -989,8 +1033,8 @@ class ManipTransCommand(CommandTerm):
 
           ref_pos = ref_pos_all[:, si]
           ref_quat = ref_quat_all[:, si]
-          ref_vel = self.motion.obj_vel[side][self._flat_idx]
-          ref_angvel = self.motion.obj_angvel[side][self._flat_idx]
+          ref_vel = self.motion.obj_vel[side][self.env_traj_idx, self.time_steps]
+          ref_angvel = self.motion.obj_angvel[side][self.env_traj_idx, self.time_steps]
           sim_pos = sim_pos_all[:, si]
           sim_quat = sim_quat_all[:, si]
           sim_vel = sim_vel_all[:, si]
@@ -1024,60 +1068,79 @@ class ManipTransCommand(CommandTerm):
   # --- Sampling helpers ---
 
   def _adaptive_sampling(self, env_ids: torch.Tensor) -> None:
+    """Per-trajectory adaptive resampling.
+
+    `self.bin_failed_count` has shape (M, bin_count) — one EMA-smoothed
+    failure histogram per trajectory. `bins_per_traj[m]` is the number of
+    valid bins for traj m; bins beyond that are masked out so they never get
+    sampled and don't distort the kernel-smoothed distribution.
+    """
+    # --- 1. Scatter this step's failures into (traj, bin). ---
     episode_failed = self._env.termination_manager.terminated[env_ids]
-    env_motion_ids = self.motion_ids[env_ids]
-
+    self._current_bin_failed.zero_()
     if torch.any(episode_failed):
-      per_env_max = self.motion.motion_num_frames[env_motion_ids].float()
-      current_bin_index = torch.clamp(
-        (self.time_steps[env_ids].float() * self.bin_count / per_env_max).long(),
-        0,
-        self.bin_count - 1,
+      fail_envs = env_ids[episode_failed]
+      fail_tr = self.env_traj_idx[fail_envs]
+      fail_t = self.time_steps[fail_envs]
+      fail_T_m = self.motion.time_step_totals[fail_tr].clamp_min(1)
+      fail_bpt = self.bins_per_traj[fail_tr]
+      fail_bin = torch.clamp(
+        (fail_t * fail_bpt) // fail_T_m, 0, self.bin_count - 1
       )
-      failed_ids = env_motion_ids[episode_failed]
-      failed_bins = current_bin_index[episode_failed]
-      self._current_bin_failed.zero_()
-      for mid in range(self.motion.num_motions):
-        mask = failed_ids == mid
-        if mask.any():
-          self._current_bin_failed[mid] = torch.bincount(
-            failed_bins[mask], minlength=self.bin_count
-          ).float()
+      self._current_bin_failed.index_put_(
+        (fail_tr, fail_bin),
+        torch.ones_like(fail_bin, dtype=torch.float),
+        accumulate=True,
+      )
 
-    # Per-env: sample from the assigned motion's failure distribution
-    per_env_max = self.motion.motion_num_frames[env_motion_ids].float()
-    sampled_times = torch.zeros(len(env_ids), device=self.device)
-    for mid in range(self.motion.num_motions):
-      mask = env_motion_ids == mid
-      if not mask.any():
-        continue
-      probs = (
-        self.bin_failed_count[mid]
-        + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
-      )
-      probs = torch.nn.functional.pad(
-        probs.unsqueeze(0).unsqueeze(0),
-        (0, self.cfg.adaptive_kernel_size - 1),
-        mode="replicate",
-      )
-      probs = torch.nn.functional.conv1d(
-        probs, self.kernel.view(1, 1, -1)
-      ).view(-1)
-      probs = probs / probs.sum()
-      n = mask.sum().item()
-      bins = torch.multinomial(probs, n, replacement=True)
-      motion_frames = self.motion.motion_num_frames[mid].float()
-      sampled_times[mask] = (
-        (bins.float() + torch.rand(n, device=self.device))
-        / self.bin_count * (motion_frames - 1)
-      )
-    self.time_steps[env_ids] = sampled_times.long()
+    # --- 2. Build per-traj sampling distribution (M, bin_count). ---
+    valid_mask = (
+      torch.arange(self.bin_count, device=self.device)[None, :]
+      < self.bins_per_traj[:, None]
+    ).float()  # (M, bin_count)
+    probs = (
+      self.bin_failed_count
+      + self.cfg.adaptive_uniform_ratio / float(self.bin_count)
+    )
+    # Mask before smoothing so invalid bins contribute zero; the kernel's
+    # right-edge replicate pad then replicates an already-zero cell and the
+    # smoothing stays inside each traj's valid range.
+    probs = probs * valid_mask
+    probs = torch.nn.functional.pad(
+      probs.unsqueeze(1),
+      (0, self.cfg.adaptive_kernel_size - 1),
+      mode="replicate",
+    )
+    probs = torch.nn.functional.conv1d(
+      probs, self.kernel.view(1, 1, -1)
+    ).squeeze(1)  # (M, bin_count)
+    probs = probs * valid_mask
+    probs = probs / probs.sum(dim=-1, keepdim=True).clamp_min(1e-12)
+
+    # --- 3. Sample one bin per resetting env from its traj's row. ---
+    tr = self.env_traj_idx[env_ids]
+    probs_per_env = probs[tr]  # (N, bin_count)
+    sampled_bins = torch.multinomial(
+      probs_per_env, 1, replacement=True
+    ).squeeze(-1)  # (N,)
+
+    # --- 4. Convert bin → frame using per-env traj length. ---
+    bpt = self.bins_per_traj[tr].float()
+    T_m = self.motion.time_step_totals[tr].float()
+    self.time_steps[env_ids] = (
+      (sampled_bins + sample_uniform(0.0, 1.0, (len(env_ids),), device=self.device))
+      / bpt
+      * (T_m - 1)
+    ).long()
 
   def _uniform_sampling(self, env_ids: torch.Tensor) -> None:
-    # ManipTrans: floor(seq_len * 0.99 * rand) — uniform over 99% of per-motion length
-    per_env_max = self.motion.motion_num_frames[self.motion_ids[env_ids]].float()
+    # ManipTrans: floor(T_m * 0.99 * rand) per env, using each env's own
+    # trajectory length (self.env_traj_idx was already sampled by
+    # _resample_command before this helper runs).
+    tr = self.env_traj_idx[env_ids]
+    T_m = self.motion.time_step_totals[tr].float()
     self.time_steps[env_ids] = (
-      torch.rand(len(env_ids), device=self.device) * 0.99 * per_env_max
+      torch.rand(len(env_ids), device=self.device) * 0.99 * T_m
     ).long()
 
 
@@ -1085,11 +1148,7 @@ class ManipTransCommand(CommandTerm):
 class ManipTransCommandCfg(CommandTermCfg):
   """Configuration for ManipTrans motion command."""
 
-  motion_file: str | list[str]
-  """Single motion.npz path, or a list of paths for multi-trajectory training.
-  When a list, ``ManipTransMotionData.from_multiple()`` concatenates all motions
-  into one dataset with per-motion offset indexing, and each env samples a random
-  motion at each reset."""
+  motion_file: "str | list[str]"
   entity_name: str
   sides: tuple[str, ...]
   wrist_body_names: dict[str, str]

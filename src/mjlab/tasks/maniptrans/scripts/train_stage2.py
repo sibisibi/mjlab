@@ -125,8 +125,17 @@ def main():
   p.add_argument("--wandb_entity", required=True,
     help="wandb entity (team/user). No default — set explicitly per run.")
   p.add_argument("--wandb_tags", type=str, default="")
+  p.add_argument("--group_name", required=True,
+    help="High-level ablation study this run belongs to (maps to wandb `group`).")
+  p.add_argument("--exp_name", required=True,
+    help="Specific ablation variant within the group (maps to wandb `job_type`).")
   p.add_argument("--run_name", required=True)
   p.add_argument("--gpu", type=int, required=True)
+  p.add_argument("--eval_interval", type=int, default=0,
+    help="Run eval every N iters and log eval/SR_at_* + eval/E_* to wandb. "
+         "Also runs at the final iteration. 0 = disabled (default).")
+  p.add_argument("--eval_rollouts", type=int, default=100,
+    help="Number of parallel rollouts per eval. 100 gives ~±5 pp CI on SR.")
   args = p.parse_args()
 
   # Resolve indices → motion_file and data_dir
@@ -134,12 +143,15 @@ def main():
   with open(args.index_path) as f:
     rows = list(csv.DictReader(f))
   motion_files = []
+  data_dirs = []
   for idx in args.indices:
     row = rows[idx]
     rel = row["dataset"] + "/" + row["filename"]
     motion_files.append(f"{args.output_dir}/{args.robot}/{rel}/motion.npz")
+    data_dirs.append(f"{args.output_dir}/{row['dataset']}/{row['filename']}")
   args.motion_file = motion_files if len(motion_files) > 1 else motion_files[0]
-  args.data_dir = f"{args.output_dir}/{rows[args.indices[0]]['dataset']}/{rows[args.indices[0]]['filename']}"
+  args.data_dir = data_dirs[0]
+  args._all_data_dirs = data_dirs  # consumed by build_env_cfg for multi-traj object validation
 
   configure_torch_backends()
   device = f"cuda:{args.gpu}"
@@ -171,6 +183,34 @@ def main():
 
   # --- Create env ---
   env = ManagerBasedRlEnv(cfg, device=device)
+
+  # --- Eval env (separate instance with free-object Stage 2 semantics,
+  # smaller num_envs, play-mode sampling, all terminations stripped so
+  # every rollout reaches motion end). Rebuilt via build_env_cfg with
+  # overridden args.num_envs so it inherits physics/obs/rewards exactly. ---
+  eval_env = None
+  eval_wrapped = None
+  if args.eval_interval > 0:
+    _orig_num_envs = args.num_envs
+    args.num_envs = args.eval_rollouts
+    try:
+      eval_cfg = build_env_cfg(args)
+    finally:
+      args.num_envs = _orig_num_envs
+
+    eval_motion_cmd = eval_cfg.commands["motion"]
+    assert isinstance(eval_motion_cmd, ManipTransCommandCfg)
+    eval_motion_cmd.pin_objects = False  # match Stage 2 training
+    eval_motion_cmd.sampling_mode = "start"
+    # Clear ALL terminations so eval rollouts always reach T_m; SR's
+    # time-averaged check runs over the full [15, T-15) window.
+    eval_cfg.terminations = {}
+    for _group_name in ("actor", "critic"):
+      if _group_name in eval_cfg.observations:
+        eval_cfg.observations[_group_name].enable_corruption = False
+
+    eval_env = ManagerBasedRlEnv(eval_cfg, device=device)
+    eval_wrapped = RslRlVecEnvWrapper(eval_env)
 
   # --- RL config ---
   agent_cfg = load_rl_cfg(task_id)
@@ -230,10 +270,50 @@ def main():
       name=train_cfg["run_name"],
       dir=str(log_dir),
       tags=tags if tags else None,
+      config={"group_name": args.group_name, "exp_name": args.exp_name},
     )
+
+  # --- Periodic eval hook via logger monkey-patch (mirrors Stage 1 at
+  # train_stage1_pinned.py:707–739). Fires evaluate_stage2 +
+  # log_stage2_eval_to_wandb at every eval_interval completed iters and
+  # at the final iter. ---
+  if eval_wrapped is not None and args.eval_interval > 0:
+    from mjlab.tasks.maniptrans.scripts.stage2_scorer import (
+      evaluate_stage2, log_stage2_eval_to_wandb,
+    )
+
+    _orig_log = runner.logger.log
+    _max_it = args.max_iterations
+    _eval_iv = args.eval_interval
+
+    def _log_with_eval(**kwargs):
+      _orig_log(**kwargs)
+      it = kwargs.get("it")
+      if it is None:
+        return
+      completed = it + 1
+      fire = (completed % _eval_iv == 0) or (completed == _max_it)
+      if not fire:
+        return
+      policy = runner.get_inference_policy(device=device)
+      metrics = evaluate_stage2(eval_env, eval_wrapped, policy, device)
+      log_stage2_eval_to_wandb(metrics, iter_idx=completed)
+      g = metrics["global"]
+      print(
+        f"[eval @ iter {completed}/{_max_it}]  "
+        f"SR@1.0={g['SR_at_1p0'] * 100:5.1f}%  "
+        f"E_obj_pos={g['E_obj_pos_cm']:6.2f} cm  "
+        f"E_obj_rot={g['E_obj_rot_deg']:6.2f} deg  "
+        f"E_ft={g['E_fingertip_cm']:5.2f} cm  "
+        f"(n_envs={g['n_valid_envs']}/{g['n_envs']})"
+      )
+
+    runner.logger.log = _log_with_eval
 
   runner.learn(num_learning_iterations=args.max_iterations, init_at_random_ep_len=True)
   env.close()
+  if eval_env is not None:
+    eval_env.close()
 
 
 if __name__ == "__main__":

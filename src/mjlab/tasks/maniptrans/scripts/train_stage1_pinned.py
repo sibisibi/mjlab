@@ -75,6 +75,46 @@ def build_env_cfg(args):
   motion_cmd.xfrc_kv_rot = args.xfrc_kv_rot
   motion_cmd.pin_interval = args.pin_interval
 
+  # --- No-object early branch (Stage 1 pure hand imitation) ---
+  # Skips object entity, contact sensors, contact_match rewards, tactile obs,
+  # object obs/rew/term. The policy trains on MANO reference alone (wrist +
+  # fingertips + level1/level2 joint tracking, which all come from the motion
+  # command, not the object). Tip tracks against the MANO tip in free space
+  # rather than landing on a physical object surface.
+  if getattr(args, "no_object", False):
+    incompatible = []
+    if args.enable_tactile:
+      incompatible.append("--enable_tactile")
+    if args.enable_object_obs_actor:
+      incompatible.append("--enable_object_obs_actor")
+    if args.enable_object_obs_critic:
+      incompatible.append("--enable_object_obs_critic")
+    if args.enable_object_rew:
+      incompatible.append("--enable_object_rew")
+    if args.enable_object_term:
+      incompatible.append("--enable_object_term")
+    if incompatible:
+      raise ValueError(
+        f"--no_object is incompatible with {incompatible}; all of these "
+        "require the object entity to exist in the scene."
+      )
+    motion_cmd.pin_objects = False
+    motion_cmd.object_entity_names = None
+    # Drop contact_match rewards (added by config/base.py, keyed
+    # r/l_{finger}_contact_match).
+    for _key in list(cfg.rewards.keys()):
+      if _key.endswith("_contact_match"):
+        del cfg.rewards[_key]
+    # No contact sensors (no object to contact against).
+    cfg.scene.sensors = ()
+    # Hand friction — still applied so hand self-collisions match the
+    # object-present configs (avoids a confound where no_object also shifts
+    # hand-vs-hand contact behavior).
+    hand_cfg = cfg.scene.entities["hand"]
+    for col_cfg in hand_cfg.collisions:
+      col_cfg.friction = (4.0, 0.01, 0.01)
+    return cfg
+
   # Add object entities
   data_dir = Path(args.data_dir)
   with open(data_dir / "task_info.json") as f:
@@ -87,6 +127,49 @@ def build_env_cfg(args):
   # Mass scales ~ scale^3 since density is unchanged.
   right_mesh_scale = float(task_info.get("right_object_mesh_scale", 1.0))
   left_mesh_scale = float(task_info.get("left_object_mesh_scale", 1.0))
+
+  # Multi-trajectory runs share a single set of object entities across envs,
+  # so every trajectory in the batch must refer to the same underlying
+  # object. We compare the *relative* object mesh dirs from each traj's
+  # task_info.json (typically `objects/O02@…@…`, the canonical object id)
+  # and the per-object mesh scales. Absolute paths differ per traj because
+  # each sub-sequence has its own preprocessed object copy, but the object
+  # id and scale carry the logical identity. Reject ad-hoc index mixes with
+  # a clear error rather than silently loading mismatched objects.
+  if getattr(args, "_all_data_dirs", None) is not None and len(args._all_data_dirs) > 1:
+    indices = getattr(args, "indices", [])
+    base_right_rel = task_info["right_object_mesh_dir"]
+    base_left_rel = task_info["left_object_mesh_dir"]
+    mismatches: list[tuple[int, str, str, str, float, float]] = []
+    for idx, other_dir in zip(indices[1:], args._all_data_dirs[1:]):
+      with open(Path(other_dir) / "task_info.json") as f:
+        other_info = json.load(f)
+      other_right_rel = other_info["right_object_mesh_dir"]
+      other_left_rel = other_info["left_object_mesh_dir"]
+      other_right_scale = float(other_info.get("right_object_mesh_scale", 1.0))
+      other_left_scale = float(other_info.get("left_object_mesh_scale", 1.0))
+      if (other_right_rel, other_left_rel, other_right_scale, other_left_scale) != (
+        base_right_rel, base_left_rel, right_mesh_scale, left_mesh_scale,
+      ):
+        mismatches.append((idx, other_right_rel, other_left_rel, other_right_scale, other_left_scale))  # type: ignore[arg-type]
+    if mismatches:
+      base = indices[0] if indices else "<unknown>"
+      lines = [
+        f"Multi-trajectory object mismatch: index {base} uses "
+        f"right={base_right_rel!r} left={base_left_rel!r} "
+        f"(scales {right_mesh_scale}/{left_mesh_scale}), but:",
+      ]
+      for m in mismatches:
+        idx, r_rel, l_rel, r_s, l_s = m
+        lines.append(
+          f"  - index {idx}: right={r_rel!r} left={l_rel!r} (scales {r_s}/{l_s})"
+        )
+      lines.append(
+        "All indices in a single run must share the same object ids and "
+        "mesh scales. Use one of the curated groups (group1…group5) or a "
+        "custom list with matching right/left object_mesh_dir and mesh_scale."
+      )
+      raise ValueError("\n".join(lines))
 
   # Shared-object detection. Some OakInk2 trajectories have both hands
   # manipulating the same physical item (hand-over, bimanual hold). Upstream
@@ -463,6 +546,13 @@ def main():
          "observation group only; the critic still sees it. Parallel to "
          "--actor_no_hand_obj_distance; both together strip the two object-geometry-"
          "carrying obs from the actor for the strict blind-actor ablation.")
+  p.add_argument("--no_object", action="store_true",
+    help="Pure hand-imitation Stage 1: do NOT add object entities to the scene, "
+         "do NOT install contact sensors, do NOT apply contact_match rewards. "
+         "Motion still provides the MANO reference for wrist/fingertip tracking; "
+         "the robot hand moves through empty air. Incompatible with --enable_tactile, "
+         "--enable_object_obs_*, --enable_object_rew, --enable_object_term "
+         "(all of which require the object to exist).")
   p.add_argument("--wandb_tags", type=str, default="",
     help="Comma-separated list of wandb tags for the run (see RUN-EXPERIMENT.md "
          "for the controlled vocabulary: single-reference, ppo, mujoco-warp, xhand, "
@@ -471,7 +561,7 @@ def main():
     help="MuJoCo CCD (continuous collision detection) iteration cap. MuJoCo "
          "default is 50. Bump to 100/150/200 to silence 'opt.ccd_iterations "
          "needs to be increased' warnings on dex-manip tasks with complex "
-         "object meshes / fast finger-object impacts. Cost is usually <5% "
+         "object meshes / fast finger-object impacts. Cost is usually <5%% "
          "wall-clock per step because only unconverged contact pairs hit "
          "the higher cap.")
   p.add_argument("--obs_clip", type=float, default=0.0,
@@ -488,9 +578,24 @@ def main():
   p.add_argument("--num_envs", type=int, required=True)
   p.add_argument("--max_iterations", type=int, required=True)
   p.add_argument("--save_interval", type=int, required=True)
+  p.add_argument("--eval_interval", type=int, default=500,
+    help="Run eval rollouts and log E_fingertip / E_wrist_pos / E_wrist_rot to "
+         "wandb every this many training iterations. Also runs once at the "
+         "final iteration regardless. Set to 0 to disable.")
+  p.add_argument("--eval_rollouts_per_traj", type=int, default=20,
+    help="How many rollouts per trajectory during periodic eval. Total eval env "
+         "count = eval_rollouts_per_traj * len(indices). Trajectory assignment "
+         "across eval envs is random uniform via the command's _resample_command, "
+         "giving ~equal coverage of each traj in expectation.")
   p.add_argument("--wandb_project", required=True)
   p.add_argument("--wandb_entity", required=True,
     help="wandb entity (team/user). No default — set explicitly per run.")
+  p.add_argument("--group_name", required=True,
+    help="High-level ablation study this run belongs to (maps to wandb `group`). "
+         "Groups all runs of a single study together in the wandb UI.")
+  p.add_argument("--exp_name", required=True,
+    help="Specific ablation variant within the group (maps to wandb `job_type`). "
+         "Identifies which condition this run represents inside the group.")
   p.add_argument("--run_name", required=True)
   p.add_argument("--gpu", type=int, required=True)
   args = p.parse_args()
@@ -500,13 +605,16 @@ def main():
   with open(args.index_path) as f:
     rows = list(csv.DictReader(f))
   motion_files = []
+  data_dirs = []
   for idx in args.indices:
     row = rows[idx]
     rel = row["dataset"] + "/" + row["filename"]
     motion_files.append(f"{args.output_dir}/{args.robot}/{rel}/motion.npz")
+    data_dirs.append(f"{args.output_dir}/{row['dataset']}/{row['filename']}")
   first_rel = rows[args.indices[0]]["dataset"] + "/" + rows[args.indices[0]]["filename"]
   args.motion_file = motion_files if len(motion_files) > 1 else motion_files[0]
-  args.data_dir = f"{args.output_dir}/{rows[args.indices[0]]['dataset']}/{rows[args.indices[0]]['filename']}"
+  args.data_dir = data_dirs[0]
+  args._all_data_dirs = data_dirs  # consumed by build_env_cfg for multi-traj object validation
 
   configure_torch_backends()
   device = f"cuda:{args.gpu}"
@@ -515,6 +623,39 @@ def main():
 
   # Create env
   env = ManagerBasedRlEnv(cfg, device=device)
+
+  # --- Eval env (separate instance, smaller num_envs, play-mode sampling, no
+  # imitation-quality terminations). Rebuilt via build_env_cfg with overridden
+  # args.num_envs so it inherits all other training overrides (physics, obs,
+  # rewards, object entities) exactly. ---
+  eval_env = None
+  eval_wrapped = None
+  if args.eval_interval > 0:
+    n_eval = args.eval_rollouts_per_traj * len(args.indices)
+    _orig_num_envs = args.num_envs
+    args.num_envs = n_eval
+    try:
+      eval_cfg = build_env_cfg(args)
+    finally:
+      args.num_envs = _orig_num_envs
+
+    eval_motion_cmd = eval_cfg.commands["motion"]
+    assert isinstance(eval_motion_cmd, ManipTransCommandCfg)
+    eval_motion_cmd.sampling_mode = "start"
+
+    # Strip imitation-quality terminations so each env runs the full motion.
+    # Keep time_out + velocity_diverged as sim-blowup guards.
+    for _term_name in ("fingertip_diverged", "dof_vel_sanity",
+                       "r_contact_missing", "l_contact_missing"):
+      eval_cfg.terminations.pop(_term_name, None)
+
+    # Obs corruption off (only meant for training-time robustness).
+    for _group_name in ("actor", "critic"):
+      if _group_name in eval_cfg.observations:
+        eval_cfg.observations[_group_name].enable_corruption = False
+
+    eval_env = ManagerBasedRlEnv(eval_cfg, device=device)
+    eval_wrapped = RslRlVecEnvWrapper(eval_env)
 
   # RL config
   agent_cfg = load_rl_cfg(task_id)
@@ -554,10 +695,53 @@ def main():
       name=train_cfg["run_name"],
       dir=str(log_dir),
       tags=tags if tags else None,
+      config={"group_name": args.group_name, "exp_name": args.exp_name},
     )
+
+  # --- Periodic eval hook via logger monkey-patch ---
+  # OnPolicyRunner.learn() calls self.logger.log(it=..., ...) once per training
+  # iteration. Wrap it to trigger evaluate_stage1 + wandb log at every
+  # eval_interval (post-iteration) and at the final iteration. Keeps the
+  # single learn() call intact (avoids per-chunk final-save + stop-writer
+  # side effects of splitting learn() into multiple calls).
+  if eval_wrapped is not None and args.eval_interval > 0:
+    from mjlab.tasks.maniptrans.scripts.stage1_scorer import (
+      evaluate_stage1, log_eval_to_wandb,
+    )
+
+    _orig_log = runner.logger.log
+    _max_it = args.max_iterations
+    _eval_iv = args.eval_interval
+
+    def _log_with_eval(**kwargs):
+      _orig_log(**kwargs)
+      it = kwargs.get("it")
+      if it is None:
+        return
+      # it is 0-indexed iteration just completed; fire eval at end of every
+      # eval_interval completed iters and at the final iter.
+      completed = it + 1
+      fire = (completed % _eval_iv == 0) or (completed == _max_it)
+      if not fire:
+        return
+      policy = runner.get_inference_policy(device=device)
+      metrics = evaluate_stage1(eval_env, eval_wrapped, policy, device)
+      log_eval_to_wandb(metrics, iter_idx=completed)
+      g = metrics["global"]
+      print(
+        f"[eval @ iter {completed}/{_max_it}]  "
+        f"E_fingertip={g['tip_pos_cm']:6.2f} cm  "
+        f"E_wrist_pos={g['wrist_pos_cm']:6.2f} cm  "
+        f"E_wrist_rot={g['wrist_rot_deg']:6.2f} deg  "
+        f"(n_traj={g['n_trajectories_evaluated']}, n_envs={g['n_envs']})"
+      )
+
+    runner.logger.log = _log_with_eval
 
   runner.learn(num_learning_iterations=args.max_iterations, init_at_random_ep_len=True)
   env.close()
+  if eval_env is not None:
+    eval_env.close()
 
 
 if __name__ == "__main__":
