@@ -25,6 +25,18 @@ _FINGER_SCALES = {
   "pinky": (0.6, 60.0),
 }
 
+# Stratified per-finger contact-match weights. Mirrors the tip-tracking
+# shape (thumb > index > middle > ring = pinky) so rewards across "tip
+# lands on object" and "tip tracks MANO" are proportional. Sum ≈ 5.5,
+# compared to the un-stratified uniform 5 × 1.0 = 5.0 it replaces.
+_CONTACT_MATCH_WEIGHTS = {
+  "thumb": 1.4,
+  "index": 1.2,
+  "middle": 1.1,
+  "ring": 0.9,
+  "pinky": 0.9,
+}
+
 
 def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> None:
   """Add per-side hand tracking rewards. Called after sides are known."""
@@ -101,11 +113,12 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
 
     # Per-finger contact reward: binary lock-in + approach shaping.
     # ref=0 → 0; ref=1 & force>eps → A; ref=1 & no force → exp(-beta * dist).
-    # Defaults: A=1.0 (flat), beta=10, eps=0.05 N, weight=0.1.
+    # Weights stratified by finger (thumb highest, pinky lowest), multiplied
+    # at runtime by --contact_match_weight for on/off and global scaling.
     for finger in ("thumb", "index", "middle", "ring", "pinky"):
       cfg.rewards[f"{p}_{finger}_contact_match"] = RewardTermCfg(
         func=mt_mdp.contact_point_match_reward,
-        weight=0.1,
+        weight=_CONTACT_MATCH_WEIGHTS[finger],
         params={
           "command_name": "motion",
           "sensor_name": f"{p}_fingertip_contact",

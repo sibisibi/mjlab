@@ -248,10 +248,11 @@ def build_env_cfg(args):
     else:
       motion_cmd.object_entity_names = {"right": "object_right", "left": "object_left"}
 
-  # Override contact match reward weight, beta, A, and eps from CLI
+  # Multiply stratified per-finger contact_match weights by the CLI scalar
+  # (global on/off + scale). Default 1.0 preserves config/base.py weights.
   for key, term in cfg.rewards.items():
     if key.endswith("_contact_match"):
-      term.weight = args.contact_match_weight
+      term.weight *= args.contact_match_weight
       term.params["beta"] = args.contact_match_beta
       term.params["A"] = args.contact_match_A
       term.params["eps"] = args.contact_match_eps
