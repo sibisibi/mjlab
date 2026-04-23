@@ -132,25 +132,13 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
         },
       )
 
-    # Per-finger zero-weighted metrics: force magnitude and penetration depth.
-    # Surface into Episode_Reward/* logs for training-time diagnostics.
-    for finger in ("thumb", "index", "middle", "ring", "pinky"):
-      cfg.rewards[f"{p}_{finger}_force_mag"] = RewardTermCfg(
-        func=mt_mdp.force_magnitude_metric,
-        weight=0.0,
-        params={
-          "sensor_name": f"{p}_fingertip_contact",
-          "finger": finger,
-        },
-      )
-      cfg.rewards[f"{p}_{finger}_pen_depth"] = RewardTermCfg(
-        func=mt_mdp.penetration_depth_metric,
-        weight=0.0,
-        params={
-          "sensor_name": f"{p}_fingertip_penetration",
-          "finger": finger,
-        },
-      )
+    # Per-finger contact metrics (force peak/integrated, depth peak/integrated,
+    # contact_frac, ref_flag_frac) are published on the motion command's
+    # metrics dict — see ManipTransCommand._update_metrics. Logged as
+    # `Metrics/motion/*` with no weight multiplication. Reward-manager is
+    # not the right path for diagnostic metrics because its Episode_Reward
+    # entries are always `weight × term_value` averaged per episode, which
+    # silently zeros out any weight=0 term.
 
 
 def _set_command_params(

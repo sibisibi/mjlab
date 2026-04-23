@@ -42,12 +42,10 @@ from mjlab.tasks.maniptrans.mdp.observations import (
 from mjlab.tasks.maniptrans.mdp.rewards import (
   contact_force_reward as contact_force_reward,
   contact_point_match_reward as contact_point_match_reward,
-  force_magnitude_metric as force_magnitude_metric,
   mano_fingertip_pos_error_exp as mano_fingertip_pos_error_exp,
   mano_level_pos_error_exp as mano_level_pos_error_exp,
   mano_wrist_pos_error_exp as mano_wrist_pos_error_exp,
   mano_wrist_rot_error_exp as mano_wrist_rot_error_exp,
-  penetration_depth_metric as penetration_depth_metric,
   power_penalty as power_penalty,
   wrist_power_penalty as wrist_power_penalty,
   mano_wrist_angvel_error_exp as mano_wrist_angvel_error_exp,

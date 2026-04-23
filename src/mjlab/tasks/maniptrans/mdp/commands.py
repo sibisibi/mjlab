@@ -439,6 +439,28 @@ class ManipTransCommand(CommandTerm):
     if cfg.object_entity_names is not None:
       self.metrics["error_obj_pos"] = torch.zeros(self.num_envs, device=self.device)
 
+    # Contact metrics — episode-level "peak" aggregations use stateful
+    # running-max buffers reset in _resample_command; per-step "integrated"
+    # and "frac" metrics rely on framework episode-mean to compose. Sensors
+    # are accessed by name in _update_metrics; if they're absent (e.g.
+    # --no_object path) the writer skips without error.
+    self._ep_force_peak = torch.zeros(
+      self.num_envs, len(self._side_list), 5, device=self.device
+    )
+    self._ep_depth_peak = torch.zeros(
+      self.num_envs, len(self._side_list), 5, device=self.device
+    )
+    side_prefixes = {"right": "r", "left": "l"}
+    for side in cfg.sides:
+      p = side_prefixes[side]
+      for finger in FINGER_NAMES:
+        for key in ("force_peak", "depth_peak",
+                    "contact_frac", "force_integrated", "depth_integrated",
+                    "ref_flag_frac"):
+          self.metrics[f"{key}_{p}_{finger}"] = torch.zeros(
+            self.num_envs, device=self.device
+          )
+
   # --- Command property ---
 
   @property
@@ -830,7 +852,53 @@ class ManipTransCommand(CommandTerm):
       ).mean(dim=-1)
       self.metrics["error_obj_pos"] = obj_err
 
+    # Per-finger contact metrics. Reads netforce + mindist sensors by name.
+    side_prefixes = {"right": "r", "left": "l"}
+    for si, side in enumerate(self._side_list):
+      p = side_prefixes[side]
+      try:
+        force_sensor = self._env.scene[f"{p}_fingertip_contact"]
+      except KeyError:
+        force_sensor = None
+      try:
+        pen_sensor = self._env.scene[f"{p}_fingertip_penetration"]
+      except KeyError:
+        pen_sensor = None
+
+      if force_sensor is not None:
+        force_mag = torch.norm(force_sensor.data.force, dim=-1)  # (B, 5)
+        self._ep_force_peak[:, si] = torch.maximum(
+          self._ep_force_peak[:, si], force_mag
+        )
+
+      if pen_sensor is not None:
+        depth = torch.clamp(-pen_sensor.data.dist, min=0.0)  # (B, 5)
+        found = (pen_sensor.data.found > 0).to(depth.dtype)  # (B, 5)
+        self._ep_depth_peak[:, si] = torch.maximum(
+          self._ep_depth_peak[:, si], depth
+        )
+
+      ref_flag = self.ref_contact_flags[:, si].to(torch.float32)  # (B, 5)
+
+      for fi, finger in enumerate(FINGER_NAMES):
+        key_suffix = f"{p}_{finger}"
+        self.metrics[f"force_peak_{key_suffix}"] = self._ep_force_peak[:, si, fi]
+        self.metrics[f"depth_peak_{key_suffix}"] = self._ep_depth_peak[:, si, fi]
+        if force_sensor is not None and pen_sensor is not None:
+          self.metrics[f"force_integrated_{key_suffix}"] = (
+            force_mag[:, fi] * found[:, fi]
+          )
+          self.metrics[f"depth_integrated_{key_suffix}"] = (
+            depth[:, fi] * found[:, fi]
+          )
+          self.metrics[f"contact_frac_{key_suffix}"] = found[:, fi]
+        self.metrics[f"ref_flag_frac_{key_suffix}"] = ref_flag[:, fi]
+
   def _resample_command(self, env_ids: torch.Tensor) -> None:
+    # Reset episode-level contact peak buffers on new episode.
+    self._ep_force_peak[env_ids] = 0.0
+    self._ep_depth_peak[env_ids] = 0.0
+
     # Random per-reset trajectory assignment: each resetting env draws a
     # fresh traj_idx uniformly from [0, M). For M=1 this is a no-op.
     if self.motion.num_trajectories > 1:
