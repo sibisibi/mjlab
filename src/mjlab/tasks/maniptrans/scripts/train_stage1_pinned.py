@@ -256,6 +256,12 @@ def build_env_cfg(args):
       term.params["A"] = args.contact_match_A
       term.params["eps"] = args.contact_match_eps
 
+  # Override over-force penalty weight (sign flipped: CLI is magnitude) and threshold
+  for key, term in cfg.rewards.items():
+    if key.endswith("_overforce"):
+      term.weight = -args.overforce_weight
+      term.params["threshold"] = args.overforce_threshold
+
   # Contact sensors (metrics only, no reward). In shared-object mode the
   # `object_left` entity doesn't exist; the left contact sensor points at
   # the single `object_right` entity (and its body name `obj_right`) so
@@ -528,6 +534,13 @@ def main():
          "Below this, approach shaping exp(-beta*dist) applies; above, flat A. "
          "Default 0.05 matches v15. Lower values (e.g., 0.005) catch light-contact "
          "events on low-mass objects (e.g., 5.7g alcohol lamp lid on the right side).")
+  p.add_argument("--overforce_weight", type=float, default=0.01,
+    help="Positive magnitude of the over-force penalty weight. Applied as "
+         "-overforce_weight on the {r,l}_*_overforce reward terms. 0 disables. "
+         "ProtoMotions-derived: penalizes fingertip forces above threshold.")
+  p.add_argument("--overforce_threshold", type=float, default=30.0,
+    help="Force threshold (N) above which the over-force penalty activates. "
+         "ProtoMotions default 30 N.")
   p.add_argument("--pin_mode", choices=("hard", "actuated", "xfrc"), default="hard")
   p.add_argument("--pin_interval", type=int, default=6,
     help="For pin_mode=hard: fixed temporal pin interval T. T=1 pins every physics step "

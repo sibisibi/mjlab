@@ -243,6 +243,60 @@ def contact_point_match_reward(
   return flag * reward
 
 
+def overforce_penalty(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  finger: str,
+  threshold: float,
+) -> torch.Tensor:
+  """Clamp-above penalty on fingertip contact-force magnitude.
+
+  Returns max(||F|| - threshold, 0) per env (B,). Use a negative weight so
+  excessive contact force is penalized. Not gated on ref_contact_flags —
+  excessive force at a fingertip is a physics red flag regardless of
+  whether the reference says "should contact" at that frame.
+
+  Derived from ProtoMotions' contact_force_penalty (SIGGRAPH Asia 2025).
+  """
+  fi = FINGER_NAMES.index(finger)
+  sensor: ContactSensor = env.scene[sensor_name]
+  force_mag = torch.norm(sensor.data.force[:, fi], dim=-1)  # (B,)
+  return torch.clamp(force_mag - threshold, min=0.0)
+
+
+def force_magnitude_metric(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  finger: str,
+) -> torch.Tensor:
+  """Zero-weighted diagnostic: fingertip contact-force magnitude (N).
+
+  Register with weight=0.0 so it appears in Episode_Reward logs without
+  affecting learning.
+  """
+  fi = FINGER_NAMES.index(finger)
+  sensor: ContactSensor = env.scene[sensor_name]
+  return torch.norm(sensor.data.force[:, fi], dim=-1)
+
+
+def penetration_depth_metric(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  finger: str,
+) -> torch.Tensor:
+  """Zero-weighted diagnostic: fingertip penetration depth (m, >=0).
+
+  Reads dist from a ContactSensor with reduce=mindist. Returns
+  max(-dist, 0): zero when separated, positive and equal to overlap depth
+  when the fingertip is embedded in the object. Register with weight=0.0
+  to log without affecting learning.
+  """
+  fi = FINGER_NAMES.index(finger)
+  sensor: ContactSensor = env.scene[sensor_name]
+  dist = sensor.data.dist[:, fi]  # (B,) signed; <0 = overlap
+  return torch.clamp(-dist, min=0.0)
+
+
 def contact_force_reward(
   env: ManagerBasedRlEnv,
   command_name: str,

@@ -217,6 +217,8 @@ def main() -> None:
   p.add_argument("--contact_match_beta", type=float, required=True)
   p.add_argument("--contact_match_A", type=float, required=True)
   p.add_argument("--contact_match_eps", type=float, required=True)
+  p.add_argument("--overforce_weight", type=float, default=0.01)
+  p.add_argument("--overforce_threshold", type=float, default=30.0)
   p.add_argument("--pin_mode", choices=("hard", "actuated", "xfrc"), default="hard")
   p.add_argument("--pin_interval", type=int, default=6)
   p.add_argument("--object_kp_pos", type=float, default=0.0)

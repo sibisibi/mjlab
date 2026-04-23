@@ -117,6 +117,41 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
         },
       )
 
+    # Per-finger over-force penalty. Penalizes fingertip forces above a
+    # threshold (ProtoMotions-derived safety bound). Weight set negative at
+    # runtime via --overforce_weight; defaults to 0 so the cfg alone has
+    # no behavioral effect without the CLI override.
+    for finger in ("thumb", "index", "middle", "ring", "pinky"):
+      cfg.rewards[f"{p}_{finger}_overforce"] = RewardTermCfg(
+        func=mt_mdp.overforce_penalty,
+        weight=0.0,
+        params={
+          "sensor_name": f"{p}_fingertip_contact",
+          "finger": finger,
+          "threshold": 30.0,
+        },
+      )
+
+    # Per-finger zero-weighted metrics: force magnitude and penetration depth.
+    # Surface into Episode_Reward/* logs for training-time diagnostics.
+    for finger in ("thumb", "index", "middle", "ring", "pinky"):
+      cfg.rewards[f"{p}_{finger}_force_mag"] = RewardTermCfg(
+        func=mt_mdp.force_magnitude_metric,
+        weight=0.0,
+        params={
+          "sensor_name": f"{p}_fingertip_contact",
+          "finger": finger,
+        },
+      )
+      cfg.rewards[f"{p}_{finger}_pen_depth"] = RewardTermCfg(
+        func=mt_mdp.penetration_depth_metric,
+        weight=0.0,
+        params={
+          "sensor_name": f"{p}_fingertip_penetration",
+          "finger": finger,
+        },
+      )
+
 
 def _set_command_params(
   cfg: ManagerBasedRlEnvCfg,
