@@ -100,9 +100,6 @@ def build_env_cfg(args):
   motion_cmd.adaptive_pin = args.adaptive_pin
   motion_cmd.pin_pos_threshold = args.pin_pos_threshold
   motion_cmd.pin_rot_threshold = args.pin_rot_threshold
-  # Adaptive pinning implies object-term safety net; auto-enable.
-  if args.adaptive_pin and not args.enable_object_term:
-    args.enable_object_term = True
 
   # --- No-object early branch (Stage 1 pure hand imitation) ---
   # Skips object entity, contact sensors, contact_match rewards, tactile obs,
