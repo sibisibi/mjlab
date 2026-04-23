@@ -101,6 +101,11 @@ class MujocoCfg:
   ls_tolerance: float = 0.01
   ccd_iterations: int = 50
 
+  # Global contact reference / impedance overrides. None = inherit MuJoCo defaults.
+  # Set only when a CollisionCfg's pair does not declare its own solref/solimp.
+  o_solref: tuple[float, float] | None = None
+  o_solimp: tuple[float, float, float, float, float] | None = None
+
   # Other.
   gravity: tuple[float, float, float] = (0.0, 0.0, -9.81)
   # Global MuJoCo option flags. Names match the XML <flag> attributes
@@ -124,6 +129,10 @@ class MujocoCfg:
     model.opt.ls_iterations = self.ls_iterations
     model.opt.ls_tolerance = self.ls_tolerance
     model.opt.ccd_iterations = self.ccd_iterations
+    if self.o_solref is not None:
+      model.opt.o_solref[:] = self.o_solref
+    if self.o_solimp is not None:
+      model.opt.o_solimp[:] = self.o_solimp
     for flag in self.disableflags:
       if flag not in _DISABLE_FLAG_MAP:
         raise ValueError(

@@ -20,6 +20,7 @@ physical shape. Opt-in augmentations via CLI flags:
 
 import argparse
 import json
+import os
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -55,7 +56,29 @@ def build_env_cfg(args):
   cfg = load_env_cfg(task_id)
   cfg.scene.num_envs = args.num_envs
 
+  # Physics config anchored on facebookresearch/spider (mjwp.py:78-107), the
+  # mujoco-warp-native upstream our hand MJCFs derive from, plus MuJoCo docs'
+  # elliptic-cone recommendation (modeling.rst:605) for fine grasping. Single
+  # source of truth for both inspire and xhand — the per-side <option> blocks
+  # inside the inspire MJCFs are redundant and should be removed.
+  # o_solref / o_solimp intentionally left at MuJoCo defaults: spider's
+  # d0=0.0 (zero impedance at contact) and width=0.03 are tuned for MPC-style
+  # control and caused NaN observations in RL within ~13 iterations.
+  cfg.sim.mujoco.timestep = float(os.environ.get("SIM_TIMESTEP", "0.01"))
+  cfg.sim.mujoco.iterations = 20
+  cfg.sim.mujoco.ls_iterations = 50
+  cfg.sim.mujoco.integrator = "implicitfast"
+  cfg.sim.mujoco.cone = "elliptic"
   cfg.sim.mujoco.ccd_iterations = args.ccd_iterations
+  # Ablation sweep hook: SIM_SOLIMP="d0,dmid,width,midpoint,power" overrides
+  # the global contact solver impedance. Unset = MuJoCo default.
+  _solimp_env = os.environ.get("SIM_SOLIMP", "").strip()
+  if _solimp_env:
+    cfg.sim.mujoco.o_solimp = tuple(float(x) for x in _solimp_env.split(","))
+  if os.environ.get("SIM_DECIMATION"):
+    cfg.decimation = int(os.environ["SIM_DECIMATION"])
+  if os.environ.get("SIM_IMPRATIO"):
+    cfg.sim.mujoco.impratio = float(os.environ["SIM_IMPRATIO"])
 
   # Set action params
   action_cfg = cfg.actions["maniptrans"]
@@ -107,12 +130,6 @@ def build_env_cfg(args):
         del cfg.rewards[_key]
     # No contact sensors (no object to contact against).
     cfg.scene.sensors = ()
-    # Hand friction — still applied so hand self-collisions match the
-    # object-present configs (avoids a confound where no_object also shifts
-    # hand-vs-hand contact behavior).
-    hand_cfg = cfg.scene.entities["hand"]
-    for col_cfg in hand_cfg.collisions:
-      col_cfg.friction = (4.0, 0.01, 0.01)
     return cfg
 
   # Add object entities
@@ -231,11 +248,6 @@ def build_env_cfg(args):
     else:
       motion_cmd.object_entity_names = {"right": "object_right", "left": "object_left"}
 
-  # Hand friction
-  hand_cfg = cfg.scene.entities["hand"]
-  for col_cfg in hand_cfg.collisions:
-    col_cfg.friction = (4.0, 0.01, 0.01)
-
   # Override contact match reward weight, beta, A, and eps from CLI
   for key, term in cfg.rewards.items():
     if key.endswith("_contact_match"):
@@ -277,6 +289,37 @@ def build_env_cfg(args):
       secondary=ContactMatch(mode="body", pattern=left_contact_pattern, entity=left_contact_entity),
       fields=("found", "force"),
       reduce="netforce",
+      secondary_policy="first",
+    ),
+    # Penetration sensors — mindist reduction emits signed `dist` for the
+    # deepest contact per fingertip site. Inspection-only; no reward/obs/term
+    # consumer. See .progress/6-hand-cleanup/output/field_and_config_analysis.md.
+    ContactSensorCfg(
+      name="r_fingertip_penetration",
+      primary=ContactMatch(
+        mode="site",
+        pattern=("contact_right_thumb_tip", "contact_right_index_tip",
+                 "contact_right_middle_tip", "contact_right_ring_tip",
+                 "contact_right_pinky_tip"),
+        entity="hand",
+      ),
+      secondary=ContactMatch(mode="body", pattern="obj_right", entity="object_right"),
+      fields=("found", "dist"),
+      reduce="mindist",
+      secondary_policy="first",
+    ),
+    ContactSensorCfg(
+      name="l_fingertip_penetration",
+      primary=ContactMatch(
+        mode="site",
+        pattern=("contact_left_thumb_tip", "contact_left_index_tip",
+                 "contact_left_middle_tip", "contact_left_ring_tip",
+                 "contact_left_pinky_tip"),
+        entity="hand",
+      ),
+      secondary=ContactMatch(mode="body", pattern=left_contact_pattern, entity=left_contact_entity),
+      fields=("found", "dist"),
+      reduce="mindist",
       secondary_policy="first",
     ),
   )
