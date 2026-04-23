@@ -202,28 +202,31 @@ def contact_point_match_reward(
   side: str,
   finger: str,
   beta: float,
-  A: float,
-  eps: float,
+  gamma: float,
+  tol: float,
 ) -> torch.Tensor:
-  """Binary-lock-in contact reward with distance shaping during approach.
+  """Additive approach-shaping + contact-bonus reward, per finger per frame.
 
-  Three cases, per finger, per frame:
-    - ref_flag == 0:                  reward = 0              (don't care)
-    - ref_flag == 1 and force > eps:  reward = A              (contact achieved)
-    - ref_flag == 1 and force <= eps: reward = exp(-beta * dist)  (approach shaping)
+      reward = ref_flag · (exp(-β · ref_dist) + found · exp(-γ · max(-dist − tol, 0)))
 
   - ref_flag: preprocessed binary flag, 1 when MANO reference says this finger
-    should contact at this frame.
-  - force: contact sensor netforce magnitude for the fingertip, read from the
-    (hand_site ↔ object_body) ContactSensor.
-  - dist: ||robot_tip - ref_contact_point|| where robot_tip is the
-    `track_hand_{side}_{finger}_tip` site and ref_contact_point is the per-frame
-    target on the object (from preprocessing, transformed into current sim object
-    pose).
+    should contact at this frame. Whole reward is 0 when ref_flag == 0.
+  - ref_dist: ||robot_tip_site - ref_contact_point||, the geometric distance
+    from the robot's fingertip site to the MANO reference target contact point
+    (on the object surface, in current sim object frame).
+  - found: count of matched contacts reported by the penetration (mindist)
+    ContactSensor; > 0 when the narrowphase has produced contact between the
+    fingertip site and the object body.
+  - dist: signed distance from the penetration sensor (< 0 when overlap).
 
-  Specific-point supervision is provided separately by the `r/l_{finger}_tip`
-  tracking reward (exp(-s * ||mano_tip - robot_tip||)); this term only rewards
-  contact achievement and shapes the approach when no contact has landed yet.
+  Two exp terms — approach shaping always active, contact bonus adds only when
+  geometric contact exists. At clean landing (ref_dist ≈ 0, depth ≤ tol) the
+  reward peaks at 2.0. Deeper penetration decays the bonus toward 0, at which
+  point the reward reduces to just the approach-shaping term.
+
+  No force gate — the penetration sensor's `found` field is the landing
+  signal, independent of the netforce sensor. See merged-reward design in
+  `.progress/6-hand-cleanup/report.md`.
   """
   command = _cmd(env, command_name)
   si = _side_idx(command, side)
@@ -231,37 +234,18 @@ def contact_point_match_reward(
 
   ref_pt = command.ref_contact_pos_w[:, si, fi]  # (B, 3)
   robot_pt = command.robot_tip_pos_w[:, si, fi]  # (B, 3)
-  dist = torch.norm(ref_pt - robot_pt, dim=-1)  # (B,)
+  ref_dist = torch.norm(ref_pt - robot_pt, dim=-1)  # (B,)
 
   sensor: ContactSensor = env.scene[sensor_name]
-  force_mag = torch.norm(sensor.data.force[:, fi], dim=-1)  # (B,)
-  contacted = force_mag > eps  # (B,) bool
+  found = (sensor.data.found[:, fi] > 0).to(ref_dist.dtype)  # (B,) 0/1
+  pen_dist = sensor.data.dist[:, fi]  # (B,) signed, <0 = overlap
+  excess = torch.clamp(-pen_dist - tol, min=0.0)  # (B,)
+
+  shaping = torch.exp(-beta * ref_dist)  # (B,)
+  bonus = found * torch.exp(-gamma * excess)  # (B,)
 
   flag = command.ref_contact_flags[:, si, fi]  # (B,) 0 or 1
-  shaping = torch.exp(-beta * dist)  # (B,)
-  reward = torch.where(contacted, torch.full_like(shaping, A), shaping)  # (B,)
-  return flag * reward
-
-
-def overforce_penalty(
-  env: ManagerBasedRlEnv,
-  sensor_name: str,
-  finger: str,
-  threshold: float,
-) -> torch.Tensor:
-  """Clamp-above penalty on fingertip contact-force magnitude.
-
-  Returns max(||F|| - threshold, 0) per env (B,). Use a negative weight so
-  excessive contact force is penalized. Not gated on ref_contact_flags —
-  excessive force at a fingertip is a physics red flag regardless of
-  whether the reference says "should contact" at that frame.
-
-  Derived from ProtoMotions' contact_force_penalty (SIGGRAPH Asia 2025).
-  """
-  fi = FINGER_NAMES.index(finger)
-  sensor: ContactSensor = env.scene[sensor_name]
-  force_mag = torch.norm(sensor.data.force[:, fi], dim=-1)  # (B,)
-  return torch.clamp(force_mag - threshold, min=0.0)
+  return flag * (shaping + bonus)
 
 
 def force_magnitude_metric(

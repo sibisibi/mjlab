@@ -254,14 +254,8 @@ def build_env_cfg(args):
     if key.endswith("_contact_match"):
       term.weight *= args.contact_match_weight
       term.params["beta"] = args.contact_match_beta
-      term.params["A"] = args.contact_match_A
-      term.params["eps"] = args.contact_match_eps
-
-  # Override over-force penalty weight (sign flipped: CLI is magnitude) and threshold
-  for key, term in cfg.rewards.items():
-    if key.endswith("_overforce"):
-      term.weight = -args.overforce_weight
-      term.params["threshold"] = args.overforce_threshold
+      term.params["gamma"] = args.contact_match_gamma
+      term.params["tol"] = args.contact_match_tol
 
   # Contact sensors (metrics only, no reward). In shared-object mode the
   # `object_left` entity doesn't exist; the left contact sensor points at
@@ -527,21 +521,16 @@ def main():
   p.add_argument("--obj_density", type=float, required=True)
   p.add_argument("--wrist_residual_scale", type=float, required=True)
   p.add_argument("--finger_residual_scale", type=float, required=True)
-  p.add_argument("--contact_match_weight", type=float, required=True)
-  p.add_argument("--contact_match_beta", type=float, required=True)
-  p.add_argument("--contact_match_A", type=float, required=True)
-  p.add_argument("--contact_match_eps", type=float, default=0.05,
-    help="Force threshold (N) for 'in contact' detection in contact_match reward. "
-         "Below this, approach shaping exp(-beta*dist) applies; above, flat A. "
-         "Default 0.05 matches v15. Lower values (e.g., 0.005) catch light-contact "
-         "events on low-mass objects (e.g., 5.7g alcohol lamp lid on the right side).")
-  p.add_argument("--overforce_weight", type=float, default=0.01,
-    help="Positive magnitude of the over-force penalty weight. Applied as "
-         "-overforce_weight on the {r,l}_*_overforce reward terms. 0 disables. "
-         "ProtoMotions-derived: penalizes fingertip forces above threshold.")
-  p.add_argument("--overforce_threshold", type=float, default=30.0,
-    help="Force threshold (N) above which the over-force penalty activates. "
-         "ProtoMotions default 30 N.")
+  p.add_argument("--contact_match_weight", type=float, required=True,
+    help="Global multiplier on stratified per-finger contact_match weights.")
+  p.add_argument("--contact_match_beta", type=float, required=True,
+    help="Approach-shaping decay: exp(-beta · ref_dist). Default 40 /m.")
+  p.add_argument("--contact_match_gamma", type=float, default=200.0,
+    help="Depth-penalty decay for the contact bonus: exp(-gamma · max(-dist-tol, 0)). "
+         "Default 200 /m = 0.2 per mm beyond tolerance.")
+  p.add_argument("--contact_match_tol", type=float, default=0.002,
+    help="Penetration tolerance (m): overlap below tol gets full bonus plateau. "
+         "Default 0.002 (2 mm) — ManipTrans 'slight penetration permitted'.")
   p.add_argument("--pin_mode", choices=("hard", "actuated", "xfrc"), default="hard")
   p.add_argument("--pin_interval", type=int, default=6,
     help="For pin_mode=hard: fixed temporal pin interval T. T=1 pins every physics step "

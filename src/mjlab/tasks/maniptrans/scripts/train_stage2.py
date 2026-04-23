@@ -68,10 +68,8 @@ def main():
   p.add_argument("--finger_residual_scale", type=float, required=True)
   p.add_argument("--contact_match_weight", type=float, required=True)
   p.add_argument("--contact_match_beta", type=float, required=True)
-  p.add_argument("--contact_match_A", type=float, required=True)
-  p.add_argument("--contact_match_eps", type=float, required=True)
-  p.add_argument("--overforce_weight", type=float, default=0.01)
-  p.add_argument("--overforce_threshold", type=float, default=30.0)
+  p.add_argument("--contact_match_gamma", type=float, default=200.0)
+  p.add_argument("--contact_match_tol", type=float, default=0.002)
   # Pin flags still required by build_env_cfg; for Stage 2 we override
   # pin_objects=False after the call, so --pin_mode and --pin_interval are
   # effectively ignored but must be passed to satisfy build_env_cfg's args.

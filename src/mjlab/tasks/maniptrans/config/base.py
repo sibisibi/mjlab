@@ -26,15 +26,16 @@ _FINGER_SCALES = {
 }
 
 # Stratified per-finger contact-match weights. Mirrors the tip-tracking
-# shape (thumb > index > middle > ring = pinky) so rewards across "tip
-# lands on object" and "tip tracks MANO" are proportional. Sum ≈ 5.5,
-# compared to the un-stratified uniform 5 × 1.0 = 5.0 it replaces.
+# shape (thumb > index > middle > ring = pinky). Halved from the
+# pre-merge values because the merged reward peaks at 2.0 per step
+# (exp approach term + exp contact-bonus term) — weights × max_reward
+# is conserved (was 5.5 × 1.0 = 5.5; now 2.75 × 2.0 = 5.5).
 _CONTACT_MATCH_WEIGHTS = {
-  "thumb": 1.4,
-  "index": 1.2,
-  "middle": 1.1,
-  "ring": 0.9,
-  "pinky": 0.9,
+  "thumb": 0.7,
+  "index": 0.6,
+  "middle": 0.55,
+  "ring": 0.45,
+  "pinky": 0.45,
 }
 
 
@@ -111,37 +112,23 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
       params={"command_name": "motion", "side": side, "scale": 1.0},
     )
 
-    # Per-finger contact reward: binary lock-in + approach shaping.
-    # ref=0 → 0; ref=1 & force>eps → A; ref=1 & no force → exp(-beta * dist).
-    # Weights stratified by finger (thumb highest, pinky lowest), multiplied
-    # at runtime by --contact_match_weight for on/off and global scaling.
+    # Per-finger contact reward: additive approach shaping + contact bonus.
+    # reward = ref_flag · (exp(-β · ref_dist) + found · exp(-γ · max(-dist-tol, 0)))
+    # Both terms exp; max 2.0 at clean landing. Sensor is the mindist
+    # penetration sensor — `found` is the landing gate, `dist` drives the
+    # depth decay. No force, no A, no eps.
     for finger in ("thumb", "index", "middle", "ring", "pinky"):
       cfg.rewards[f"{p}_{finger}_contact_match"] = RewardTermCfg(
         func=mt_mdp.contact_point_match_reward,
         weight=_CONTACT_MATCH_WEIGHTS[finger],
         params={
           "command_name": "motion",
-          "sensor_name": f"{p}_fingertip_contact",
+          "sensor_name": f"{p}_fingertip_penetration",
           "side": side,
           "finger": finger,
-          "beta": 10.0,
-          "A": 1.0,
-          "eps": 0.05,
-        },
-      )
-
-    # Per-finger over-force penalty. Penalizes fingertip forces above a
-    # threshold (ProtoMotions-derived safety bound). Weight set negative at
-    # runtime via --overforce_weight; defaults to 0 so the cfg alone has
-    # no behavioral effect without the CLI override.
-    for finger in ("thumb", "index", "middle", "ring", "pinky"):
-      cfg.rewards[f"{p}_{finger}_overforce"] = RewardTermCfg(
-        func=mt_mdp.overforce_penalty,
-        weight=0.0,
-        params={
-          "sensor_name": f"{p}_fingertip_contact",
-          "finger": finger,
-          "threshold": 30.0,
+          "beta": 40.0,
+          "gamma": 200.0,
+          "tol": 0.002,
         },
       )
 
