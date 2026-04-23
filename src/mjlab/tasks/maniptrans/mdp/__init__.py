@@ -46,6 +46,7 @@ from mjlab.tasks.maniptrans.mdp.rewards import (
   mano_level_pos_error_exp as mano_level_pos_error_exp,
   mano_wrist_pos_error_exp as mano_wrist_pos_error_exp,
   mano_wrist_rot_error_exp as mano_wrist_rot_error_exp,
+  pin_penalty as pin_penalty,
   power_penalty as power_penalty,
   wrist_power_penalty as wrist_power_penalty,
   mano_wrist_angvel_error_exp as mano_wrist_angvel_error_exp,

@@ -278,6 +278,28 @@ def contact_force_reward(
   return torch.exp(-scale / (total_force + 1e-5))
 
 
+# --- Per-side pin penalty (adaptive pinning) ---
+
+
+def pin_penalty(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+  side: str,
+) -> torch.Tensor:
+  """Per-step flat penalty: 1.0 when pinning fired on this side this env step, else 0.
+
+  Register with a negative weight (`-pin_penalty_weight`) so pin firings
+  subtract from the total reward. Under adaptive pinning the policy learns to
+  track well enough that the pin never fires — then this term contributes 0.
+  Always available regardless of pin_mode; `pin_fired_this_step` is the
+  per-step buffer the command updates in `_update_command` before the pin
+  branch executes.
+  """
+  command = _cmd(env, command_name)
+  si = _side_idx(command, side)
+  return command.pin_fired_this_step[:, si].to(torch.float32)
+
+
 # --- Per-side object tracking rewards (Stage 2) ---
 
 

@@ -97,6 +97,12 @@ def build_env_cfg(args):
   motion_cmd.xfrc_kp_rot = args.xfrc_kp_rot
   motion_cmd.xfrc_kv_rot = args.xfrc_kv_rot
   motion_cmd.pin_interval = args.pin_interval
+  motion_cmd.adaptive_pin = args.adaptive_pin
+  motion_cmd.pin_pos_threshold = args.pin_pos_threshold
+  motion_cmd.pin_rot_threshold = args.pin_rot_threshold
+  # Adaptive pinning implies object-term safety net; auto-enable.
+  if args.adaptive_pin and not args.enable_object_term:
+    args.enable_object_term = True
 
   # --- No-object early branch (Stage 1 pure hand imitation) ---
   # Skips object entity, contact sensors, contact_match rewards, tactile obs,
@@ -256,6 +262,11 @@ def build_env_cfg(args):
       term.params["beta"] = args.contact_match_beta
       term.params["gamma"] = args.contact_match_gamma
       term.params["tol"] = args.contact_match_tol
+
+  # Apply pin-penalty weight (sign flipped; CLI arg is a positive magnitude).
+  for key, term in cfg.rewards.items():
+    if key.endswith("_pin_penalty"):
+      term.weight = -args.pin_penalty_weight
 
   # Contact sensors (metrics only, no reward). In shared-object mode the
   # `object_left` entity doesn't exist; the left contact sensor points at
@@ -535,6 +546,18 @@ def main():
   p.add_argument("--pin_interval", type=int, default=6,
     help="For pin_mode=hard: fixed temporal pin interval T. T=1 pins every physics step "
          "(full hard-pin). T=N lets the object drift N-1 steps per cycle. Default 6.")
+  p.add_argument("--adaptive_pin", action="store_true",
+    help="Replace fixed-interval pinning with deviation-gated (per-side) adaptive "
+         "pinning. Pin fires on a side when pos_dev>pin_pos_threshold OR "
+         "rot_dev>pin_rot_threshold. Only wired for pin_mode=hard.")
+  p.add_argument("--pin_pos_threshold", type=float, default=0.030,
+    help="Adaptive pinning: position deviation threshold (m). Default 0.030 (3 cm).")
+  p.add_argument("--pin_rot_threshold", type=float, default=1.5708,
+    help="Adaptive pinning: rotation deviation threshold (rad). Default 1.5708 (90°).")
+  p.add_argument("--pin_penalty_weight", type=float, default=0.0,
+    help="Positive magnitude of the per-side pin-penalty weight. Applied as "
+         "-pin_penalty_weight on {r,l}_pin_penalty reward terms. 0 disables. "
+         "Under adaptive pinning the policy learns to avoid firing the pin.")
   # Gains for pin_mode="actuated" (6-joint position actuators):
   p.add_argument("--object_kp_pos", type=float, default=0.0)
   p.add_argument("--object_kv_pos", type=float, default=0.0)

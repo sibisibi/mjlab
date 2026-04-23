@@ -70,6 +70,10 @@ def main():
   p.add_argument("--contact_match_beta", type=float, required=True)
   p.add_argument("--contact_match_gamma", type=float, default=200.0)
   p.add_argument("--contact_match_tol", type=float, default=0.002)
+  p.add_argument("--adaptive_pin", action="store_true")
+  p.add_argument("--pin_pos_threshold", type=float, default=0.030)
+  p.add_argument("--pin_rot_threshold", type=float, default=1.5708)
+  p.add_argument("--pin_penalty_weight", type=float, default=0.0)
   # Pin flags still required by build_env_cfg; for Stage 2 we override
   # pin_objects=False after the call, so --pin_mode and --pin_interval are
   # effectively ignored but must be passed to satisfy build_env_cfg's args.

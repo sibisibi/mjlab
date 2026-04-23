@@ -140,6 +140,15 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
     # entries are always `weight × term_value` averaged per episode, which
     # silently zeros out any weight=0 term.
 
+    # Per-side pin penalty: negative contribution each env step that pinning
+    # fired on this side. Default weight 0 here; overridden at runtime by
+    # --pin_penalty_weight (sign-flipped so the CLI arg is a positive magnitude).
+    cfg.rewards[f"{p}_pin_penalty"] = RewardTermCfg(
+      func=mt_mdp.pin_penalty,
+      weight=0.0,
+      params={"command_name": "motion", "side": side},
+    )
+
 
 def _set_command_params(
   cfg: ManagerBasedRlEnvCfg,

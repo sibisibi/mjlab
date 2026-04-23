@@ -461,6 +461,28 @@ class ManipTransCommand(CommandTerm):
             self.num_envs, device=self.device
           )
 
+    # Pinning metrics (adaptive-pin era): per-side stateful peak buffers for
+    # object pos/rot deviation, + per-step pin_fired buffer consumed by the
+    # pin_penalty reward and the pin_fire_frac / pin_fire_count metrics.
+    n_sides = len(self._side_list)
+    self._ep_pos_dev_max = torch.zeros(
+      self.num_envs, n_sides, device=self.device
+    )
+    self._ep_rot_dev_max = torch.zeros(
+      self.num_envs, n_sides, device=self.device
+    )
+    self._ep_pin_fire_count = torch.zeros(
+      self.num_envs, n_sides, device=self.device
+    )
+    # Exposed per-step for the pin_penalty reward function.
+    self.pin_fired_this_step = torch.zeros(
+      self.num_envs, n_sides, dtype=torch.bool, device=self.device
+    )
+    for side in cfg.sides:
+      p = side_prefixes[side]
+      for key in ("pos_dev_max", "rot_dev_max", "pin_fire_count", "pin_fire_frac"):
+        self.metrics[f"{key}_{p}"] = torch.zeros(self.num_envs, device=self.device)
+
   # --- Command property ---
 
   @property
@@ -894,10 +916,35 @@ class ManipTransCommand(CommandTerm):
           self.metrics[f"contact_frac_{key_suffix}"] = found[:, fi]
         self.metrics[f"ref_flag_frac_{key_suffix}"] = ref_flag[:, fi]
 
+    # Pinning metrics (per side). Compute deviations over all envs even when
+    # adaptive_pin is off so the metrics are a passive diagnostic under the
+    # fixed-interval schedule too.
+    if self.has_objects:
+      pos_dev = torch.norm(
+        self.ref_obj_pos_w - self.sim_obj_pos_w, dim=-1
+      )  # (B, n_sides)
+      rot_dev = quat_error_magnitude(
+        self.ref_obj_quat_w, self.sim_obj_quat_w
+      )  # (B, n_sides)
+      self._ep_pos_dev_max = torch.maximum(self._ep_pos_dev_max, pos_dev)
+      self._ep_rot_dev_max = torch.maximum(self._ep_rot_dev_max, rot_dev)
+      pin_fired_f = self.pin_fired_this_step.to(torch.float32)  # (B, n_sides)
+      self._ep_pin_fire_count = self._ep_pin_fire_count + pin_fired_f
+      for si, side in enumerate(self._side_list):
+        p = side_prefixes[side]
+        self.metrics[f"pos_dev_max_{p}"] = self._ep_pos_dev_max[:, si]
+        self.metrics[f"rot_dev_max_{p}"] = self._ep_rot_dev_max[:, si]
+        self.metrics[f"pin_fire_count_{p}"] = self._ep_pin_fire_count[:, si]
+        self.metrics[f"pin_fire_frac_{p}"] = pin_fired_f[:, si]
+
   def _resample_command(self, env_ids: torch.Tensor) -> None:
     # Reset episode-level contact peak buffers on new episode.
     self._ep_force_peak[env_ids] = 0.0
     self._ep_depth_peak[env_ids] = 0.0
+    # Reset pinning stateful metric buffers on new episode.
+    self._ep_pos_dev_max[env_ids] = 0.0
+    self._ep_rot_dev_max[env_ids] = 0.0
+    self._ep_pin_fire_count[env_ids] = 0.0
 
     # Random per-reset trajectory assignment: each resetting env draws a
     # fresh traj_idx uniformly from [0, M). For M=1 this is a no-op.
@@ -1010,33 +1057,53 @@ class ManipTransCommand(CommandTerm):
     if wrap_ids.numel() > 0:
       self._resample_command(wrap_ids)
 
+    # Reset per-step pin buffer; will be overwritten below when pinning fires.
+    self.pin_fired_this_step = torch.zeros_like(self.pin_fired_this_step)
+
     # Pin objects to reference trajectory every step
     if self.cfg.pin_objects and self.has_objects:
       pin_mode = getattr(self.cfg, "pin_mode", "hard")
       if pin_mode == "hard":
-        # Fixed temporal cadence: pin every `pin_interval` env steps. T=1 is
-        # original full hard pin; T>1 lets the object drift T-1 steps per
-        # cycle. Skip reset step 0 — _resample_command already placed the
-        # object.
-        T = max(1, int(self.cfg.pin_interval))
+        # Fixed temporal cadence OR adaptive deviation gate. Adaptive: pin
+        # fires per-side when pos_dev > pin_pos_threshold OR rot_dev >
+        # pin_rot_threshold. Skip step 0 (reset already placed the object).
         ep_len = self._env.episode_length_buf
-        pin_mask = (ep_len > 0) & ((ep_len % T) == 0)
-        pin_ids = torch.where(pin_mask)[0]
-        if pin_ids.numel() > 0:
+        n_sides = len(self._side_list)
+        if self.cfg.adaptive_pin:
+          pos_dev = torch.norm(
+            self.ref_obj_pos_w - self.sim_obj_pos_w, dim=-1
+          )  # (B, n_sides)
+          rot_dev = quat_error_magnitude(
+            self.ref_obj_quat_w, self.sim_obj_quat_w
+          )  # (B, n_sides)
+          deviated = (pos_dev > self.cfg.pin_pos_threshold) | (
+            rot_dev > self.cfg.pin_rot_threshold
+          )
+          pin_mask_ps = (ep_len > 0).unsqueeze(-1) & deviated  # (B, n_sides)
+        else:
+          T = max(1, int(self.cfg.pin_interval))
+          interval_mask = (ep_len > 0) & ((ep_len % T) == 0)  # (B,)
+          pin_mask_ps = interval_mask.unsqueeze(-1).expand(-1, n_sides)
+
+        self.pin_fired_this_step = pin_mask_ps
+
+        for side in self._side_list:
+          if side not in self.motion.obj_pos:
+            continue
+          si = self._side_list.index(side)
+          pin_ids = torch.where(pin_mask_ps[:, si])[0]
+          if pin_ids.numel() == 0:
+            continue
           tr_pin = self.env_traj_idx[pin_ids]
           t_pin = self.time_steps[pin_ids]
-          for side in self._side_list:
-            if side not in self.motion.obj_pos:
-              continue
-            obj_name = self.cfg.object_entity_names[side]
-            obj: Entity = self._env.scene[obj_name]
-            si = self._side_list.index(side)
-            obj_pos = self.ref_obj_pos_w[pin_ids, si]
-            obj_quat = self.ref_obj_quat_w[pin_ids, si]
-            obj_vel = self.motion.obj_vel[side][tr_pin, t_pin]
-            obj_angvel = self.motion.obj_angvel[side][tr_pin, t_pin]
-            root_state = torch.cat([obj_pos, obj_quat, obj_vel, obj_angvel], dim=-1)
-            obj.write_root_state_to_sim(root_state, env_ids=pin_ids)
+          obj_name = self.cfg.object_entity_names[side]
+          obj: Entity = self._env.scene[obj_name]
+          obj_pos = self.ref_obj_pos_w[pin_ids, si]
+          obj_quat = self.ref_obj_quat_w[pin_ids, si]
+          obj_vel = self.motion.obj_vel[side][tr_pin, t_pin]
+          obj_angvel = self.motion.obj_angvel[side][tr_pin, t_pin]
+          root_state = torch.cat([obj_pos, obj_quat, obj_vel, obj_angvel], dim=-1)
+          obj.write_root_state_to_sim(root_state, env_ids=pin_ids)
       elif pin_mode == "actuated":
         # Position-actuator target via `set_joint_position_target` (mjlab's
         # BuiltinActuatorGroup forwards joint_pos_target → data.ctrl each
@@ -1225,8 +1292,19 @@ class ManipTransCommandCfg(CommandTermCfg):
   pin_interval: int = 6
   """For `pin_mode="hard"`: fixed temporal pin interval T. `ep_len % T == 0`
   gating. T=1 is full hard pin (original behavior). T=N lets the object drift
-  N-1 steps between snaps. T >= episode_length is effectively no pin.
+  N-1 steps between snaps. T >= episode_length is effectively no pin. Ignored
+  when `adaptive_pin=True`.
   """
+  adaptive_pin: bool = False
+  """If True, replace the fixed-interval pin schedule with a deviation-gated
+  rule: pin fires only when the sim object has drifted past
+  `pin_pos_threshold` OR `pin_rot_threshold` from the reference. Design 1
+  ("pure adaptive") — no interval fallback. Only wired for pin_mode="hard".
+  """
+  pin_pos_threshold: float = 0.030
+  """Position deviation threshold (m) for adaptive pinning. Default 3 cm."""
+  pin_rot_threshold: float = 1.5708
+  """Rotation deviation threshold (rad) for adaptive pinning. Default 90°."""
   joint_position_range: tuple[float, float] = (0.0, 0.0)
   sampling_mode: Literal["adaptive", "uniform", "start"] = "uniform"
   adaptive_kernel_size: int = 1
