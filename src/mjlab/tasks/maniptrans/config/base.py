@@ -124,11 +124,13 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
         params={
           "command_name": "motion",
           "sensor_name": f"{p}_fingertip_penetration",
+          "force_sensor_name": f"{p}_fingertip_contact",
           "side": side,
           "finger": finger,
           "beta": 40.0,
           "gamma": 200.0,
           "tol": 0.002,
+          "force_cap": 30.0,
         },
       )
 

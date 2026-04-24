@@ -259,6 +259,7 @@ def build_env_cfg(args):
       term.params["beta"] = args.contact_match_beta
       term.params["gamma"] = args.contact_match_gamma
       term.params["tol"] = args.contact_match_tol
+      term.params["force_cap"] = args.contact_match_force_cap
 
   # Apply pin-penalty weight (sign flipped; CLI arg is a positive magnitude).
   for key, term in cfg.rewards.items():
@@ -539,6 +540,11 @@ def main():
   p.add_argument("--contact_match_tol", type=float, default=0.002,
     help="Penetration tolerance (m): overlap below tol gets full bonus plateau. "
          "Default 0.002 (2 mm) — ManipTrans 'slight penetration permitted'.")
+  p.add_argument("--contact_match_force_cap", type=float, default=30.0,
+    help="Force magnitude cap (N) on the contact bonus: if fingertip ||F|| >= cap, "
+         "the exp(-γ · depth) bonus is multiplied by 0 (zeroed). Approach-shaping "
+         "term is unaffected. Default 30.0 (ProtoMotions threshold). Set to a very "
+         "large value (e.g. 1e6) to effectively disable the cap.")
   p.add_argument("--pin_mode", choices=("hard", "actuated", "xfrc"), default="hard")
   p.add_argument("--pin_interval", type=int, default=6,
     help="For pin_mode=hard: fixed temporal pin interval T. T=1 pins every physics step "

@@ -199,34 +199,41 @@ def contact_point_match_reward(
   env: ManagerBasedRlEnv,
   command_name: str,
   sensor_name: str,
+  force_sensor_name: str,
   side: str,
   finger: str,
   beta: float,
   gamma: float,
   tol: float,
+  force_cap: float,
 ) -> torch.Tensor:
-  """Additive approach-shaping + contact-bonus reward, per finger per frame.
+  """Additive approach-shaping + capped contact-bonus reward, per finger per frame.
 
-      reward = ref_flag · (exp(-β · ref_dist) + found · exp(-γ · max(-dist − tol, 0)))
+      reward = ref_flag · ( exp(-β · ref_dist)
+                           + found · (||F|| < force_cap)
+                                   · exp(-γ · max(-dist − tol, 0)) )
 
   - ref_flag: preprocessed binary flag, 1 when MANO reference says this finger
     should contact at this frame. Whole reward is 0 when ref_flag == 0.
-  - ref_dist: ||robot_tip_site - ref_contact_point||, the geometric distance
-    from the robot's fingertip site to the MANO reference target contact point
-    (on the object surface, in current sim object frame).
-  - found: count of matched contacts reported by the penetration (mindist)
-    ContactSensor; > 0 when the narrowphase has produced contact between the
-    fingertip site and the object body.
+  - ref_dist: ||robot_tip_site - ref_contact_point||, geometric distance to
+    MANO reference target contact point (on the object surface, in current
+    sim object frame).
+  - found: count of matched contacts on the penetration (mindist) sensor;
+    > 0 when the narrowphase has produced contact between the fingertip site
+    and the object body.
   - dist: signed distance from the penetration sensor (< 0 when overlap).
+  - ||F||: netforce-sensor force magnitude for the fingertip. The contact
+    bonus is gated by (||F|| < force_cap) — above force_cap the policy gets
+    the approach-shaping term only, losing the landing bonus. Caps pathological
+    over-pressing (policy can't collect contact reward by slamming).
 
-  Two exp terms — approach shaping always active, contact bonus adds only when
-  geometric contact exists. At clean landing (ref_dist ≈ 0, depth ≤ tol) the
-  reward peaks at 2.0. Deeper penetration decays the bonus toward 0, at which
-  point the reward reduces to just the approach-shaping term.
+  Three branches:
+    ref_flag=0                       : reward = 0
+    ref_flag=1, found=0              : reward = exp(-β · ref_dist)               (approach)
+    ref_flag=1, found=1, ||F||≥cap   : reward = exp(-β · ref_dist)               (bonus zeroed)
+    ref_flag=1, found=1, ||F||<cap   : reward = exp(-β · ref_dist) + exp(-γ · depth_excess)
 
-  No force gate — the penetration sensor's `found` field is the landing
-  signal, independent of the netforce sensor. See merged-reward design in
-  `.progress/6-hand-cleanup/report.md`.
+  Peak 2.0 at clean landing with sub-cap force.
   """
   command = _cmd(env, command_name)
   si = _side_idx(command, side)
@@ -236,13 +243,17 @@ def contact_point_match_reward(
   robot_pt = command.robot_tip_pos_w[:, si, fi]  # (B, 3)
   ref_dist = torch.norm(ref_pt - robot_pt, dim=-1)  # (B,)
 
-  sensor: ContactSensor = env.scene[sensor_name]
-  found = (sensor.data.found[:, fi] > 0).to(ref_dist.dtype)  # (B,) 0/1
-  pen_dist = sensor.data.dist[:, fi]  # (B,) signed, <0 = overlap
+  pen_sensor: ContactSensor = env.scene[sensor_name]
+  found = (pen_sensor.data.found[:, fi] > 0).to(ref_dist.dtype)  # (B,) 0/1
+  pen_dist = pen_sensor.data.dist[:, fi]  # (B,) signed, <0 = overlap
   excess = torch.clamp(-pen_dist - tol, min=0.0)  # (B,)
 
+  force_sensor: ContactSensor = env.scene[force_sensor_name]
+  force_mag = torch.norm(force_sensor.data.force[:, fi], dim=-1)  # (B,)
+  under_cap = (force_mag < force_cap).to(ref_dist.dtype)  # (B,) 0/1
+
   shaping = torch.exp(-beta * ref_dist)  # (B,)
-  bonus = found * torch.exp(-gamma * excess)  # (B,)
+  bonus = found * under_cap * torch.exp(-gamma * excess)  # (B,)
 
   flag = command.ref_contact_flags[:, si, fi]  # (B,) 0 or 1
   return flag * (shaping + bonus)

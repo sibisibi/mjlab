@@ -70,6 +70,7 @@ def main():
   p.add_argument("--contact_match_beta", type=float, required=True)
   p.add_argument("--contact_match_gamma", type=float, default=200.0)
   p.add_argument("--contact_match_tol", type=float, default=0.002)
+  p.add_argument("--contact_match_force_cap", type=float, default=30.0)
   p.add_argument("--adaptive_pin", action="store_true")
   p.add_argument("--pin_pos_threshold", type=float, default=0.030)
   p.add_argument("--pin_rot_threshold", type=float, default=1.5708)
