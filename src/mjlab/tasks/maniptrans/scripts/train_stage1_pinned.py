@@ -494,7 +494,7 @@ def build_env_cfg(args):
   if args.enable_object_term:
     cfg.terminations["obj_pos_diverged"] = TerminationTermCfg(
       func=mt_mdp.obj_pos_diverged,
-      params={"command_name": "motion", "threshold": 0.15, "grace_steps": 15},
+      params={"command_name": "motion", "threshold": 0.06, "grace_steps": 15},
     )
     cfg.terminations["obj_rot_diverged"] = TerminationTermCfg(
       func=mt_mdp.obj_rot_diverged,
