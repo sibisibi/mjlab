@@ -449,6 +449,48 @@ def contact_force_history(
   return buf.reshape(env.num_envs, -1)
 
 
+def contact_found_history(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  history_len: int,
+) -> torch.Tensor:
+  """Rolling history of per-finger `found` flag from the penetration sensor.
+
+  Shape: (B, history_len * n_primaries) — float buffer with {0.0, 1.0} entries.
+  Stored in env.extras[f"_contact_found_history_{sensor_name}"] as
+  (B, history_len, n_primaries). Slot 0 is oldest, slot history_len-1 is the
+  most recent step.
+
+  `found` comes from the penetration (mindist) sensor — same signal the
+  `contact_point_match_reward` already uses. A value of 1.0 means the
+  narrowphase produced a contact between the fingertip site and the object
+  body on that step. Independent of contact force magnitude, so a policy
+  gripping firmly vs. gently both register the same.
+
+  Init / reset: at episode start the buffer is filled with 1.0 ("assume
+  recent contact") so the `contact_expected_but_missing` termination does
+  not trip before the robot has had a chance to make contact.
+  """
+  key = f"_contact_found_history_{sensor_name}"
+  sensor: ContactSensor = env.scene[sensor_name]
+  current = (sensor.data.found > 0).to(torch.float)  # (B, n_primaries)
+  n_primaries = current.shape[1]
+
+  if key not in env.extras:
+    env.extras[key] = torch.ones(
+      env.num_envs, history_len, n_primaries, device=env.device, dtype=torch.float
+    )
+
+  buf = env.extras[key]
+  reset_mask = env.episode_length_buf == 1
+  if reset_mask.any():
+    buf[reset_mask] = 1.0
+
+  buf = torch.cat([buf[:, 1:], current[:, None]], dim=1)
+  env.extras[key] = buf
+  return buf.reshape(env.num_envs, -1)
+
+
 def ref_contact_flags(
   env: ManagerBasedRlEnv,
   command_name: str,

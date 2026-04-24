@@ -391,13 +391,28 @@ def build_env_cfg(args):
       },
     )
     if not args.no_contact_missing:
+      # `found` history buffer on the penetration sensor — written as an obs
+      # term (needs to be present in actor+critic so the ObservationManager
+      # calls it every step). 4 frames ≈ 48 ms at our 83 Hz control (matches
+      # ManipTrans's 3-frame/50ms window at 60 Hz control).
+      found_hist_obs = {
+        "r_contact_found_history": ObservationTermCfg(
+          func=mt_mdp.contact_found_history,
+          params={"sensor_name": "r_fingertip_penetration", "history_len": 4},
+        ),
+        "l_contact_found_history": ObservationTermCfg(
+          func=mt_mdp.contact_found_history,
+          params={"sensor_name": "l_fingertip_penetration", "history_len": 4},
+        ),
+      }
+      cfg.observations["actor"].terms.update(found_hist_obs)
+      cfg.observations["critic"].terms.update(found_hist_obs)
       cfg.terminations["r_contact_missing"] = TerminationTermCfg(
         func=mt_mdp.contact_expected_but_missing,
         params={
           "command_name": "motion",
-          "force_history_key": "_contact_force_history_r_fingertip_contact",
+          "found_history_key": "_contact_found_history_r_fingertip_penetration",
           "side": "right",
-          "dist_threshold": 0.005,
           "grace_steps": 15,
         },
       )
@@ -405,9 +420,8 @@ def build_env_cfg(args):
         func=mt_mdp.contact_expected_but_missing,
         params={
           "command_name": "motion",
-          "force_history_key": "_contact_force_history_l_fingertip_contact",
+          "found_history_key": "_contact_found_history_l_fingertip_penetration",
           "side": "left",
-          "dist_threshold": 0.005,
           "grace_steps": 15,
         },
       )
@@ -494,7 +508,7 @@ def build_env_cfg(args):
   if args.enable_object_term:
     cfg.terminations["obj_pos_diverged"] = TerminationTermCfg(
       func=mt_mdp.obj_pos_diverged,
-      params={"command_name": "motion", "threshold": 0.06, "grace_steps": 15},
+      params={"command_name": "motion", "threshold": 0.15, "grace_steps": 15},
     )
     cfg.terminations["obj_rot_diverged"] = TerminationTermCfg(
       func=mt_mdp.obj_rot_diverged,

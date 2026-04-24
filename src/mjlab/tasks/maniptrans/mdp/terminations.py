@@ -80,38 +80,31 @@ def obj_rot_diverged(
 def contact_expected_but_missing(
   env: ManagerBasedRlEnv,
   command_name: str,
-  force_history_key: str,
+  found_history_key: str,
   side: str,
-  dist_threshold: float,
   grace_steps: int,
 ) -> torch.Tensor:
-  """Terminate if fingertips close to object but no contact in recent history.
+  """Terminate when MANO expects contact but the robot hasn't made any
+  in the recent history window.
 
-  ManipTrans rule: `(tips_distance < 0.005) & ~any(contact_history) → terminate`.
-  `tips_distance` is the **preprocessed MANO reference** tip-to-object-surface
-  distance, not sim state — threshold is in reference space.
+  Gate: `ref_contact_flags == 1` (preprocessed MANO binary predicate — same
+  gate the `contact_point_match_reward` uses). The policy is killed for
+  failing the exact predicate the reward shapes against.
 
-  Contact history source is now the 4D `contact_force_history` buffer with
-  shape `(B, history_len, n_primaries, 4)` where channel 3 is the force
-  magnitude. "Any contact in window" is derived as `magnitude_channel > 0`
-  over the history axis. No separate bool history is needed.
+  Signal: `found_history > 0` across all slots (narrowphase contact flag
+  from the penetration sensor, written by `contact_found_history`). History
+  length is set where the obs term is wired; the window determines how many
+  consecutive frames of missing contact are tolerated.
   """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   si = command._side_list.index(side)
+  ref_flag = command.ref_contact_flags[:, si]  # (B, 5), 0 or 1
 
-  # Preprocessed MANO tip-to-object-surface distance (reference, not sim)
-  tip_dist = command.mano_tips_distance[:, si]  # (B, 5)
-  tips_close = tip_dist < dist_threshold  # (B, 5)
+  buf = env.extras[found_history_key]  # (B, history_len, 5) of 0/1 floats
+  has_any_contact = (buf > 0).any(dim=1)  # (B, 5)
 
-  # Force history: (B, history_len, 5, 4). Threshold magnitude channel.
-  buf = env.extras.get(force_history_key)
-  if buf is None:
-    return torch.zeros(env.num_envs, dtype=torch.bool, device=env.device)
-  # buf[..., 3] = force magnitude; "was there contact" = any nonzero step.
-  has_any_contact = (buf[..., 3] > 0).any(dim=1)  # (B, 5)
-
-  close_no_contact = tips_close & ~has_any_contact  # (B, 5)
-  exceeded = torch.any(close_no_contact, dim=-1)  # (B,)
+  missing = (ref_flag > 0.5) & ~has_any_contact  # (B, 5)
+  exceeded = torch.any(missing, dim=-1)  # (B,)
 
   return exceeded & (env.episode_length_buf >= grace_steps)
 

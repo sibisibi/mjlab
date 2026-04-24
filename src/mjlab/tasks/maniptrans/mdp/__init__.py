@@ -10,6 +10,7 @@ from mjlab.tasks.maniptrans.mdp.commands import (
 from mjlab.tasks.maniptrans.mdp.observations import (
   contact_force as contact_force,
   contact_force_history as contact_force_history,
+  contact_found_history as contact_found_history,
   future_obj_pos_delta as future_obj_pos_delta,
   future_obj_vel as future_obj_vel,
   hand_joint_cos_sin as hand_joint_cos_sin,
