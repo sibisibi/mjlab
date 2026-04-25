@@ -1,10 +1,10 @@
 """Mano hand constants."""
 
-from path import ROBOT_DIR
+from mjlab import MJLAB_SRC_PATH
 from mjlab.asset_zoo.hands.base import get_hand_cfg, xmls_from_dir
 from mjlab.entity import EntityCfg
 
-XMLS = xmls_from_dir(ROBOT_DIR / "mano")
+XMLS = xmls_from_dir(MJLAB_SRC_PATH / "asset_zoo" / "hands" / "mano")
 
 ROOT_BODIES = {
   "right": "right_palm",
