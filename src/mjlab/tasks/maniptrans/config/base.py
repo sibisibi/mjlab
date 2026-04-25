@@ -73,12 +73,12 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
 
     cfg.rewards[f"{p}_power"] = RewardTermCfg(
       func=mt_mdp.power_penalty,
-      weight=0.5,
+      weight=5.0,
       params={"command_name": "motion", "action_name": "maniptrans", "side": side, "scale": 10.0},
     )
     cfg.rewards[f"{p}_wrist_power"] = RewardTermCfg(
       func=mt_mdp.wrist_power_penalty,
-      weight=0.5,
+      weight=5.0,
       params={"command_name": "motion", "action_name": "maniptrans", "side": side, "scale": 2.0},
     )
 
