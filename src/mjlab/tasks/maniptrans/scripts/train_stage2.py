@@ -23,15 +23,16 @@ frozen base loads its own weights at construction time.
 Usage:
   python -m mjlab.tasks.maniptrans.scripts.train_stage2 \
       --robot xhand --side bimanual \
-      --motion_file data/xhand/oakink2/.../0/motion.npz \
-      --data_dir data/oakink2/.../0 \
+      --input_dir $DATA_DIR \
+      --output_dir $DATA_DIR/handphuma \
+      --index_path $DATA_DIR/oakink2/index.csv \
+      --indices 1854 \
       --base_checkpoint logs/rsl_rl/.../model_1400.pt \
       --residual_action_scale 1.0 \
       [same Stage 1 flags matching the base's training: --enable_tactile,
        --actor_no_hand_obj_distance, --actor_no_gt_tips_distance,
        --enable_object_obs_critic, --enable_object_rew --object_reward_mult 1.0,
-       --contact_match_weight 1.0 --contact_match_beta 40 --contact_match_A 1.0
-       --contact_match_eps 0.5, etc.]
+       --contact_match_weight 1.0 --contact_match_beta 40, etc.]
 """
 
 import argparse
@@ -61,13 +62,16 @@ def main():
     help="Path to the dataset index CSV.")
   p.add_argument("--indices", type=int, nargs="+", required=True,
     help="One or more integer indices into the index CSV.")
+  p.add_argument("--input_dir", required=True,
+    help="Pool root for object meshes. Resolves to "
+         "<input_dir>/<dataset>/objects/<obj_id>/{visual.obj, convex/}.")
   p.add_argument("--output_dir", required=True,
-    help="Preprocessing output directory.")
-  p.add_argument("--obj_density", type=float, required=True)
-  p.add_argument("--wrist_residual_scale", type=float, required=True)
-  p.add_argument("--finger_residual_scale", type=float, required=True)
+    help="Preprocessing output directory. Motion at "
+         "<output_dir>/<robot>/<dataset>/<filename>/motion.npz, task_info at "
+         "<output_dir>/<dataset>/<filename>/task_info.json.")
+  p.add_argument("--obj_density", type=float, default=800.0)
   p.add_argument("--contact_match_weight", type=float, required=True)
-  p.add_argument("--contact_match_beta", type=float, required=True)
+  p.add_argument("--contact_match_beta", type=float, default=40.0)
   p.add_argument("--contact_match_gamma", type=float, default=200.0)
   p.add_argument("--contact_match_tol", type=float, default=0.002)
   p.add_argument("--contact_match_force_cap", type=float, default=30.0)
@@ -113,19 +117,16 @@ def main():
     help="PPO learning rate. ManipTrans Stage 2 default is 2e-4.")
   p.add_argument("--value_loss_coef", type=float, default=4.0,
     help="PPO value loss coefficient. ManipTrans Stage 2 default is 4.0.")
-  p.add_argument("--obs_clip", type=float, default=0.0,
+  p.add_argument("--obs_clip", type=float, default=5.0,
     help="Clamp normalized obs to [-obs_clip, obs_clip] before the MLP, "
          "symmetric with the base's Stage 1 ClippedMLPModel. Applied to both "
          "the ResidualActor (trainable residual path) and the critic. The "
          "frozen base inside ResidualActor has its own internal clip at 5.0 "
-         "regardless of this flag. Default 0.0 = disabled.")
-  p.add_argument("--ccd_iterations", type=int, default=50,
-    help="MuJoCo CCD iteration cap passed through to build_env_cfg. Match the "
-         "base's training value (bases trained 2026-04-14 onward use 200).")
+         "regardless of this flag. 0.0 disables clipping.")
   # --- Training / logging ---
   p.add_argument("--num_envs", type=int, required=True)
-  p.add_argument("--max_iterations", type=int, required=True)
-  p.add_argument("--save_interval", type=int, required=True)
+  p.add_argument("--max_iterations", type=int, default=1000000)
+  p.add_argument("--save_interval", type=int, default=100)
   p.add_argument("--wandb_project", required=True)
   p.add_argument("--wandb_entity", required=True,
     help="wandb entity (team/user). No default — set explicitly per run.")
@@ -135,12 +136,7 @@ def main():
   p.add_argument("--exp_name", required=True,
     help="Specific ablation variant within the group (maps to wandb `job_type`).")
   p.add_argument("--run_name", required=True)
-  p.add_argument("--gpu", type=int, required=True)
-  p.add_argument("--eval_interval", type=int, default=0,
-    help="Run eval every N iters and log eval/SR_at_* + eval/E_* to wandb. "
-         "Also runs at the final iteration. 0 = disabled (default).")
-  p.add_argument("--eval_rollouts", type=int, default=100,
-    help="Number of parallel rollouts per eval. 100 gives ~±5 pp CI on SR.")
+  p.add_argument("--gpu", type=int, default=0)
   args = p.parse_args()
 
   # Resolve indices → motion_file and data_dir
@@ -157,6 +153,7 @@ def main():
   args.motion_file = motion_files if len(motion_files) > 1 else motion_files[0]
   args.data_dir = data_dirs[0]
   args._all_data_dirs = data_dirs  # consumed by build_env_cfg for multi-traj object validation
+  args.pool_dir = f"{args.input_dir}/{rows[args.indices[0]]['dataset']}"
 
   configure_torch_backends()
   device = f"cuda:{args.gpu}"
@@ -188,34 +185,6 @@ def main():
 
   # --- Create env ---
   env = ManagerBasedRlEnv(cfg, device=device)
-
-  # --- Eval env (separate instance with free-object Stage 2 semantics,
-  # smaller num_envs, play-mode sampling, all terminations stripped so
-  # every rollout reaches motion end). Rebuilt via build_env_cfg with
-  # overridden args.num_envs so it inherits physics/obs/rewards exactly. ---
-  eval_env = None
-  eval_wrapped = None
-  if args.eval_interval > 0:
-    _orig_num_envs = args.num_envs
-    args.num_envs = args.eval_rollouts
-    try:
-      eval_cfg = build_env_cfg(args)
-    finally:
-      args.num_envs = _orig_num_envs
-
-    eval_motion_cmd = eval_cfg.commands["motion"]
-    assert isinstance(eval_motion_cmd, ManipTransCommandCfg)
-    eval_motion_cmd.pin_objects = False  # match Stage 2 training
-    eval_motion_cmd.sampling_mode = "start"
-    # Clear ALL terminations so eval rollouts always reach T_m; SR's
-    # time-averaged check runs over the full [15, T-15) window.
-    eval_cfg.terminations = {}
-    for _group_name in ("actor", "critic"):
-      if _group_name in eval_cfg.observations:
-        eval_cfg.observations[_group_name].enable_corruption = False
-
-    eval_env = ManagerBasedRlEnv(eval_cfg, device=device)
-    eval_wrapped = RslRlVecEnvWrapper(eval_env)
 
   # --- RL config ---
   agent_cfg = load_rl_cfg(task_id)
@@ -278,47 +247,8 @@ def main():
       config={"group_name": args.group_name, "exp_name": args.exp_name},
     )
 
-  # --- Periodic eval hook via logger monkey-patch (mirrors Stage 1 at
-  # train_stage1_pinned.py:707–739). Fires evaluate_stage2 +
-  # log_stage2_eval_to_wandb at every eval_interval completed iters and
-  # at the final iter. ---
-  if eval_wrapped is not None and args.eval_interval > 0:
-    from mjlab.tasks.maniptrans.scripts.stage2_scorer import (
-      evaluate_stage2, log_stage2_eval_to_wandb,
-    )
-
-    _orig_log = runner.logger.log
-    _max_it = args.max_iterations
-    _eval_iv = args.eval_interval
-
-    def _log_with_eval(**kwargs):
-      _orig_log(**kwargs)
-      it = kwargs.get("it")
-      if it is None:
-        return
-      completed = it + 1
-      fire = (completed % _eval_iv == 0) or (completed == _max_it)
-      if not fire:
-        return
-      policy = runner.get_inference_policy(device=device)
-      metrics = evaluate_stage2(eval_env, eval_wrapped, policy, device)
-      log_stage2_eval_to_wandb(metrics, iter_idx=completed)
-      g = metrics["global"]
-      print(
-        f"[eval @ iter {completed}/{_max_it}]  "
-        f"SR@1.0={g['SR_at_1p0'] * 100:5.1f}%  "
-        f"E_obj_pos={g['E_obj_pos_cm']:6.2f} cm  "
-        f"E_obj_rot={g['E_obj_rot_deg']:6.2f} deg  "
-        f"E_ft={g['E_fingertip_cm']:5.2f} cm  "
-        f"(n_envs={g['n_valid_envs']}/{g['n_envs']})"
-      )
-
-    runner.logger.log = _log_with_eval
-
   runner.learn(num_learning_iterations=args.max_iterations, init_at_random_ep_len=True)
   env.close()
-  if eval_env is not None:
-    eval_env.close()
 
 
 if __name__ == "__main__":

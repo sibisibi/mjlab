@@ -20,7 +20,6 @@ physical shape. Opt-in augmentations via CLI flags:
 
 import argparse
 import json
-import os
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -37,7 +36,7 @@ from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.maniptrans import mdp as mt_mdp
-from mjlab.tasks.maniptrans.mdp import ManipTransActionCfg, ManipTransCommandCfg
+from mjlab.tasks.maniptrans.mdp import ManipTransCommandCfg
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 from mjlab.utils.torch import configure_torch_backends
 
@@ -55,36 +54,6 @@ def build_env_cfg(args):
   task_id = f"mjlab-maniptrans-{args.robot}-{args.side}"
   cfg = load_env_cfg(task_id)
   cfg.scene.num_envs = args.num_envs
-
-  # Physics config anchored on facebookresearch/spider (mjwp.py:78-107), the
-  # mujoco-warp-native upstream our hand MJCFs derive from, plus MuJoCo docs'
-  # elliptic-cone recommendation (modeling.rst:605) for fine grasping. Single
-  # source of truth for both inspire and xhand — the per-side <option> blocks
-  # inside the inspire MJCFs are redundant and should be removed.
-  # o_solref / o_solimp intentionally left at MuJoCo defaults: spider's
-  # d0=0.0 (zero impedance at contact) and width=0.03 are tuned for MPC-style
-  # control and caused NaN observations in RL within ~13 iterations.
-  cfg.sim.mujoco.timestep = float(os.environ.get("SIM_TIMESTEP", "0.01"))
-  cfg.sim.mujoco.iterations = 20
-  cfg.sim.mujoco.ls_iterations = 50
-  cfg.sim.mujoco.integrator = "implicitfast"
-  cfg.sim.mujoco.cone = "elliptic"
-  cfg.sim.mujoco.ccd_iterations = args.ccd_iterations
-  # Ablation sweep hook: SIM_SOLIMP="d0,dmid,width,midpoint,power" overrides
-  # the global contact solver impedance. Unset = MuJoCo default.
-  _solimp_env = os.environ.get("SIM_SOLIMP", "").strip()
-  if _solimp_env:
-    cfg.sim.mujoco.o_solimp = tuple(float(x) for x in _solimp_env.split(","))
-  if os.environ.get("SIM_DECIMATION"):
-    cfg.decimation = int(os.environ["SIM_DECIMATION"])
-  if os.environ.get("SIM_IMPRATIO"):
-    cfg.sim.mujoco.impratio = float(os.environ["SIM_IMPRATIO"])
-
-  # Set action params
-  action_cfg = cfg.actions["maniptrans"]
-  assert isinstance(action_cfg, ManipTransActionCfg)
-  action_cfg.wrist_residual_scale = args.wrist_residual_scale
-  action_cfg.finger_residual_scale = args.finger_residual_scale
 
   # Set command params
   motion_cmd = cfg.commands["motion"]
@@ -135,12 +104,16 @@ def build_env_cfg(args):
     cfg.scene.sensors = ()
     return cfg
 
-  # Add object entities
+  # Add object entities. task_info.json lives in the per-seq dir; the actual
+  # mesh files (visual.obj + convex/) live in the shared pool at
+  # <input_dir>/<dataset>/objects/<obj_id>/. The relative
+  # <side>_object_mesh_dir from task_info resolves against the pool root.
   data_dir = Path(args.data_dir)
+  pool_dir = Path(args.pool_dir)
   with open(data_dir / "task_info.json") as f:
     task_info = json.load(f)
-  right_obj_dir = str(data_dir / task_info["right_object_mesh_dir"])
-  left_obj_dir = str(data_dir / task_info["left_object_mesh_dir"])
+  right_obj_dir = str(pool_dir / task_info["right_object_mesh_dir"])
+  left_obj_dir = str(pool_dir / task_info["left_object_mesh_dir"])
   # Per-object mesh scales from task_info.json (written by the dataset
   # preprocessing script, e.g. `src/preprocess/dataset/oakink2.py`). Default
   # 1.0 when the field is absent (back-compat with older preprocessed data).
@@ -533,21 +506,22 @@ def main():
   p.add_argument("--robot", required=True)
   p.add_argument("--side", required=True)
   p.add_argument("--index_path", required=True,
-    help="Path to the dataset index CSV (e.g. /home/nas_main/.cache/datasets/oakink2/index.csv).")
+    help="Path to the dataset index CSV.")
   p.add_argument("--indices", type=int, nargs="+", required=True,
     help="One or more integer indices into the index CSV. Single = single-ref, "
          "multiple = multi-trajectory training (all must share the same objects).")
+  p.add_argument("--input_dir", required=True,
+    help="Pool root for object meshes. Resolves to "
+         "<input_dir>/<dataset>/objects/<obj_id>/{visual.obj, convex/}.")
   p.add_argument("--output_dir", required=True,
-    help="Preprocessing output directory (e.g. /home/nas_main/.cache/datasets/handphuma). "
-         "Motion files at $OUTPUT_DIR/$ROBOT/$DATASET/$SCENE/$SUBSEQ/motion.npz, "
-         "object data at $OUTPUT_DIR/$DATASET/$SCENE/$SUBSEQ.")
-  p.add_argument("--obj_density", type=float, required=True)
-  p.add_argument("--wrist_residual_scale", type=float, required=True)
-  p.add_argument("--finger_residual_scale", type=float, required=True)
+    help="Preprocessing output directory. "
+         "Motion at <output_dir>/<robot>/<dataset>/<filename>/motion.npz, "
+         "task_info at <output_dir>/<dataset>/<filename>/task_info.json.")
+  p.add_argument("--obj_density", type=float, default=800.0)
   p.add_argument("--contact_match_weight", type=float, required=True,
     help="Global multiplier on stratified per-finger contact_match weights.")
-  p.add_argument("--contact_match_beta", type=float, required=True,
-    help="Approach-shaping decay: exp(-beta · ref_dist). Default 40 /m.")
+  p.add_argument("--contact_match_beta", type=float, default=40.0,
+    help="Approach-shaping decay: exp(-beta · ref_dist).")
   p.add_argument("--contact_match_gamma", type=float, default=200.0,
     help="Depth-penalty decay for the contact bonus: exp(-gamma · max(-dist-tol, 0)). "
          "Default 200 /m = 0.2 per mm beyond tolerance.")
@@ -643,36 +617,14 @@ def main():
     help="Comma-separated list of wandb tags for the run (see RUN-EXPERIMENT.md "
          "for the controlled vocabulary: single-reference, ppo, mujoco-warp, xhand, "
          "oakink2, hand-contact-object, etc.). Empty string = no tags.")
-  p.add_argument("--ccd_iterations", type=int, default=50,
-    help="MuJoCo CCD (continuous collision detection) iteration cap. MuJoCo "
-         "default is 50. Bump to 100/150/200 to silence 'opt.ccd_iterations "
-         "needs to be increased' warnings on dex-manip tasks with complex "
-         "object meshes / fast finger-object impacts. Cost is usually <5%% "
-         "wall-clock per step because only unconverged contact pairs hit "
-         "the higher cap.")
-  p.add_argument("--obs_clip", type=float, default=0.0,
+  p.add_argument("--obs_clip", type=float, default=5.0,
     help="Observation clip value for the actor+critic MLPs. When > 0, both "
          "actor and critic classes are swapped to `ClippedMLPModel`, which "
          "applies `clamp(normalize(obs), -obs_clip, obs_clip)` BEFORE the MLP. "
-         "This makes the policy robust to out-of-distribution observations, "
-         "which is essential when the checkpoint will later be used as a "
-         "frozen base for Stage 2 residual training (rsl_rl's default MLPModel "
-         "has no clipping, so rare OOD values at inference time extrapolate to "
-         "absurd actions and blow up the sim). Typical values: 5.0 (rl_games, "
-         "sb3 defaults), 10.0 (more permissive). 0.0 = no clipping (default, "
-         "backward compat with existing Stage 1 runs).")
+         "0.0 disables clipping.")
   p.add_argument("--num_envs", type=int, required=True)
-  p.add_argument("--max_iterations", type=int, required=True)
-  p.add_argument("--save_interval", type=int, required=True)
-  p.add_argument("--eval_interval", type=int, default=500,
-    help="Run eval rollouts and log E_fingertip / E_wrist_pos / E_wrist_rot to "
-         "wandb every this many training iterations. Also runs once at the "
-         "final iteration regardless. Set to 0 to disable.")
-  p.add_argument("--eval_rollouts_per_traj", type=int, default=20,
-    help="How many rollouts per trajectory during periodic eval. Total eval env "
-         "count = eval_rollouts_per_traj * len(indices). Trajectory assignment "
-         "across eval envs is random uniform via the command's _resample_command, "
-         "giving ~equal coverage of each traj in expectation.")
+  p.add_argument("--max_iterations", type=int, default=1000000)
+  p.add_argument("--save_interval", type=int, default=100)
   p.add_argument("--wandb_project", required=True)
   p.add_argument("--wandb_entity", required=True,
     help="wandb entity (team/user). No default — set explicitly per run.")
@@ -683,10 +635,10 @@ def main():
     help="Specific ablation variant within the group (maps to wandb `job_type`). "
          "Identifies which condition this run represents inside the group.")
   p.add_argument("--run_name", required=True)
-  p.add_argument("--gpu", type=int, required=True)
+  p.add_argument("--gpu", type=int, default=0)
   args = p.parse_args()
 
-  # Resolve indices → motion_file and data_dir
+  # Resolve indices → motion_file, data_dir, pool_dir
   import csv
   with open(args.index_path) as f:
     rows = list(csv.DictReader(f))
@@ -701,6 +653,7 @@ def main():
   args.motion_file = motion_files if len(motion_files) > 1 else motion_files[0]
   args.data_dir = data_dirs[0]
   args._all_data_dirs = data_dirs  # consumed by build_env_cfg for multi-traj object validation
+  args.pool_dir = f"{args.input_dir}/{rows[args.indices[0]]['dataset']}"
 
   configure_torch_backends()
   device = f"cuda:{args.gpu}"
@@ -709,39 +662,6 @@ def main():
 
   # Create env
   env = ManagerBasedRlEnv(cfg, device=device)
-
-  # --- Eval env (separate instance, smaller num_envs, play-mode sampling, no
-  # imitation-quality terminations). Rebuilt via build_env_cfg with overridden
-  # args.num_envs so it inherits all other training overrides (physics, obs,
-  # rewards, object entities) exactly. ---
-  eval_env = None
-  eval_wrapped = None
-  if args.eval_interval > 0:
-    n_eval = args.eval_rollouts_per_traj * len(args.indices)
-    _orig_num_envs = args.num_envs
-    args.num_envs = n_eval
-    try:
-      eval_cfg = build_env_cfg(args)
-    finally:
-      args.num_envs = _orig_num_envs
-
-    eval_motion_cmd = eval_cfg.commands["motion"]
-    assert isinstance(eval_motion_cmd, ManipTransCommandCfg)
-    eval_motion_cmd.sampling_mode = "start"
-
-    # Strip imitation-quality terminations so each env runs the full motion.
-    # Keep time_out + velocity_diverged as sim-blowup guards.
-    for _term_name in ("fingertip_diverged", "dof_vel_sanity",
-                       "r_contact_missing", "l_contact_missing"):
-      eval_cfg.terminations.pop(_term_name, None)
-
-    # Obs corruption off (only meant for training-time robustness).
-    for _group_name in ("actor", "critic"):
-      if _group_name in eval_cfg.observations:
-        eval_cfg.observations[_group_name].enable_corruption = False
-
-    eval_env = ManagerBasedRlEnv(eval_cfg, device=device)
-    eval_wrapped = RslRlVecEnvWrapper(eval_env)
 
   # RL config
   agent_cfg = load_rl_cfg(task_id)
@@ -784,50 +704,8 @@ def main():
       config={"group_name": args.group_name, "exp_name": args.exp_name},
     )
 
-  # --- Periodic eval hook via logger monkey-patch ---
-  # OnPolicyRunner.learn() calls self.logger.log(it=..., ...) once per training
-  # iteration. Wrap it to trigger evaluate_stage1 + wandb log at every
-  # eval_interval (post-iteration) and at the final iteration. Keeps the
-  # single learn() call intact (avoids per-chunk final-save + stop-writer
-  # side effects of splitting learn() into multiple calls).
-  if eval_wrapped is not None and args.eval_interval > 0:
-    from mjlab.tasks.maniptrans.scripts.stage1_scorer import (
-      evaluate_stage1, log_eval_to_wandb,
-    )
-
-    _orig_log = runner.logger.log
-    _max_it = args.max_iterations
-    _eval_iv = args.eval_interval
-
-    def _log_with_eval(**kwargs):
-      _orig_log(**kwargs)
-      it = kwargs.get("it")
-      if it is None:
-        return
-      # it is 0-indexed iteration just completed; fire eval at end of every
-      # eval_interval completed iters and at the final iter.
-      completed = it + 1
-      fire = (completed % _eval_iv == 0) or (completed == _max_it)
-      if not fire:
-        return
-      policy = runner.get_inference_policy(device=device)
-      metrics = evaluate_stage1(eval_env, eval_wrapped, policy, device)
-      log_eval_to_wandb(metrics, iter_idx=completed)
-      g = metrics["global"]
-      print(
-        f"[eval @ iter {completed}/{_max_it}]  "
-        f"E_fingertip={g['tip_pos_cm']:6.2f} cm  "
-        f"E_wrist_pos={g['wrist_pos_cm']:6.2f} cm  "
-        f"E_wrist_rot={g['wrist_rot_deg']:6.2f} deg  "
-        f"(n_traj={g['n_trajectories_evaluated']}, n_envs={g['n_envs']})"
-      )
-
-    runner.logger.log = _log_with_eval
-
   runner.learn(num_learning_iterations=args.max_iterations, init_at_random_ep_len=True)
   env.close()
-  if eval_env is not None:
-    eval_env.close()
 
 
 if __name__ == "__main__":
