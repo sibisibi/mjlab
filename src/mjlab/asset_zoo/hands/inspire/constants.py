@@ -1,10 +1,10 @@
 """Inspire hand constants."""
 
-from mjlab import MJLAB_SRC_PATH
+from paths import HANDS_DIR
 from mjlab.asset_zoo.hands.base import get_hand_cfg, xmls_from_dir
 from mjlab.entity import EntityCfg
 
-XMLS = xmls_from_dir(MJLAB_SRC_PATH / "asset_zoo" / "hands" / "inspire")
+XMLS = xmls_from_dir(HANDS_DIR / "inspire")
 
 ROOT_BODIES = {
   "right": "right_hand_base",
