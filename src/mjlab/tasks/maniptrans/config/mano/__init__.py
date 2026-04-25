@@ -1,3 +1,4 @@
 # mano hand not registered. Add BODY_MAPPING to
 # asset_zoo/hands/mano/constants.py and `register_hand("mano", get_cfg,
-# ROOT_BODIES, BODY_MAPPING)` here to enable.
+# BODY_MAPPING)` here to enable. Robot's MJCF must define `right_palm` /
+# `left_palm` sites at the canonical Z-up wrist frame.

@@ -299,16 +299,13 @@ class ManipTransCommand(CommandTerm):
         vel_all, dtype=torch.float32, device=self.device
       )
 
-    # Per-side: wrist body index and tip site indices
+    # Per-side: palm site (canonical Z-up wrist frame) and tip / contact sites.
     self._side_list = list(cfg.sides)
-    self._wrist_body_indices: dict[str, int] = {}
+    self._palm_site_indices: dict[str, int] = {}
     self._tip_site_indices: dict[str, list[int]] = {}
-
     self._contact_site_indices: dict[str, list[int]] = {}
     for side in cfg.sides:
-      self._wrist_body_indices[side] = self.robot.body_names.index(
-        cfg.wrist_body_names[side]
-      )
+      self._palm_site_indices[side] = self.robot.site_names.index(f"{side}_palm")
       tip_names = [f"track_hand_{side}_{finger}_tip" for finger in FINGER_NAMES]
       ids, _ = self.robot.find_sites(tip_names, preserve_order=True)
       self._tip_site_indices[side] = ids
@@ -432,56 +429,28 @@ class ManipTransCommand(CommandTerm):
     )
     self.kernel = self.kernel / self.kernel.sum()
 
-    # Metrics
-    self.metrics["error_wrist_pos"] = torch.zeros(self.num_envs, device=self.device)
-    self.metrics["error_wrist_rot"] = torch.zeros(self.num_envs, device=self.device)
-    self.metrics["error_tip_pos"] = torch.zeros(self.num_envs, device=self.device)
-    if cfg.object_entity_names is not None:
-      self.metrics["error_obj_pos"] = torch.zeros(self.num_envs, device=self.device)
-
-    # Contact metrics — episode-level "peak" aggregations use stateful
-    # running-max buffers reset in _resample_command; per-step "integrated"
-    # and "frac" metrics rely on framework episode-mean to compose. Sensors
-    # are accessed by name in _update_metrics; if they're absent (e.g.
-    # --no_object path) the writer skips without error.
-    self._ep_force_peak = torch.zeros(
-      self.num_envs, len(self._side_list), 5, device=self.device
-    )
-    self._ep_depth_peak = torch.zeros(
-      self.num_envs, len(self._side_list), 5, device=self.device
-    )
+    # Per-side / per-finger tracking metrics — 1-to-1 mirror of the
+    # tracking-reward terms registered in
+    # `config/base.py:_add_per_side_rewards`.
     side_prefixes = {"right": "r", "left": "l"}
     for side in cfg.sides:
       p = side_prefixes[side]
+      self.metrics[f"error_wrist_pos_{p}"] = torch.zeros(self.num_envs, device=self.device)
+      self.metrics[f"error_wrist_rot_{p}"] = torch.zeros(self.num_envs, device=self.device)
       for finger in FINGER_NAMES:
-        for key in ("force_peak", "depth_peak",
-                    "contact_frac", "force_integrated", "depth_integrated",
-                    "ref_flag_frac"):
-          self.metrics[f"{key}_{p}_{finger}"] = torch.zeros(
-            self.num_envs, device=self.device
-          )
+        self.metrics[f"error_tip_pos_{p}_{finger}"] = torch.zeros(self.num_envs, device=self.device)
+      for level in (1, 2):
+        self.metrics[f"error_level{level}_{p}"] = torch.zeros(self.num_envs, device=self.device)
+      self.metrics[f"error_wrist_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
+      self.metrics[f"error_wrist_angvel_{p}"] = torch.zeros(self.num_envs, device=self.device)
+      self.metrics[f"error_joints_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
 
-    # Pinning metrics (adaptive-pin era): per-side stateful peak buffers for
-    # object pos/rot deviation, + per-step pin_fired buffer consumed by the
-    # pin_penalty reward and the pin_fire_frac / pin_fire_count metrics.
-    n_sides = len(self._side_list)
-    self._ep_pos_dev_max = torch.zeros(
-      self.num_envs, n_sides, device=self.device
-    )
-    self._ep_rot_dev_max = torch.zeros(
-      self.num_envs, n_sides, device=self.device
-    )
-    self._ep_pin_fire_count = torch.zeros(
-      self.num_envs, n_sides, device=self.device
-    )
-    # Exposed per-step for the pin_penalty reward function.
+    # Per-step pin-fired buffer — used by the pin physics path in `_apply` and
+    # by the `pin_penalty` reward (registered by `add_object_interaction_rewards`).
+    # Always allocated so reads during hand-only mode (where it stays zero) work.
     self.pin_fired_this_step = torch.zeros(
-      self.num_envs, n_sides, dtype=torch.bool, device=self.device
+      self.num_envs, len(self._side_list), dtype=torch.bool, device=self.device
     )
-    for side in cfg.sides:
-      p = side_prefixes[side]
-      for key in ("pos_dev_max", "rot_dev_max", "pin_fire_count", "pin_fire_frac"):
-        self.metrics[f"{key}_{p}"] = torch.zeros(self.num_envs, device=self.device)
 
   # --- Command property ---
 
@@ -565,20 +534,20 @@ class ManipTransCommand(CommandTerm):
 
   @property
   def robot_wrist_pos_w(self) -> torch.Tensor:
-    """Robot wrist body positions. Shape: (B, n_sides, 3)."""
+    """Robot palm site positions (canonical Z-up). Shape: (B, n_sides, 3)."""
     parts = []
     for side in self._side_list:
-      idx = self._wrist_body_indices[side]
-      parts.append(self.robot.data.body_link_pos_w[:, idx])
+      idx = self._palm_site_indices[side]
+      parts.append(self.robot.data.site_pos_w[:, idx])
     return torch.stack(parts, dim=1)
 
   @property
   def robot_wrist_quat_w(self) -> torch.Tensor:
-    """Robot wrist body quaternions. Shape: (B, n_sides, 4)."""
+    """Robot palm site quaternions (canonical Z-up). Shape: (B, n_sides, 4)."""
     parts = []
     for side in self._side_list:
-      idx = self._wrist_body_indices[side]
-      parts.append(self.robot.data.body_link_quat_w[:, idx])
+      idx = self._palm_site_indices[side]
+      parts.append(self.robot.data.site_quat_w[:, idx])
     return torch.stack(parts, dim=1)
 
   @property
@@ -588,20 +557,20 @@ class ManipTransCommand(CommandTerm):
 
   @property
   def robot_wrist_vel_w(self) -> torch.Tensor:
-    """Robot wrist linear velocities. Shape: (B, n_sides, 3)."""
+    """Robot palm site linear velocities. Shape: (B, n_sides, 3)."""
     parts = []
     for side in self._side_list:
-      idx = self._wrist_body_indices[side]
-      parts.append(self.robot.data.body_link_lin_vel_w[:, idx])
+      idx = self._palm_site_indices[side]
+      parts.append(self.robot.data.site_lin_vel_w[:, idx])
     return torch.stack(parts, dim=1)
 
   @property
   def robot_wrist_angvel_w(self) -> torch.Tensor:
-    """Robot wrist angular velocities. Shape: (B, n_sides, 3)."""
+    """Robot palm site angular velocities. Shape: (B, n_sides, 3)."""
     parts = []
     for side in self._side_list:
-      idx = self._wrist_body_indices[side]
-      parts.append(self.robot.data.body_link_ang_vel_w[:, idx])
+      idx = self._palm_site_indices[side]
+      parts.append(self.robot.data.site_ang_vel_w[:, idx])
     return torch.stack(parts, dim=1)
 
   @property
@@ -853,99 +822,57 @@ class ManipTransCommand(CommandTerm):
   # --- CommandTerm abstract methods ---
 
   def _update_metrics(self) -> None:
-    wrist_err = torch.norm(
-      self.mano_wrist_pos_w - self.robot_wrist_pos_w, dim=-1
-    ).mean(dim=-1)
-    self.metrics["error_wrist_pos"] = wrist_err
-
-    rot_err = quat_error_magnitude(
-      self.mano_wrist_quat_w, self.robot_wrist_quat_w
-    )
-    self.metrics["error_wrist_rot"] = rot_err.mean(dim=-1)
-
-    tip_err = torch.norm(
-      self.mano_tip_pos_w - self.robot_tip_pos_w, dim=-1
-    ).mean(dim=(-1, -2))
-    self.metrics["error_tip_pos"] = tip_err
-
-    if self.has_objects:
-      obj_err = torch.norm(
-        self.ref_obj_pos_w - self.sim_obj_pos_w, dim=-1
-      ).mean(dim=-1)
-      self.metrics["error_obj_pos"] = obj_err
-
-    # Per-finger contact metrics. Reads netforce + mindist sensors by name.
     side_prefixes = {"right": "r", "left": "l"}
     for si, side in enumerate(self._side_list):
       p = side_prefixes[side]
-      try:
-        force_sensor = self._env.scene[f"{p}_fingertip_contact"]
-      except KeyError:
-        force_sensor = None
-      try:
-        pen_sensor = self._env.scene[f"{p}_fingertip_penetration"]
-      except KeyError:
-        pen_sensor = None
 
-      if force_sensor is not None:
-        force_mag = torch.norm(force_sensor.data.force, dim=-1)  # (B, 5)
-        self._ep_force_peak[:, si] = torch.maximum(
-          self._ep_force_peak[:, si], force_mag
-        )
+      # Wrist position (m)
+      self.metrics[f"error_wrist_pos_{p}"] = torch.norm(
+        self.mano_wrist_pos_w[:, si] - self.robot_wrist_pos_w[:, si], dim=-1
+      )
 
-      if pen_sensor is not None:
-        depth = torch.clamp(-pen_sensor.data.dist, min=0.0)  # (B, 5)
-        found = (pen_sensor.data.found > 0).to(depth.dtype)  # (B, 5)
-        self._ep_depth_peak[:, si] = torch.maximum(
-          self._ep_depth_peak[:, si], depth
-        )
+      # Wrist rotation (rad)
+      self.metrics[f"error_wrist_rot_{p}"] = quat_error_magnitude(
+        self.mano_wrist_quat_w[:, si], self.robot_wrist_quat_w[:, si]
+      )
 
-      ref_flag = self.ref_contact_flags[:, si].to(torch.float32)  # (B, 5)
-
+      # Per-finger fingertip position (m)
+      tip_err = torch.norm(
+        self.mano_tip_pos_w[:, si] - self.robot_tip_pos_w[:, si], dim=-1
+      )  # (B, 5)
       for fi, finger in enumerate(FINGER_NAMES):
-        key_suffix = f"{p}_{finger}"
-        self.metrics[f"force_peak_{key_suffix}"] = self._ep_force_peak[:, si, fi]
-        self.metrics[f"depth_peak_{key_suffix}"] = self._ep_depth_peak[:, si, fi]
-        if force_sensor is not None and pen_sensor is not None:
-          self.metrics[f"force_integrated_{key_suffix}"] = (
-            force_mag[:, fi] * found[:, fi]
-          )
-          self.metrics[f"depth_integrated_{key_suffix}"] = (
-            depth[:, fi] * found[:, fi]
-          )
-          self.metrics[f"contact_frac_{key_suffix}"] = found[:, fi]
-        self.metrics[f"ref_flag_frac_{key_suffix}"] = ref_flag[:, fi]
+        self.metrics[f"error_tip_pos_{p}_{finger}"] = tip_err[:, fi]
 
-    # Pinning metrics (per side). Compute deviations over all envs even when
-    # adaptive_pin is off so the metrics are a passive diagnostic under the
-    # fixed-interval schedule too.
-    if self.has_objects:
-      pos_dev = torch.norm(
-        self.ref_obj_pos_w - self.sim_obj_pos_w, dim=-1
-      )  # (B, n_sides)
-      rot_dev = quat_error_magnitude(
-        self.ref_obj_quat_w, self.sim_obj_quat_w
-      )  # (B, n_sides)
-      self._ep_pos_dev_max = torch.maximum(self._ep_pos_dev_max, pos_dev)
-      self._ep_rot_dev_max = torch.maximum(self._ep_rot_dev_max, rot_dev)
-      pin_fired_f = self.pin_fired_this_step.to(torch.float32)  # (B, n_sides)
-      self._ep_pin_fire_count = self._ep_pin_fire_count + pin_fired_f
-      for si, side in enumerate(self._side_list):
-        p = side_prefixes[side]
-        self.metrics[f"pos_dev_max_{p}"] = self._ep_pos_dev_max[:, si]
-        self.metrics[f"rot_dev_max_{p}"] = self._ep_rot_dev_max[:, si]
-        self.metrics[f"pin_fire_count_{p}"] = self._ep_pin_fire_count[:, si]
-        self.metrics[f"pin_fire_frac_{p}"] = pin_fired_f[:, si]
+      # Level 1, 2 joint position (m, mean over 5 joints)
+      for level in (1, 2):
+        mano_pos = self.mano_level_pos_w(side, level)   # (B, 5, 3)
+        robot_pos = self.robot_level_pos_w(side, level)  # (B, 5, 3)
+        self.metrics[f"error_level{level}_{p}"] = torch.norm(
+          mano_pos - robot_pos, dim=-1
+        ).mean(dim=-1)
+
+      # Wrist linear / angular velocity (m/s, rad/s; mean over xyz)
+      self.metrics[f"error_wrist_vel_{p}"] = torch.mean(
+        torch.abs(self.mano_wrist_vel_w[:, si] - self.robot_wrist_vel_w[:, si]),
+        dim=-1,
+      )
+      self.metrics[f"error_wrist_angvel_{p}"] = torch.mean(
+        torch.abs(self.mano_wrist_angvel_w[:, si] - self.robot_wrist_angvel_w[:, si]),
+        dim=-1,
+      )
+
+      # All-17-bodies joint velocity (matches joints_vel_error_exp's calc)
+      body_delta = (
+        self.mano_all_joints_vel_w(side) - self.robot_all_joints_vel_w(side)
+      )  # (B, 12, 3)
+      tip_mano_vel = self.mano_tip_vel_w[:, si]                   # (B, 5, 3)
+      tip_robot_vel = self.robot_all_joints_vel_w(side)[:, -5:]   # (B, 5, 3)
+      all_delta = torch.cat([body_delta, tip_mano_vel - tip_robot_vel], dim=1)
+      self.metrics[f"error_joints_vel_{p}"] = (
+        all_delta.abs().mean(dim=-1).mean(dim=-1)
+      )
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
-    # Reset episode-level contact peak buffers on new episode.
-    self._ep_force_peak[env_ids] = 0.0
-    self._ep_depth_peak[env_ids] = 0.0
-    # Reset pinning stateful metric buffers on new episode.
-    self._ep_pos_dev_max[env_ids] = 0.0
-    self._ep_rot_dev_max[env_ids] = 0.0
-    self._ep_pin_fire_count[env_ids] = 0.0
-
     # Random per-reset trajectory assignment: each resetting env draws a
     # fresh traj_idx uniformly from [0, M). For M=1 this is a no-op.
     if self.motion.num_trajectories > 1:
@@ -1264,7 +1191,6 @@ class ManipTransCommandCfg(CommandTermCfg):
   motion_file: "str | list[str]"
   entity_name: str
   sides: tuple[str, ...]
-  wrist_body_names: dict[str, str]
   body_mapping: dict
   """Per-hand body-name mapping. Keys: 'all' (sequence of (body, mano_joint)
   pairs for all tracked non-tip bodies), 'level1' and 'level2' (dicts from

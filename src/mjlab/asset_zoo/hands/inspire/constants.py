@@ -6,12 +6,6 @@ from mjlab.entity import EntityCfg
 
 XMLS = xmls_from_dir(HANDS_DIR / "inspire")
 
-ROOT_BODIES = {
-  "right": "right_hand_base",
-  "left": "left_hand_base",
-  "bimanual": "right_hand_base",
-}
-
 # Body-name mapping consumed by ManipTransCommand. Names are side-agnostic;
 # ManipTransCommand constructs `f"{side}_{body_name}"` at lookup time.
 BODY_MAPPING = {

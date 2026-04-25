@@ -36,6 +36,7 @@ from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 from mjlab.tasks.maniptrans import mdp as mt_mdp
+from mjlab.tasks.maniptrans.config.base import add_object_interaction_rewards
 from mjlab.tasks.maniptrans.mdp import ManipTransCommandCfg
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 from mjlab.utils.torch import configure_torch_backends
@@ -69,6 +70,13 @@ def build_env_cfg(args):
   motion_cmd.adaptive_pin = args.adaptive_pin
   motion_cmd.pin_pos_threshold = args.pin_pos_threshold
   motion_cmd.pin_rot_threshold = args.pin_rot_threshold
+
+  # Object-interaction rewards (per-finger contact_match + pin_penalty).
+  # These used to be added by config/base.py's _add_per_side_rewards;
+  # they now live in a separate helper so the registered task is
+  # hand-only by default.
+  sides = ("right", "left") if args.side == "bimanual" else (args.side,)
+  add_object_interaction_rewards(cfg, sides)
 
   # --- No-object early branch (Stage 1 pure hand imitation) ---
   # Skips object entity, contact sensors, contact_match rewards, tactile obs,

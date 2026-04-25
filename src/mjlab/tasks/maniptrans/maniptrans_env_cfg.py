@@ -111,7 +111,6 @@ def make_maniptrans_env_cfg() -> ManagerBasedRlEnvCfg:
       entity_name="hand",
       motion_file="",  # Set per-hand at runtime
       sides=(),  # Set per-hand in config/base.py
-      wrist_body_names={},  # Set per-hand in config/base.py
       body_mapping={},  # Set per-hand in config/base.py
     ),
   }
