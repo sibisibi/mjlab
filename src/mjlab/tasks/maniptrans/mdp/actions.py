@@ -1,7 +1,7 @@
 """ManipTrans action term: trajectory-residual wrist + scaled finger control.
 
-Action dim is always `n_dofs` (36 for bimanual xhand). The policy's action
-tensor IS the applied action that gets turned into joint targets below:
+Action dim equals `n_dofs` of the loaded entity (~18 single-side, ~36 bimanual).
+The policy's action tensor IS the applied action that gets turned into joint targets below:
   wrist_target = ref_wrist + wrist_action * wrist_residual_scale
   finger_target = scaled/clamped from action via finger_residual_scale
 

@@ -31,7 +31,7 @@ def build_env_cfg(args):
 def main():
   p = argparse.ArgumentParser()
   p.add_argument("--robot", required=True)
-  p.add_argument("--side", required=True)
+  p.add_argument("--side", required=True, choices=["right", "left", "bimanual"])
   p.add_argument("--input_dir", required=True)
   p.add_argument("--output_dir", required=True)
   p.add_argument("--index_path", required=True)
