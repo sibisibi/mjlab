@@ -84,11 +84,13 @@ class ResidualActor(nn.Module):
     activation: str,
     obs_normalization: bool,
     distribution_cfg: dict | None,
-    base_checkpoint: str,
+    base_checkpoints: list[str],
     base_obs_dim: int,
     base_action_dim: int,
     residual_action_scale: float,
     obs_clip: float = 0.0,
+    perside_term_specs: list[tuple[int, bool]] | None = None,
+    n_wrist_per_side: int = 0,
   ):
     super().__init__()
 
@@ -100,20 +102,51 @@ class ResidualActor(nn.Module):
     self.base_action_dim = base_action_dim
     self._residual_action_scale = float(residual_action_scale)
     self.obs_clip = float(obs_clip)
-    # output_dim must equal n_dofs (the env's action_dim). Sanity check — if
-    # the action term is still doubling we'd hit a shape mismatch at forward.
-    assert output_dim == base_action_dim, (
-      f"ResidualActor expects output_dim ({output_dim}) == base_action_dim "
-      f"({base_action_dim}); the action term must not double action_dim in "
-      f"Stage 2 (residual composition is handled by this class)."
-    )
+    self._n_bases = len(base_checkpoints)
+    if self._n_bases not in (1, 2):
+      raise ValueError(
+        f"base_checkpoints must contain 1 (single-hand) or 2 (bimanual) paths, "
+        f"got {self._n_bases}."
+      )
 
-    # Frozen base model (loaded from Stage 1 checkpoint). Its MLP outputs
-    # `base_action_dim` = n_dofs. Its distribution produces stochastic samples
-    # so the residual has a proper exploration anchor at init.
-    self.base = FrozenBaseModel(
-      base_checkpoint, base_obs_dim, base_action_dim, hidden_dims, activation,
-    )
+    if self._n_bases == 1:
+      assert output_dim == base_action_dim, (
+        f"Single-base ResidualActor expects output_dim ({output_dim}) == "
+        f"base_action_dim ({base_action_dim})."
+      )
+      # Frozen base model (single-hand mode).
+      self.base = FrozenBaseModel(
+        base_checkpoints[0], base_obs_dim, base_action_dim, hidden_dims, activation,
+      )
+    else:
+      assert output_dim == 2 * base_action_dim, (
+        f"Two-base ResidualActor expects output_dim ({output_dim}) == "
+        f"2 * base_action_dim ({2 * base_action_dim}); env action_dim must be "
+        f"bimanual."
+      )
+      if perside_term_specs is None or sum(d for d, _ in perside_term_specs) != base_obs_dim:
+        raise ValueError(
+          f"Two-base mode requires perside_term_specs summing to base_obs_dim "
+          f"({base_obs_dim}); got sum="
+          f"{sum(d for d, _ in perside_term_specs) if perside_term_specs else None}."
+        )
+      if n_wrist_per_side <= 0 or n_wrist_per_side >= base_action_dim:
+        raise ValueError(
+          f"Two-base mode requires 0 < n_wrist_per_side < base_action_dim "
+          f"({base_action_dim}); got {n_wrist_per_side}."
+        )
+      self.bases = nn.ModuleList([
+        FrozenBaseModel(c, base_obs_dim, base_action_dim, hidden_dims, activation)
+        for c in base_checkpoints
+      ])
+      # Each spec is (per_side_dim, is_global). is_global=True means the term
+      # is shared (bimanual dim == per-side dim, e.g. wrist_state). is_global=False
+      # means per-side concat (bimanual dim == 2 * per-side dim).
+      self._perside_term_specs = [(int(d), bool(g)) for d, g in perside_term_specs]
+      self._n_wrist_per_side = int(n_wrist_per_side)
+      self._bimanual_hand_obs_dim = sum(
+        d if is_global else 2 * d for d, is_global in self._perside_term_specs
+      )
 
     # Obs normalizer
     self.obs_normalization = obs_normalization
@@ -140,7 +173,9 @@ class ResidualActor(nn.Module):
 
     # Residual MLP: input = obs_norm + base_action, output = n_dofs (the
     # residual, added on top of the frozen base sample via residual_action_scale).
-    residual_input_dim = self.obs_dim + base_action_dim
+    # Base action is `output_dim`-sized (per-side n_dofs in single-base mode,
+    # bimanual n_dofs in two-base mode after interleave).
+    residual_input_dim = self.obs_dim + output_dim
     self.residual_mlp = MLP(residual_input_dim, mlp_output_dim, hidden_dims, activation)
 
     # Init residual output near zero (ManipTrans: glorot_normal gain=0.01)
@@ -159,13 +194,50 @@ class ResidualActor(nn.Module):
   def cnns(self):
     return None
 
+  def _split_bimanual_hand_obs(self, hand_obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Split the bimanual hand obs prefix term-wise into (R, L) per-side slices.
+
+    Each per-side hand obs term is laid out as [right_part, left_part]
+    contiguous within the term in the bimanual env. Terms are concatenated in
+    declaration order. Global terms (e.g. wrist_state, bimanual entity root)
+    have the same dim in both per-side and bimanual envs and pass through to
+    both bases unchanged.
+    """
+    obs_R, obs_L = [], []
+    pos = 0
+    for per_side_dim, is_global in self._perside_term_specs:
+      if is_global:
+        slc = hand_obs[:, pos : pos + per_side_dim]
+        obs_R.append(slc)
+        obs_L.append(slc)
+        pos += per_side_dim
+      else:
+        obs_R.append(hand_obs[:, pos : pos + per_side_dim])
+        obs_L.append(hand_obs[:, pos + per_side_dim : pos + 2 * per_side_dim])
+        pos += 2 * per_side_dim
+    return torch.cat(obs_R, dim=-1), torch.cat(obs_L, dim=-1)
+
   def get_latent(self, obs: TensorDict, masks=None, hidden_state=None) -> torch.Tensor:
     obs_list = [obs[g] for g in self.obs_groups]
     full_obs = torch.cat(obs_list, dim=-1)
-    # Frozen base: stochastic sample
-    base_obs = full_obs[:, :self.base_obs_dim]
-    with torch.no_grad():
-      base_action = self.base(base_obs)
+
+    if self._n_bases == 1:
+      base_obs = full_obs[:, :self.base_obs_dim]
+      with torch.no_grad():
+        base_action = self.base(base_obs)
+    else:
+      hand_obs = full_obs[:, :self._bimanual_hand_obs_dim]
+      obs_R, obs_L = self._split_bimanual_hand_obs(hand_obs)
+      with torch.no_grad():
+        act_R = self.bases[0](obs_R)
+        act_L = self.bases[1](obs_L)
+      # Bimanual action layout: [R_wrist, L_wrist, R_fingers, L_fingers]
+      # (matches ManipTransAction's actuator regex order — wrist matches both
+      # sides before fingers).
+      nw = self._n_wrist_per_side
+      base_action = torch.cat([
+        act_R[:, :nw], act_L[:, :nw], act_R[:, nw:], act_L[:, nw:],
+      ], dim=-1)
     self._last_base_action = base_action
 
     # Residual input = normalized full obs + base action. Symmetric with the
@@ -194,12 +266,17 @@ class ResidualActor(nn.Module):
 
   def train(self, mode: bool = True):
     super().train(mode)
-    self.base.train(False)
+    if self._n_bases == 1:
+      self.base.train(False)
+    else:
+      for b in self.bases:
+        b.train(False)
     return self
 
   def state_dict(self, *args, **kwargs):
     full_sd = super().state_dict(*args, **kwargs)
-    return {k: v for k, v in full_sd.items() if not k.startswith("base.")}
+    return {k: v for k, v in full_sd.items()
+            if not k.startswith("base.") and not k.startswith("bases.")}
 
   def load_state_dict(self, state_dict, strict=False):
     return super().load_state_dict(state_dict, strict=False)

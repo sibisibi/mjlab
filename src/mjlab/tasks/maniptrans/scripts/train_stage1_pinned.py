@@ -251,69 +251,38 @@ def build_env_cfg(args):
   # `object_left` entity doesn't exist; the left contact sensor points at
   # the single `object_right` entity (and its body name `obj_right`) so
   # both sides measure contacts against the same shared object.
-  left_contact_entity = "object_right" if shared_object else "object_left"
-  left_contact_pattern = "obj_right" if shared_object else "obj_left"
-  cfg.scene.sensors = (
-    ContactSensorCfg(
-      name="r_fingertip_contact",
-      primary=ContactMatch(
-        mode="site",
-        pattern=("contact_right_thumb_tip", "contact_right_index_tip",
-                 "contact_right_middle_tip", "contact_right_ring_tip",
-                 "contact_right_pinky_tip"),
-        entity="hand",
-      ),
-      secondary=ContactMatch(mode="body", pattern="obj_right", entity="object_right"),
+  side_pref = {"right": "r", "left": "l"}
+  sensor_list: list[ContactSensorCfg] = []
+  for side in sides:
+    pref = side_pref[side]
+    if side == "right" or shared_object:
+      obj_entity, obj_pattern = "object_right", "obj_right"
+    else:
+      obj_entity, obj_pattern = "object_left", "obj_left"
+    fingertip_pattern = (
+      f"contact_{side}_thumb_tip", f"contact_{side}_index_tip",
+      f"contact_{side}_middle_tip", f"contact_{side}_ring_tip",
+      f"contact_{side}_pinky_tip",
+    )
+    sensor_list.append(ContactSensorCfg(
+      name=f"{pref}_fingertip_contact",
+      primary=ContactMatch(mode="site", pattern=fingertip_pattern, entity="hand"),
+      secondary=ContactMatch(mode="body", pattern=obj_pattern, entity=obj_entity),
       fields=("found", "force"),
       reduce="netforce",
       secondary_policy="first",
-    ),
-    ContactSensorCfg(
-      name="l_fingertip_contact",
-      primary=ContactMatch(
-        mode="site",
-        pattern=("contact_left_thumb_tip", "contact_left_index_tip",
-                 "contact_left_middle_tip", "contact_left_ring_tip",
-                 "contact_left_pinky_tip"),
-        entity="hand",
-      ),
-      secondary=ContactMatch(mode="body", pattern=left_contact_pattern, entity=left_contact_entity),
-      fields=("found", "force"),
-      reduce="netforce",
-      secondary_policy="first",
-    ),
-    # Penetration sensors — mindist reduction emits signed `dist` for the
-    # deepest contact per fingertip site. Inspection-only; no reward/obs/term
-    # consumer. See .progress/6-hand-cleanup/output/field_and_config_analysis.md.
-    ContactSensorCfg(
-      name="r_fingertip_penetration",
-      primary=ContactMatch(
-        mode="site",
-        pattern=("contact_right_thumb_tip", "contact_right_index_tip",
-                 "contact_right_middle_tip", "contact_right_ring_tip",
-                 "contact_right_pinky_tip"),
-        entity="hand",
-      ),
-      secondary=ContactMatch(mode="body", pattern="obj_right", entity="object_right"),
+    ))
+    # Penetration sensor — mindist reduction emits signed `dist` for the
+    # deepest contact per fingertip site. Used by contact_missing termination.
+    sensor_list.append(ContactSensorCfg(
+      name=f"{pref}_fingertip_penetration",
+      primary=ContactMatch(mode="site", pattern=fingertip_pattern, entity="hand"),
+      secondary=ContactMatch(mode="body", pattern=obj_pattern, entity=obj_entity),
       fields=("found", "dist"),
       reduce="mindist",
       secondary_policy="first",
-    ),
-    ContactSensorCfg(
-      name="l_fingertip_penetration",
-      primary=ContactMatch(
-        mode="site",
-        pattern=("contact_left_thumb_tip", "contact_left_index_tip",
-                 "contact_left_middle_tip", "contact_left_ring_tip",
-                 "contact_left_pinky_tip"),
-        entity="hand",
-      ),
-      secondary=ContactMatch(mode="body", pattern=left_contact_pattern, entity=left_contact_entity),
-      fields=("found", "dist"),
-      reduce="mindist",
-      secondary_policy="first",
-    ),
-  )
+    ))
+  cfg.scene.sensors = tuple(sensor_list)
 
   # --- Tactile tier 1 (gated by --enable_tactile) ----------------------------
   if args.enable_tactile:
@@ -326,27 +295,21 @@ def build_env_cfg(args):
         func=mt_mdp.mano_joints_vel_delta,
         params={"command_name": "motion"},
       ),
-      "r_contact_force": ObservationTermCfg(
-        func=mt_mdp.contact_force,
-        params={"sensor_name": "r_fingertip_contact"},
-      ),
-      "l_contact_force": ObservationTermCfg(
-        func=mt_mdp.contact_force,
-        params={"sensor_name": "l_fingertip_contact"},
-      ),
-      "r_contact_force_history": ObservationTermCfg(
-        func=mt_mdp.contact_force_history,
-        params={"sensor_name": "r_fingertip_contact", "history_len": 3},
-      ),
-      "l_contact_force_history": ObservationTermCfg(
-        func=mt_mdp.contact_force_history,
-        params={"sensor_name": "l_fingertip_contact", "history_len": 3},
-      ),
       "ref_contact_flags": ObservationTermCfg(
         func=mt_mdp.ref_contact_flags,
         params={"command_name": "motion"},
       ),
     }
+    for _side in sides:
+      _pref = side_pref[_side]
+      tactile_obs_core[f"{_pref}_contact_force"] = ObservationTermCfg(
+        func=mt_mdp.contact_force,
+        params={"sensor_name": f"{_pref}_fingertip_contact"},
+      )
+      tactile_obs_core[f"{_pref}_contact_force_history"] = ObservationTermCfg(
+        func=mt_mdp.contact_force_history,
+        params={"sensor_name": f"{_pref}_fingertip_contact", "history_len": 3},
+      )
     gt_tips_distance_term = ObservationTermCfg(
       func=mt_mdp.mano_tips_distance_obs,
       params={"command_name": "motion"},
@@ -376,36 +339,26 @@ def build_env_cfg(args):
       # term (needs to be present in actor+critic so the ObservationManager
       # calls it every step). 4 frames ≈ 48 ms at our 83 Hz control (matches
       # ManipTrans's 3-frame/50ms window at 60 Hz control).
-      found_hist_obs = {
-        "r_contact_found_history": ObservationTermCfg(
+      found_hist_obs = {}
+      for _side in sides:
+        _pref = side_pref[_side]
+        found_hist_obs[f"{_pref}_contact_found_history"] = ObservationTermCfg(
           func=mt_mdp.contact_found_history,
-          params={"sensor_name": "r_fingertip_penetration", "history_len": 4},
-        ),
-        "l_contact_found_history": ObservationTermCfg(
-          func=mt_mdp.contact_found_history,
-          params={"sensor_name": "l_fingertip_penetration", "history_len": 4},
-        ),
-      }
+          params={"sensor_name": f"{_pref}_fingertip_penetration", "history_len": 4},
+        )
       cfg.observations["actor"].terms.update(found_hist_obs)
       cfg.observations["critic"].terms.update(found_hist_obs)
-      cfg.terminations["r_contact_missing"] = TerminationTermCfg(
-        func=mt_mdp.contact_expected_but_missing,
-        params={
-          "command_name": "motion",
-          "found_history_key": "_contact_found_history_r_fingertip_penetration",
-          "side": "right",
-          "grace_steps": 15,
-        },
-      )
-      cfg.terminations["l_contact_missing"] = TerminationTermCfg(
-        func=mt_mdp.contact_expected_but_missing,
-        params={
-          "command_name": "motion",
-          "found_history_key": "_contact_found_history_l_fingertip_penetration",
-          "side": "left",
-          "grace_steps": 15,
-        },
-      )
+      for _side in sides:
+        _pref = side_pref[_side]
+        cfg.terminations[f"{_pref}_contact_missing"] = TerminationTermCfg(
+          func=mt_mdp.contact_expected_but_missing,
+          params={
+            "command_name": "motion",
+            "found_history_key": f"_contact_found_history_{_pref}_fingertip_penetration",
+            "side": _side,
+            "grace_steps": 15,
+          },
+        )
 
   # --- Object obs + rewards (gated by --enable_object_obs_{actor,critic}
   #     and --enable_object_rew) ---

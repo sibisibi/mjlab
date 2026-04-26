@@ -57,7 +57,7 @@ def main():
   p = argparse.ArgumentParser()
   # --- Shared args with train_stage1_pinned.py (same semantics) ---
   p.add_argument("--robot", required=True)
-  p.add_argument("--side", required=True)
+  p.add_argument("--side", required=True, choices=["right", "left", "bimanual"])
   p.add_argument("--index_path", required=True,
     help="Path to the dataset index CSV.")
   p.add_argument("--indices", type=int, nargs="+", required=True,
@@ -102,10 +102,16 @@ def main():
   p.add_argument("--actor_no_hand_obj_distance", action="store_true")
   p.add_argument("--actor_no_gt_tips_distance", action="store_true")
   # --- Stage 2 specific args ---
-  p.add_argument("--base_checkpoint", required=True,
-    help="Path to frozen Stage 1 checkpoint. Its actor_state_dict['obs_normalizer._mean'] "
+  base_group = p.add_mutually_exclusive_group(required=True)
+  base_group.add_argument("--base_checkpoint",
+    help="Path to a single frozen Stage 1 checkpoint (single-hand residual mode, "
+         "--side {right,left}). Its actor_state_dict['obs_normalizer._mean'] "
          "dimension defines base_obs_dim; its last mlp layer bias dimension defines "
          "base_action_dim.")
+  base_group.add_argument("--base_checkpoints", nargs=2, metavar=("RIGHT", "LEFT"),
+    help="Two per-side frozen Stage 1 checkpoints (bimanual residual mode, "
+         "--side bimanual). Order is [right, left]. Both ckpts must share "
+         "base_obs_dim and base_action_dim.")
   p.add_argument("--residual_action_scale", type=float, required=True,
     help="Residual action scale > 0 enables Stage 2 action splitting in ManipTransAction. "
          "Raw policy output is 2*n_dofs; applied action = first_half + second_half * scale. "
@@ -174,17 +180,95 @@ def main():
   # field). The action term keeps `action_dim = n_dofs` and the residual
   # composition `applied = base + residual * scale` happens inside the actor.
 
-  # --- Load base checkpoint dims (for ResidualActor init) ---
-  ckpt = torch.load(args.base_checkpoint, map_location="cpu", weights_only=False)
-  ckpt_sd = ckpt["actor_state_dict"]
-  base_obs_dim = int(ckpt_sd["obs_normalizer._mean"].shape[-1])
-  # Last mlp layer bias shape = base's action_dim (= n_dofs for Stage 1).
-  last_mlp_idx = max(int(k.split(".")[1]) for k in ckpt_sd if k.startswith("mlp."))
-  base_action_dim = int(ckpt_sd[f"mlp.{last_mlp_idx}.bias"].shape[0])
-  del ckpt, ckpt_sd
+  # --- Resolve base checkpoint(s) and validate against --side ---
+  if args.base_checkpoints is not None:
+    base_ckpts = list(args.base_checkpoints)
+    if args.side != "bimanual":
+      raise ValueError(
+        f"--base_checkpoints (2 paths) requires --side bimanual; got --side {args.side}."
+      )
+  else:
+    base_ckpts = [args.base_checkpoint]
+    if args.side not in ("right", "left"):
+      raise ValueError(
+        f"--base_checkpoint (1 path) requires --side {{right,left}}; got --side {args.side}."
+      )
+
+  def _read_base_dims(path):
+    ckpt = torch.load(path, map_location="cpu", weights_only=False)
+    sd = ckpt["actor_state_dict"]
+    obs_dim = int(sd["obs_normalizer._mean"].shape[-1])
+    last_idx = max(int(k.split(".")[1]) for k in sd if k.startswith("mlp."))
+    act_dim = int(sd[f"mlp.{last_idx}.bias"].shape[0])
+    return obs_dim, act_dim
+
+  base_dims = [_read_base_dims(p) for p in base_ckpts]
+  if len(base_dims) == 2 and base_dims[0] != base_dims[1]:
+    raise ValueError(
+      f"Per-side bases disagree on dims: right={base_dims[0]} vs left={base_dims[1]}."
+    )
+  base_obs_dim, base_action_dim = base_dims[0]
 
   # --- Create env ---
   env = ManagerBasedRlEnv(cfg, device=device)
+
+  # --- Bimanual two-base mode: extract per-side term specs + n_wrist_per_side ---
+  # Most hand-obs terms are per-side concat (bimanual dim = 2 * per-side dim).
+  # `wrist_state` is the lone exception: it reads `hand.data.root_link_*` which
+  # is one tensor for the whole bimanual entity (13D), so its bimanual dim
+  # equals its per-side dim. Both bases see the same shared wrist_state tensor.
+  GLOBAL_HAND_OBS_TERMS = {"wrist_state"}
+  perside_term_specs: list[tuple[int, bool]] | None = None
+  n_wrist_per_side = 0
+  if len(base_ckpts) == 2:
+    active = env.observation_manager.active_terms["actor"]
+    shapes = env.observation_manager.group_obs_term_dim["actor"]
+    perside_term_specs = []
+    accum = 0
+    bimanual_prefix_sum = 0
+    for name, shape in zip(active, shapes):
+      bim_dim = int(shape[-1]) if isinstance(shape, (tuple, list)) else int(shape)
+      is_global = name in GLOBAL_HAND_OBS_TERMS
+      if is_global:
+        per_side_dim = bim_dim
+      else:
+        if bim_dim % 2 != 0:
+          raise RuntimeError(
+            f"Per-side hand obs term {name!r} has odd bimanual dim {bim_dim}; "
+            f"either it should be in GLOBAL_HAND_OBS_TERMS or bimanual layout is broken."
+          )
+        per_side_dim = bim_dim // 2
+      perside_term_specs.append((per_side_dim, is_global))
+      accum += per_side_dim
+      bimanual_prefix_sum += bim_dim
+      if accum == base_obs_dim:
+        break
+      if accum > base_obs_dim:
+        raise RuntimeError(
+          f"Per-side hand obs accum {accum} overshot base_obs_dim {base_obs_dim} "
+          f"at term {name!r}; check GLOBAL_HAND_OBS_TERMS membership."
+        )
+    if accum != base_obs_dim:
+      raise RuntimeError(
+        f"Per-side hand obs prefix sum {accum} != base_obs_dim {base_obs_dim}. "
+        f"Specs: {perside_term_specs}."
+      )
+    bimanual_n_wrist = env.action_manager.get_term("maniptrans")._n_wrist
+    if bimanual_n_wrist % 2 != 0:
+      raise RuntimeError(
+        f"Bimanual n_wrist={bimanual_n_wrist} is not even; cannot split per side."
+      )
+    n_wrist_per_side = bimanual_n_wrist // 2
+    env_action_dim = env.action_manager.total_action_dim
+    if env_action_dim != 2 * base_action_dim:
+      raise RuntimeError(
+        f"Bimanual env action_dim ({env_action_dim}) != 2 * base_action_dim "
+        f"({2 * base_action_dim})."
+      )
+    print(f"[stage2] bimanual: base_obs_dim={base_obs_dim} base_action_dim={base_action_dim} "
+          f"n_wrist_per_side={n_wrist_per_side} env_action_dim={env_action_dim}")
+    print(f"[stage2] bimanual_hand_obs_dim={bimanual_prefix_sum} (sum of bimanual prefix dims)")
+    print(f"[stage2] perside_term_specs (sum={accum}): {perside_term_specs}")
 
   # --- RL config ---
   agent_cfg = load_rl_cfg(task_id)
@@ -212,10 +296,13 @@ def main():
   train_cfg["actor"]["class_name"] = (
     "mjlab.tasks.maniptrans.rl.residual_actor.ResidualActor"
   )
-  train_cfg["actor"]["base_checkpoint"] = args.base_checkpoint
+  train_cfg["actor"]["base_checkpoints"] = base_ckpts
   train_cfg["actor"]["base_obs_dim"] = base_obs_dim
   train_cfg["actor"]["base_action_dim"] = base_action_dim
   train_cfg["actor"]["residual_action_scale"] = args.residual_action_scale
+  if perside_term_specs is not None:
+    train_cfg["actor"]["perside_term_specs"] = perside_term_specs
+    train_cfg["actor"]["n_wrist_per_side"] = n_wrist_per_side
 
   # Symmetric obs clipping with the Stage 1 base. When --obs_clip > 0:
   # - ResidualActor clamps its own normalized obs in get_latent (obs_clip kwarg).
