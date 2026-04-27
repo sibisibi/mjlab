@@ -105,9 +105,13 @@ class ManipTransAction(ActionTerm):
     wrist_action = action[:, :self._n_wrist]
     finger_action = action[:, self._n_wrist:]
 
-    # Wrist: ref + action * scale
+    # Wrist: ref + clamp(action) * scale — clamp keeps the combined (base+residual)
+    # wrist deviation in ±wrist_residual_scale around the retargeted reference,
+    # and gives a residual saturated at the opposite extreme of base the range
+    # to fully flip base's choice (works in tandem with residual_action_scale=2).
     ref_wrist = ref_joint_pos[:, self._wrist_ids]
-    wrist_target = ref_wrist + wrist_action * self.cfg.wrist_residual_scale
+    wrist_action_clamped = torch.clamp(wrist_action, -1.0, 1.0)
+    wrist_target = ref_wrist + wrist_action_clamped * self.cfg.wrist_residual_scale
 
     # Fingers
     ref_finger = ref_joint_pos[:, self._finger_ids]
