@@ -14,6 +14,7 @@ import numpy as np
 import torch
 
 from mjlab.managers import CommandTerm, CommandTermCfg
+from mjlab.sensor import ContactSensor
 from mjlab.utils.lab_api.math import (
   axis_angle_from_quat,
   matrix_from_quat,
@@ -449,6 +450,22 @@ class ManipTransCommand(CommandTerm):
         self.metrics[f"error_obj_rot_{p}"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics[f"error_obj_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics[f"error_obj_angvel_{p}"] = torch.zeros(self.num_envs, device=self.device)
+
+    # Conditional contact metrics, gated on ref_flag==1. Accumulated per step
+    # rather than overwritten — the standard last-step snapshot pattern doesn't
+    # work here because ref_flag is often 0 at episode end. Emitted in reset()
+    # as count-weighted means: Σ_envs Σ_steps(value · flag) / Σ_envs Σ_steps(flag).
+    self._contact_sum: dict[str, torch.Tensor] = {}
+    self._contact_count: dict[str, torch.Tensor] = {}
+    if self.has_objects:
+      for side in cfg.sides:
+        p = side_prefixes[side]
+        for finger in FINGER_NAMES:
+          self._contact_count[f"{p}_{finger}"] = torch.zeros(self.num_envs, device=self.device)
+          for name in ("ref_dist", "pen", "force", "found"):
+            self._contact_sum[f"contact_{name}_{p}_{finger}"] = torch.zeros(
+              self.num_envs, device=self.device
+            )
 
     # Per-step pin-fired buffer — used by the pin physics path in `_apply` and
     # by the `pin_penalty` reward (registered by `add_object_interaction_rewards`).
@@ -893,6 +910,42 @@ class ManipTransCommand(CommandTerm):
           torch.abs(self.ref_obj_angvel_w[:, si] - self.sim_obj_angvel_w[:, si]),
           dim=-1,
         )
+
+        # Per-finger contact telemetry, accumulated only on ref_flag==1 frames.
+        pen_sensor: ContactSensor = self._env.scene[f"{p}_fingertip_penetration"]
+        force_sensor: ContactSensor = self._env.scene[f"{p}_fingertip_contact"]
+        for fi, finger in enumerate(FINGER_NAMES):
+          flag = self.ref_contact_flags[:, si, fi]
+          ref_dist = torch.norm(
+            self.ref_contact_pos_w[:, si, fi] - self.robot_tip_pos_w[:, si, fi],
+            dim=-1,
+          )
+          pen = torch.clamp(-pen_sensor.data.dist[:, fi], min=0.0)
+          force = torch.norm(force_sensor.data.force[:, fi], dim=-1)
+          found = (pen_sensor.data.found[:, fi] > 0).to(flag.dtype)
+          self._contact_sum[f"contact_ref_dist_{p}_{finger}"] += ref_dist * flag
+          self._contact_sum[f"contact_pen_{p}_{finger}"] += pen * flag
+          self._contact_sum[f"contact_force_{p}_{finger}"] += force * flag
+          self._contact_sum[f"contact_found_{p}_{finger}"] += found * flag
+          self._contact_count[f"{p}_{finger}"] += flag
+
+  def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, float]:
+    extras = super().reset(env_ids)
+    if not self.has_objects:
+      return extras
+    side_prefixes = {"right": "r", "left": "l"}
+    for side in self._side_list:
+      p = side_prefixes[side]
+      for finger in FINGER_NAMES:
+        count = self._contact_count[f"{p}_{finger}"]
+        total_count = count[env_ids].sum().clamp(min=1.0)
+        for name in ("ref_dist", "pen", "force", "found"):
+          key = f"contact_{name}_{p}_{finger}"
+          total_sum = self._contact_sum[key][env_ids].sum()
+          extras[key] = (total_sum / total_count).item()
+          self._contact_sum[key][env_ids] = 0.0
+        count[env_ids] = 0.0
+    return extras
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
     # Random per-reset trajectory assignment: each resetting env draws a
