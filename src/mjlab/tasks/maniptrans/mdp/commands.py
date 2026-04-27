@@ -451,19 +451,25 @@ class ManipTransCommand(CommandTerm):
         self.metrics[f"error_obj_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics[f"error_obj_angvel_{p}"] = torch.zeros(self.num_envs, device=self.device)
 
-    # Conditional contact metrics, gated on ref_flag==1. Accumulated per step
-    # rather than overwritten — the standard last-step snapshot pattern doesn't
-    # work here because ref_flag is often 0 at episode end. Emitted in reset()
-    # as count-weighted means: Σ_envs Σ_steps(value · flag) / Σ_envs Σ_steps(flag).
+    # Conditional contact metrics. Two gates:
+    #  - count_ref: Σ ref_flag                       (denominator for ref_dist + found)
+    #  - count_contact: Σ ref_flag · found           (denominator for pen, force)
+    # pen/force averages exclude frames where the policy missed contact — otherwise
+    # zero-force misses pull the means toward 0 and obscure in-contact behavior.
+    # found = count_contact / count_ref = hit rate (no separate sum tensor needed).
+    # Emitted in reset() as count-weighted means across resetting envs.
     self._contact_sum: dict[str, torch.Tensor] = {}
-    self._contact_count: dict[str, torch.Tensor] = {}
+    self._contact_count_ref: dict[str, torch.Tensor] = {}
+    self._contact_count_contact: dict[str, torch.Tensor] = {}
     if self.has_objects:
       for side in cfg.sides:
         p = side_prefixes[side]
         for finger in FINGER_NAMES:
-          self._contact_count[f"{p}_{finger}"] = torch.zeros(self.num_envs, device=self.device)
-          for name in ("ref_dist", "pen", "force", "found"):
-            self._contact_sum[f"contact_{name}_{p}_{finger}"] = torch.zeros(
+          k = f"{p}_{finger}"
+          self._contact_count_ref[k]     = torch.zeros(self.num_envs, device=self.device)
+          self._contact_count_contact[k] = torch.zeros(self.num_envs, device=self.device)
+          for name in ("ref_dist", "pen", "force"):
+            self._contact_sum[f"contact_{name}_{k}"] = torch.zeros(
               self.num_envs, device=self.device
             )
 
@@ -911,23 +917,27 @@ class ManipTransCommand(CommandTerm):
           dim=-1,
         )
 
-        # Per-finger contact telemetry, accumulated only on ref_flag==1 frames.
+        # Per-finger contact telemetry. Two gates per (side, finger):
+        #   - ref_flag==1            → ref_dist + found (hit rate)
+        #   - ref_flag==1 AND found  → pen + force (in-contact behavior)
         pen_sensor: ContactSensor = self._env.scene[f"{p}_fingertip_penetration"]
         force_sensor: ContactSensor = self._env.scene[f"{p}_fingertip_contact"]
         for fi, finger in enumerate(FINGER_NAMES):
+          k = f"{p}_{finger}"
           flag = self.ref_contact_flags[:, si, fi]
+          found = (pen_sensor.data.found[:, fi] > 0).to(flag.dtype)
+          contact_gate = flag * found
           ref_dist = torch.norm(
             self.ref_contact_pos_w[:, si, fi] - self.robot_tip_pos_w[:, si, fi],
             dim=-1,
           )
           pen = torch.clamp(-pen_sensor.data.dist[:, fi], min=0.0)
           force = torch.norm(force_sensor.data.force[:, fi], dim=-1)
-          found = (pen_sensor.data.found[:, fi] > 0).to(flag.dtype)
-          self._contact_sum[f"contact_ref_dist_{p}_{finger}"] += ref_dist * flag
-          self._contact_sum[f"contact_pen_{p}_{finger}"] += pen * flag
-          self._contact_sum[f"contact_force_{p}_{finger}"] += force * flag
-          self._contact_sum[f"contact_found_{p}_{finger}"] += found * flag
-          self._contact_count[f"{p}_{finger}"] += flag
+          self._contact_sum[f"contact_ref_dist_{k}"] += ref_dist * flag
+          self._contact_sum[f"contact_pen_{k}"]      += pen      * contact_gate
+          self._contact_sum[f"contact_force_{k}"]    += force    * contact_gate
+          self._contact_count_ref[k]     += flag
+          self._contact_count_contact[k] += contact_gate
 
   def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, float]:
     extras = super().reset(env_ids)
@@ -937,14 +947,26 @@ class ManipTransCommand(CommandTerm):
     for side in self._side_list:
       p = side_prefixes[side]
       for finger in FINGER_NAMES:
-        count = self._contact_count[f"{p}_{finger}"]
-        total_count = count[env_ids].sum().clamp(min=1.0)
-        for name in ("ref_dist", "pen", "force", "found"):
-          key = f"contact_{name}_{p}_{finger}"
-          total_sum = self._contact_sum[key][env_ids].sum()
-          extras[key] = (total_sum / total_count).item()
-          self._contact_sum[key][env_ids] = 0.0
-        count[env_ids] = 0.0
+        k = f"{p}_{finger}"
+        count_ref     = self._contact_count_ref[k]
+        count_contact = self._contact_count_contact[k]
+        total_ref     = count_ref[env_ids].sum().clamp(min=1.0)
+        total_contact = count_contact[env_ids].sum().clamp(min=1.0)
+        # ref_dist + found gated on ref_flag==1; pen + force gated on ref_flag==1 AND found.
+        extras[f"contact_ref_dist_{k}"] = (
+          self._contact_sum[f"contact_ref_dist_{k}"][env_ids].sum() / total_ref
+        ).item()
+        extras[f"contact_found_{k}"] = (count_contact[env_ids].sum() / total_ref).item()
+        extras[f"contact_pen_{k}"] = (
+          self._contact_sum[f"contact_pen_{k}"][env_ids].sum() / total_contact
+        ).item()
+        extras[f"contact_force_{k}"] = (
+          self._contact_sum[f"contact_force_{k}"][env_ids].sum() / total_contact
+        ).item()
+        for name in ("ref_dist", "pen", "force"):
+          self._contact_sum[f"contact_{name}_{k}"][env_ids] = 0.0
+        count_ref[env_ids]     = 0.0
+        count_contact[env_ids] = 0.0
     return extras
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
