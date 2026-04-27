@@ -37,7 +37,6 @@ from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 from mjlab.utils.torch import configure_torch_backends
 
 
-CONTACT_MATCH_BETA = 40.0
 CONTACT_MATCH_GAMMA = 200.0
 CONTACT_MATCH_TOL = 0.002
 
@@ -132,7 +131,7 @@ def build_env_cfg(args):
   for key, term in cfg.rewards.items():
     if key.endswith("_contact_match"):
       term.weight *= args.contact_match_weight
-      term.params["beta"] = CONTACT_MATCH_BETA
+      term.params["beta"] = args.contact_match_beta
       term.params["gamma"] = CONTACT_MATCH_GAMMA
       term.params["tol"] = CONTACT_MATCH_TOL
 
@@ -261,6 +260,10 @@ def main():
   p.add_argument("--obs_clip", type=float, default=5.0)
   p.add_argument("--obj_density", type=float, default=800.0)
   p.add_argument("--contact_match_weight", type=float, default=1.0)
+  p.add_argument("--contact_match_beta", type=float, default=40.0,
+    help="Approach-shaping decay for contact_match: exp(-β·ref_dist). "
+         "Lower β widens the basin of attraction (more gradient at long "
+         "distance, less precision near contact). Default 40.0 (sharp).")
   p.add_argument("--object_reward_mult", type=float, default=1.0)
   p.add_argument("--contact_miss_t", type=int, default=999999,
     help="Per-finger consecutive-miss frame threshold for the "
