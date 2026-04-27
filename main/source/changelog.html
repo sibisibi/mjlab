@@ -519,6 +519,11 @@ document.write(`
 scripts for choosing where training logs are stored. Defaults to
 <code class="docutils literal notranslate"><span class="pre">logs/rsl_rl</span></code> (unchanged behavior). Useful for directing outputs to a
 scratch disk or shared mount.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">RewardManager</span></code>, <code class="docutils literal notranslate"><span class="pre">TerminationManager</span></code>, and <code class="docutils literal notranslate"><span class="pre">MetricsManager</span></code> now
+validate that every term function returns a tensor of shape
+<code class="docutils literal notranslate"><span class="pre">(num_envs,)</span></code> when evaluated, raising a clear <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+naming the offending term instead of silently broadcasting or crashing
+with an opaque error later during training.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">ContactSensor.primary_names</span></code> property to expose the resolved
 primary names in the order they appear along the per-contact axis of the
 output tensors. This makes it possible to map a contact-data column back
