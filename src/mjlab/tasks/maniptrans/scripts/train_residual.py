@@ -40,7 +40,6 @@ from mjlab.utils.torch import configure_torch_backends
 CONTACT_MATCH_BETA = 40.0
 CONTACT_MATCH_GAMMA = 200.0
 CONTACT_MATCH_TOL = 0.002
-CONTACT_MATCH_FORCE_CAP = 30.0
 
 OBJECT_REWARD_TERMS = (
   ("obj_pos", mt_mdp.obj_pos_error_exp, 5.0, 80.0),
@@ -136,7 +135,6 @@ def build_env_cfg(args):
       term.params["beta"] = CONTACT_MATCH_BETA
       term.params["gamma"] = CONTACT_MATCH_GAMMA
       term.params["tol"] = CONTACT_MATCH_TOL
-      term.params["force_cap"] = CONTACT_MATCH_FORCE_CAP
 
   side_pref = {"right": "r", "left": "l"}
   sensors: list[ContactSensorCfg] = []

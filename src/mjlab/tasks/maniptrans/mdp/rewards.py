@@ -199,19 +199,16 @@ def contact_point_match_reward(
   env: ManagerBasedRlEnv,
   command_name: str,
   sensor_name: str,
-  force_sensor_name: str,
   side: str,
   finger: str,
   beta: float,
   gamma: float,
   tol: float,
-  force_cap: float,
 ) -> torch.Tensor:
-  """Additive approach-shaping + capped contact-bonus reward, per finger per frame.
+  """Additive approach-shaping + contact-bonus reward, per finger per frame.
 
       reward = ref_flag · ( exp(-β · ref_dist)
-                           + found · (||F|| < force_cap)
-                                   · exp(-γ · max(-dist − tol, 0)) )
+                           + found · exp(-γ · max(-dist − tol, 0)) )
 
   - ref_flag: preprocessed binary flag, 1 when MANO reference says this finger
     should contact at this frame. Whole reward is 0 when ref_flag == 0.
@@ -222,18 +219,13 @@ def contact_point_match_reward(
     > 0 when the narrowphase has produced contact between the fingertip site
     and the object body.
   - dist: signed distance from the penetration sensor (< 0 when overlap).
-  - ||F||: netforce-sensor force magnitude for the fingertip. The contact
-    bonus is gated by (||F|| < force_cap) — above force_cap the policy gets
-    the approach-shaping term only, losing the landing bonus. Caps pathological
-    over-pressing (policy can't collect contact reward by slamming).
 
-  Three branches:
-    ref_flag=0                       : reward = 0
-    ref_flag=1, found=0              : reward = exp(-β · ref_dist)               (approach)
-    ref_flag=1, found=1, ||F||≥cap   : reward = exp(-β · ref_dist)               (bonus zeroed)
-    ref_flag=1, found=1, ||F||<cap   : reward = exp(-β · ref_dist) + exp(-γ · depth_excess)
+  Two branches:
+    ref_flag=0          : reward = 0
+    ref_flag=1, found=0 : reward = exp(-β · ref_dist)                          (approach)
+    ref_flag=1, found=1 : reward = exp(-β · ref_dist) + exp(-γ · depth_excess) (landing)
 
-  Peak 2.0 at clean landing with sub-cap force.
+  Peak 2.0 at clean landing.
   """
   command = _cmd(env, command_name)
   si = _side_idx(command, side)
@@ -248,12 +240,8 @@ def contact_point_match_reward(
   pen_dist = pen_sensor.data.dist[:, fi]  # (B,) signed, <0 = overlap
   excess = torch.clamp(-pen_dist - tol, min=0.0)  # (B,)
 
-  force_sensor: ContactSensor = env.scene[force_sensor_name]
-  force_mag = torch.norm(force_sensor.data.force[:, fi], dim=-1)  # (B,)
-  under_cap = (force_mag < force_cap).to(ref_dist.dtype)  # (B,) 0/1
-
   shaping = torch.exp(-beta * ref_dist)  # (B,)
-  bonus = found * under_cap * torch.exp(-gamma * excess)  # (B,)
+  bonus = found * torch.exp(-gamma * excess)  # (B,)
 
   flag = command.ref_contact_flags[:, si, fi]  # (B,) 0 or 1
   return flag * (shaping + bonus)
