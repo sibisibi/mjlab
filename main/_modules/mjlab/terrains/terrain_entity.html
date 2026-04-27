@@ -503,6 +503,9 @@ document.write(`
     <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="n">_DEFAULT_SUN_LIGHT</span><span class="p">,)</span>
   <span class="p">)</span>
 <span class="w">  </span><span class="sd">&quot;&quot;&quot;Lights for the scene. Defaults to a directional sun light.&quot;&quot;&quot;</span>
+  <span class="n">debug_vis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Add visualization sites for environment origins, terrain origins, and</span>
+<span class="sd">  flat patches. Defaults to False.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TerrainEntityCfg.build">
 <a class="viewcode-back" href="../../../source/api/terrains.html#mjlab.terrains.TerrainEntityCfg.build">[docs]</a>
@@ -575,9 +578,10 @@ document.write(`
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown terrain type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">terrain_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_add_env_origin_sites</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_add_terrain_origin_sites</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_add_flat_patch_sites</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">debug_vis</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_add_env_origin_sites</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_add_terrain_origin_sites</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_add_flat_patch_sites</span><span class="p">()</span>
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_add_initial_state_keyframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">pass</span>  <span class="c1"># No joints, no keyframe.</span>

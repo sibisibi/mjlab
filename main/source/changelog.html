@@ -533,6 +533,11 @@ to the primary it belongs to (<a class="extlink-issue reference external" href="
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TerrainEntityCfg</span></code> debug visualization sites (environment origins,
+terrain origins, flat patches) are now off by default. Set
+<code class="docutils literal notranslate"><span class="pre">debug_vis=True</span></code> to re-enable them. The sites inflated <code class="docutils literal notranslate"><span class="pre">nsite</span></code> and
+caused a measurable slowdown in the per-step <code class="docutils literal notranslate"><span class="pre">site_local_to_global</span></code>
+kernel (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/942">#942</a>).</p></li>
 <li><p>Task package load failures during <code class="docutils literal notranslate"><span class="pre">mjlab</span></code> import now print the full
 traceback (and the entry point’s module path) to <code class="docutils literal notranslate"><span class="pre">stderr</span></code> instead of
 just the exception message, making it easier to pinpoint the source of
