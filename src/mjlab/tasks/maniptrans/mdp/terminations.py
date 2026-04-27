@@ -113,19 +113,24 @@ def contact_missed_too_long(
   env: ManagerBasedRlEnv,
   command_name: str,
   threshold_steps: int,
+  grace_steps: int,
 ) -> torch.Tensor:
-  """Terminate if ANY finger's consecutive-miss streak reaches threshold_steps.
+  """Terminate if ANY finger's consecutive-miss streak reaches threshold_steps,
+  skipped during the first grace_steps of each episode.
 
   The streak counter (maintained on ManipTransCommand.contact_miss_counter,
   shape (B, n_sides, 5)) increments each step where ref_flag==1 AND found==0
   for that finger, and resets to 0 when ref_flag==0 OR found==1. Each of the
-  10 (bimanual) or 5 (single-hand) fingers tracked independently.
+  10 (bimanual) or 5 (single-hand) fingers tracked independently. Counter
+  itself keeps ticking during grace; only the kill is suppressed — so the
+  contact_miss_max_<p>_<finger> metrics stay representative.
 
   Set threshold_steps very high (e.g. 999_999) to disable while observing
   contact_miss_max_<p>_<finger> metrics to pick a threshold.
   """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
-  return (command.contact_miss_counter >= threshold_steps).flatten(1).any(dim=-1)
+  exceeded = (command.contact_miss_counter >= threshold_steps).flatten(1).any(dim=-1)
+  return exceeded & (env.episode_length_buf >= grace_steps)
 
 
 def velocity_sanity(

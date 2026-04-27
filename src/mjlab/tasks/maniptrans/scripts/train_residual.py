@@ -230,7 +230,7 @@ def build_env_cfg(args):
   )
   cfg.terminations["contact_missed_too_long"] = TerminationTermCfg(
     func=mt_mdp.contact_missed_too_long,
-    params={"command_name": "motion", "threshold_steps": args.contact_miss_t},
+    params={"command_name": "motion", "threshold_steps": args.contact_miss_t, "grace_steps": 15},
   )
   cfg.terminations["obj_rot_diverged"] = TerminationTermCfg(
     func=mt_mdp.obj_rot_diverged,
