@@ -224,17 +224,17 @@ def build_env_cfg(args):
         params={"command_name": "motion", "side": side, "scale": scale},
       )
 
-  cfg.terminations["obj_pos_diverged"] = TerminationTermCfg(
-    func=mt_mdp.obj_pos_diverged,
-    params={"command_name": "motion", "threshold": 0.15, "grace_steps": 15},
-  )
+  # cfg.terminations["obj_pos_diverged"] = TerminationTermCfg(
+  #   func=mt_mdp.obj_pos_diverged,
+  #   params={"command_name": "motion", "threshold": 0.15, "grace_steps": 15},
+  # )
+  # cfg.terminations["obj_rot_diverged"] = TerminationTermCfg(
+  #   func=mt_mdp.obj_rot_diverged,
+  #   params={"command_name": "motion", "threshold_deg": 90.0, "grace_steps": 15},
+  # )
   cfg.terminations["contact_missed_too_long"] = TerminationTermCfg(
     func=mt_mdp.contact_missed_too_long,
     params={"command_name": "motion", "threshold_steps": args.contact_miss_t, "grace_steps": 15},
-  )
-  cfg.terminations["obj_rot_diverged"] = TerminationTermCfg(
-    func=mt_mdp.obj_rot_diverged,
-    params={"command_name": "motion", "threshold_deg": 90.0, "grace_steps": 15},
   )
   cfg.terminations["velocity_sanity"] = TerminationTermCfg(
     func=mt_mdp.velocity_sanity,
