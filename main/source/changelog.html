@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 22, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 27, 2026"/>
   </head>
   
   
@@ -515,6 +515,10 @@ document.write(`
 <section id="added">
 <h3>Added<a class="headerlink" href="#added" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">--log-root</span></code> CLI option to <code class="docutils literal notranslate"><span class="pre">train</span></code>, <code class="docutils literal notranslate"><span class="pre">play</span></code>, and <code class="docutils literal notranslate"><span class="pre">evaluate</span></code>
+scripts for choosing where training logs are stored. Defaults to
+<code class="docutils literal notranslate"><span class="pre">logs/rsl_rl</span></code> (unchanged behavior). Useful for directing outputs to a
+scratch disk or shared mount.</p></li>
 <li><p>Added <code class="docutils literal notranslate"><span class="pre">ContactSensor.primary_names</span></code> property to expose the resolved
 primary names in the order they appear along the per-contact axis of the
 output tensors. This makes it possible to map a contact-data column back
@@ -1176,7 +1180,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 22, 2026.
+  Last updated on Apr 27, 2026.
   <br/>
 </p>
   </div>

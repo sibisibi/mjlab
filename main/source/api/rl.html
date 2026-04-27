@@ -59,7 +59,7 @@
     <link rel="prev" title="mjlab.terrains" href="terrains.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 22, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 27, 2026"/>
   </head>
   
   
@@ -854,8 +854,9 @@ kernel_size, stride, padding, activation, global_pool, max_pool.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="mjlab.rl.RslRlBaseRunnerCfg.experiment_name">
 <span class="sig-name descname"><span class="pre">experiment_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'exp1'</span></em><a class="headerlink" href="#mjlab.rl.RslRlBaseRunnerCfg.experiment_name" title="Link to this definition">#</a></dt>
-<dd><p>Directory name used to group runs under
-<code class="docutils literal notranslate"><span class="pre">logs/rsl_rl/{experiment_name}/</span></code>.</p>
+<dd><p>Directory name used to group runs under <code class="docutils literal notranslate"><span class="pre">{log_root}/{experiment_name}/</span></code>.
+The log root defaults to <code class="docutils literal notranslate"><span class="pre">logs/rsl_rl</span></code> and can be overridden with
+<code class="docutils literal notranslate"><span class="pre">--log-root</span></code> on the CLI.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1072,7 +1073,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 22, 2026.
+  Last updated on Apr 27, 2026.
   <br/>
 </p>
   </div>
