@@ -228,6 +228,10 @@ def build_env_cfg(args):
     func=mt_mdp.obj_pos_diverged,
     params={"command_name": "motion", "threshold": 0.15, "grace_steps": 15},
   )
+  cfg.terminations["contact_missed_too_long"] = TerminationTermCfg(
+    func=mt_mdp.contact_missed_too_long,
+    params={"command_name": "motion", "threshold_steps": args.contact_miss_t},
+  )
   cfg.terminations["obj_rot_diverged"] = TerminationTermCfg(
     func=mt_mdp.obj_rot_diverged,
     params={"command_name": "motion", "threshold_deg": 90.0, "grace_steps": 15},
@@ -258,6 +262,11 @@ def main():
   p.add_argument("--obj_density", type=float, default=800.0)
   p.add_argument("--contact_match_weight", type=float, default=1.0)
   p.add_argument("--object_reward_mult", type=float, default=1.0)
+  p.add_argument("--contact_miss_t", type=int, default=999999,
+    help="Per-finger consecutive-miss frame threshold for the "
+         "contact_missed_too_long termination. Effectively disabled at the "
+         "default; lower it once Metrics/motion/contact_miss_max_* histograms "
+         "settle on what natural streaks look like.")
   p.add_argument("--base_checkpoints", nargs="+", required=True,
     help="1 path for --side {right,left}; 2 paths [right, left] for --side bimanual.")
   p.add_argument("--residual_action_scale", type=float, default=1.0)

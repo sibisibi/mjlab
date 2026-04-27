@@ -473,6 +473,16 @@ class ManipTransCommand(CommandTerm):
               self.num_envs, device=self.device
             )
 
+    # Per-(side, finger) consecutive-miss counter:
+    #   miss = ref_flag==1 AND found==0   →  counter += 1
+    #   else (ref_flag==0 OR found==1)    →  counter = 0
+    # Used by the contact_missed_too_long termination AND tracked as a
+    # per-finger episode-max metric so we can pick a sensible threshold.
+    self.contact_miss_counter = torch.zeros(
+      self.num_envs, len(self._side_list), len(FINGER_NAMES), device=self.device
+    )
+    self.contact_miss_max = torch.zeros_like(self.contact_miss_counter)
+
     # Per-step pin-fired buffer — used by the pin physics path in `_apply` and
     # by the `pin_penalty` reward (registered by `add_object_interaction_rewards`).
     # Always allocated so reads during hand-only mode (where it stays zero) work.
@@ -938,15 +948,25 @@ class ManipTransCommand(CommandTerm):
           self._contact_sum[f"contact_force_{k}"]    += force    * contact_gate
           self._contact_count_ref[k]     += flag
           self._contact_count_contact[k] += contact_gate
+          # Consecutive-miss counter: increments on (flag==1 AND found==0),
+          # resets on (flag==0 OR found==1). The single-line form below
+          # captures both: miss=1 → (ctr+1)*1=ctr+1; miss=0 → (ctr+1)*0=0.
+          miss = flag * (1.0 - found)
+          self.contact_miss_counter[:, si, fi] = (
+            self.contact_miss_counter[:, si, fi] + 1.0
+          ) * miss
+          self.contact_miss_max[:, si, fi] = torch.maximum(
+            self.contact_miss_max[:, si, fi], self.contact_miss_counter[:, si, fi]
+          )
 
   def reset(self, env_ids: torch.Tensor | None = None) -> dict[str, float]:
     extras = super().reset(env_ids)
     if not self.has_objects:
       return extras
     side_prefixes = {"right": "r", "left": "l"}
-    for side in self._side_list:
+    for si, side in enumerate(self._side_list):
       p = side_prefixes[side]
-      for finger in FINGER_NAMES:
+      for fi, finger in enumerate(FINGER_NAMES):
         k = f"{p}_{finger}"
         count_ref     = self._contact_count_ref[k]
         count_contact = self._contact_count_contact[k]
@@ -963,10 +983,14 @@ class ManipTransCommand(CommandTerm):
         extras[f"contact_force_{k}"] = (
           self._contact_sum[f"contact_force_{k}"][env_ids].sum() / total_contact
         ).item()
+        # Per-finger episode-max consecutive-miss streak (mean over resetting envs).
+        extras[f"contact_miss_max_{k}"] = self.contact_miss_max[env_ids, si, fi].mean().item()
         for name in ("ref_dist", "pen", "force"):
           self._contact_sum[f"contact_{name}_{k}"][env_ids] = 0.0
         count_ref[env_ids]     = 0.0
         count_contact[env_ids] = 0.0
+        self.contact_miss_counter[env_ids, si, fi] = 0.0
+        self.contact_miss_max[env_ids, si, fi]     = 0.0
     return extras
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:

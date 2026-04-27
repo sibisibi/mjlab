@@ -61,6 +61,7 @@ from mjlab.tasks.maniptrans.mdp.rewards import (
 )
 from mjlab.tasks.maniptrans.mdp.terminations import (
   contact_expected_but_missing as contact_expected_but_missing,
+  contact_missed_too_long as contact_missed_too_long,
   fingertip_diverged as fingertip_diverged,
   obj_pos_diverged as obj_pos_diverged,
   obj_rot_diverged as obj_rot_diverged,
