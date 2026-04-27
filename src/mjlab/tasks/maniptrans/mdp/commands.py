@@ -444,6 +444,11 @@ class ManipTransCommand(CommandTerm):
       self.metrics[f"error_wrist_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
       self.metrics[f"error_wrist_angvel_{p}"] = torch.zeros(self.num_envs, device=self.device)
       self.metrics[f"error_joints_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
+      if self.has_objects:
+        self.metrics[f"error_obj_pos_{p}"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics[f"error_obj_rot_{p}"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics[f"error_obj_vel_{p}"] = torch.zeros(self.num_envs, device=self.device)
+        self.metrics[f"error_obj_angvel_{p}"] = torch.zeros(self.num_envs, device=self.device)
 
     # Per-step pin-fired buffer — used by the pin physics path in `_apply` and
     # by the `pin_penalty` reward (registered by `add_object_interaction_rewards`).
@@ -871,6 +876,23 @@ class ManipTransCommand(CommandTerm):
       self.metrics[f"error_joints_vel_{p}"] = (
         all_delta.abs().mean(dim=-1).mean(dim=-1)
       )
+
+      # Object tracking — mirror obj_{pos,rot,vel,angvel}_error_exp rewards.
+      if self.has_objects:
+        self.metrics[f"error_obj_pos_{p}"] = torch.norm(
+          self.ref_obj_pos_w[:, si] - self.sim_obj_pos_w[:, si], dim=-1
+        )
+        self.metrics[f"error_obj_rot_{p}"] = quat_error_magnitude(
+          self.ref_obj_quat_w[:, si], self.sim_obj_quat_w[:, si]
+        )
+        self.metrics[f"error_obj_vel_{p}"] = torch.mean(
+          torch.abs(self.ref_obj_vel_w[:, si] - self.sim_obj_vel_w[:, si]),
+          dim=-1,
+        )
+        self.metrics[f"error_obj_angvel_{p}"] = torch.mean(
+          torch.abs(self.ref_obj_angvel_w[:, si] - self.sim_obj_angvel_w[:, si]),
+          dim=-1,
+        )
 
   def _resample_command(self, env_ids: torch.Tensor) -> None:
     # Random per-reset trajectory assignment: each resetting env draws a

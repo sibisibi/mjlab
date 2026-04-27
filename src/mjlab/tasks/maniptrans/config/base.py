@@ -103,7 +103,7 @@ def _add_per_side_rewards(cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]) -> 
 def add_object_interaction_rewards(
   cfg: ManagerBasedRlEnvCfg, sides: tuple[str, ...]
 ) -> None:
-  """Add per-side contact_match + pin_penalty rewards.
+  """Add per-side per-finger contact_match rewards.
 
   Object/residual trainers call this; the hand-only base trainer does not.
   Requires `{p}_fingertip_penetration` and `{p}_fingertip_contact` sensors
@@ -129,12 +129,6 @@ def add_object_interaction_rewards(
           "force_cap": 30.0,
         },
       )
-
-    cfg.rewards[f"{p}_pin_penalty"] = RewardTermCfg(
-      func=mt_mdp.pin_penalty,
-      weight=0.0,
-      params={"command_name": "motion", "side": side},
-    )
 
 
 def _set_command_params(
