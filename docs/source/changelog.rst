@@ -21,6 +21,10 @@ Added
 Changed
 ^^^^^^^
 
+- Camera segmentation now matches ``mujoco_warp``'s typed segmentation
+  output. ``CameraSensorData.segmentation`` stores ``(object_id,
+  object_type)`` pairs in shape ``[B, H, W, 2]`` instead of the previous
+  legacy geom-id-only layout.
 - Task package load failures during ``mjlab`` import now print the full
   traceback (and the entry point's module path) to ``stderr`` instead of
   just the exception message, making it easier to pinpoint the source of
