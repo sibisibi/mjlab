@@ -557,6 +557,11 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">ManagerBasedRlEnv</span></code> initializing Warp on all visible CUDA devices
+even when constructed with <code class="docutils literal notranslate"><span class="pre">device=&quot;cpu&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">seed_rng</span></code> now accepts a
+<code class="docutils literal notranslate"><span class="pre">device</span></code> argument and skips <code class="docutils literal notranslate"><span class="pre">wp.rand_init</span></code> on CPU devices, so a
+CPU-only env no longer claims a CUDA context on machines with a visible
+GPU (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/949">#949</a>).</p></li>
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">ContactSensor.compute_first_contact</span></code> and <code class="docutils literal notranslate"><span class="pre">compute_first_air</span></code>
 occasionally missing events when a contact began or ended right at the
 last physics substep of a control step. <code class="docutils literal notranslate"><span class="pre">current_contact_time</span></code> /
