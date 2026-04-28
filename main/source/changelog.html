@@ -533,6 +533,8 @@ to the primary it belongs to (<a class="extlink-issue reference external" href="
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Sped up <code class="docutils literal notranslate"><span class="pre">RayCaster</span></code> post-processing and <code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code>.
+<code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code> output may differ by ~2e-7 vs. the previous implementation.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.0.1 to 5.2.0. This brings <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> support for
 PPO and Distillation, and optional std clamping and constant std in
 <code class="docutils literal notranslate"><span class="pre">GaussianDistribution</span></code>. No code changes required on the mjlab side.</p></li>
