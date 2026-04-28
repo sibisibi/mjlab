@@ -619,14 +619,14 @@ document.write(`
 <div class="viewcode-block" id="SensorContext.get_segmentation">
 <a class="viewcode-back" href="../../../source/api/sensor.html#mjlab.sensor.SensorContext.get_segmentation">[docs]</a>
   <span class="k">def</span><span class="w"> </span><span class="nf">get_segmentation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cam_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get per-pixel geom ID data for a camera.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get per-pixel segmentation data for a camera.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      cam_idx: MuJoCo camera ID.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Tensor of shape [num_envs, height, width, 1] (int32).</span>
-<span class="sd">      Values: &gt;= 0 for geom IDs, -1 for background, -2 for flex.</span>
+<span class="sd">      Tensor of shape [num_envs, height, width, 2] (int32).</span>
+<span class="sd">      Channel 0 stores object IDs. Channel 1 stores MuJoCo object types.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">cam_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cam_idx_to_list_idx</span><span class="p">:</span>
       <span class="n">available</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cam_idx_to_list_idx</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -650,8 +650,8 @@ document.write(`
     <span class="n">num_pixels</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">h</span>
     <span class="n">nworld</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">nworld</span>
 
-    <span class="n">cam_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seg_torch</span><span class="p">[:,</span> <span class="n">seg_adr</span> <span class="p">:</span> <span class="n">seg_adr</span> <span class="o">+</span> <span class="n">num_pixels</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">cam_data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+    <span class="n">cam_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seg_torch</span><span class="p">[:,</span> <span class="n">seg_adr</span> <span class="p">:</span> <span class="n">seg_adr</span> <span class="o">+</span> <span class="n">num_pixels</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">cam_data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nworld</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span></div>
 
 
   <span class="c1"># Private methods.</span>

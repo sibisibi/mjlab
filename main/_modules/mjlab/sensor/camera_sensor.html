@@ -404,7 +404,7 @@ document.write(`
                 <article class="bd-article">
                   
   <h1>Source code for mjlab.sensor.camera_sensor</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Camera sensor for RGB and depth rendering.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Camera sensor for RGB, depth, and segmentation rendering.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -526,7 +526,7 @@ document.write(`
 <span class="sd">  Shapes:</span>
 <span class="sd">    - rgb: [num_envs, height, width, 3] (uint8)</span>
 <span class="sd">    - depth: [num_envs, height, width, 1] (float32)</span>
-<span class="sd">    - segmentation: [num_envs, height, width, 1] (int32)</span>
+<span class="sd">    - segmentation: [num_envs, height, width, 2] (int32)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">rgb</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -538,10 +538,10 @@ document.write(`
 <span class="sd">  enabled.&quot;&quot;&quot;</span>
 
   <span class="n">segmentation</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Per-pixel geom IDs [num_envs, height, width, 1] (int32).</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Per-pixel typed segmentation [num_envs, height, width, 2] (int32).</span>
 
-<span class="sd">  Values: &gt;= 0 for rigid geom IDs, -1 for background, -2 for flex</span>
-<span class="sd">  bodies. None if not enabled.</span>
+<span class="sd">  Channel 0 stores MuJoCo object IDs. Channel 1 stores the corresponding</span>
+<span class="sd">  MuJoCo object types. Background pixels are ``(-1, -1)``.</span>
 <span class="sd">  &quot;&quot;&quot;</span></div>
 
 

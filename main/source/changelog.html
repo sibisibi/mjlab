@@ -533,6 +533,10 @@ to the primary it belongs to (<a class="extlink-issue reference external" href="
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Camera segmentation now matches <code class="docutils literal notranslate"><span class="pre">mujoco_warp</span></code>’s typed segmentation
+output. <code class="docutils literal notranslate"><span class="pre">CameraSensorData.segmentation</span></code> stores <code class="docutils literal notranslate"><span class="pre">(object_id,</span>
+<span class="pre">object_type)</span></code> pairs in shape <code class="docutils literal notranslate"><span class="pre">[B,</span> <span class="pre">H,</span> <span class="pre">W,</span> <span class="pre">2]</span></code> instead of the previous
+legacy geom-id-only layout.</p></li>
 <li><p>Sped up <code class="docutils literal notranslate"><span class="pre">RayCaster</span></code> post-processing and <code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code>.
 <code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code> output may differ by ~2e-7 vs. the previous implementation.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.0.1 to 5.2.0. This brings <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> support for
