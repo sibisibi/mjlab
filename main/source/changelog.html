@@ -545,10 +545,6 @@ operations and replacing them with <code class="docutils literal notranslate"><s
 formulation of <code class="docutils literal notranslate"><span class="pre">hit_pos_w</span></code> that places misses at the world origin. This
 removes all CUDA syncs from the ray post-process, letting the CPU thread
 proceed while GPU-based sensing runs. Contribution by &#64;bd-pdomanico.</p></li>
-<li><p>Sped up <code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code> by removing CUDA syncs and aligning the
-implementation with the latest version in <code class="docutils literal notranslate"><span class="pre">pytorch3d</span></code>. ~4-5x speedup
-on a 4090. Output may differ by ~2e-7 vs. the previous implementation.
-Contribution by &#64;bd-pdomanico.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.0.1 to 5.2.0. This brings <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> support for
 PPO and Distillation, and optional std clamping and constant std in
 <code class="docutils literal notranslate"><span class="pre">GaussianDistribution</span></code>. No code changes required on the mjlab side.</p></li>
