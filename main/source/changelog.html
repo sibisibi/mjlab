@@ -533,12 +533,22 @@ to the primary it belongs to (<a class="extlink-issue reference external" href="
 <section id="changed">
 <h3>Changed<a class="headerlink" href="#changed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Bumped <code class="docutils literal notranslate"><span class="pre">mujoco</span></code> to 3.8 and <code class="docutils literal notranslate"><span class="pre">mujoco-warp</span></code> to 3.8.0. The <code class="docutils literal notranslate"><span class="pre">multiccd</span></code>
+enable flag was removed in mujoco 3.8 (it became default-on), so configs
+that listed <code class="docutils literal notranslate"><span class="pre">&quot;multiccd&quot;</span></code> in <code class="docutils literal notranslate"><span class="pre">MujocoCfg.enableflags</span></code> need to drop it.</p></li>
 <li><p>Camera segmentation now matches <code class="docutils literal notranslate"><span class="pre">mujoco_warp</span></code>’s typed segmentation
 output. <code class="docutils literal notranslate"><span class="pre">CameraSensorData.segmentation</span></code> stores <code class="docutils literal notranslate"><span class="pre">(object_id,</span>
 <span class="pre">object_type)</span></code> pairs in shape <code class="docutils literal notranslate"><span class="pre">[B,</span> <span class="pre">H,</span> <span class="pre">W,</span> <span class="pre">2]</span></code> instead of the previous
-legacy geom-id-only layout.</p></li>
-<li><p>Sped up <code class="docutils literal notranslate"><span class="pre">RayCaster</span></code> post-processing and <code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code>.
-<code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code> output may differ by ~2e-7 vs. the previous implementation.</p></li>
+legacy geom-id-only layout. Contribution by &#64;tkelestemur.</p></li>
+<li><p>Sped up <code class="docutils literal notranslate"><span class="pre">RayCaster</span></code> post-processing by removing boolean-mask indexing
+operations and replacing them with <code class="docutils literal notranslate"><span class="pre">masked_fill_</span></code> plus a clamped-distance
+formulation of <code class="docutils literal notranslate"><span class="pre">hit_pos_w</span></code> that places misses at the world origin. This
+removes all CUDA syncs from the ray post-process, letting the CPU thread
+proceed while GPU-based sensing runs. Contribution by &#64;bd-pdomanico.</p></li>
+<li><p>Sped up <code class="docutils literal notranslate"><span class="pre">quat_from_matrix</span></code> by removing CUDA syncs and aligning the
+implementation with the latest version in <code class="docutils literal notranslate"><span class="pre">pytorch3d</span></code>. ~4-5x speedup
+on a 4090. Output may differ by ~2e-7 vs. the previous implementation.
+Contribution by &#64;bd-pdomanico.</p></li>
 <li><p>Bumped <code class="docutils literal notranslate"><span class="pre">rsl-rl-lib</span></code> from 5.0.1 to 5.2.0. This brings <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> support for
 PPO and Distillation, and optional std clamping and constant std in
 <code class="docutils literal notranslate"><span class="pre">GaussianDistribution</span></code>. No code changes required on the mjlab side.</p></li>
