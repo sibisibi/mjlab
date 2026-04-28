@@ -193,6 +193,7 @@
 <li class="toctree-l1"><a class="reference internal" href="source/architecture_overview.html">Architecture Overview</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="source/entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="source/entity/entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source/entity/per_world_mesh.html">Mesh Variants</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="source/actuators.html">Actuators</a></li>
@@ -872,6 +873,8 @@ document.write(`
       </ul></li>
       <li><a href="source/api/rl.html#mjlab.rl.RslRlModelCfg.cnn_cfg">cnn_cfg (mjlab.rl.RslRlModelCfg attribute)</a>
 </li>
+      <li><a href="source/api/scene.html#mjlab.scene.Scene.collect_variant_info">collect_variant_info() (mjlab.scene.Scene method)</a>
+</li>
       <li><a href="source/api/entity.html#mjlab.entity.EntityCfg.collisions">collisions (mjlab.entity.EntityCfg attribute)</a>
 </li>
       <li><a href="source/api/terrains.html#mjlab.terrains.TerrainGeneratorCfg.color_scheme">color_scheme (mjlab.terrains.TerrainGeneratorCfg attribute)</a>
@@ -898,10 +901,10 @@ document.write(`
 </li>
       <li><a href="source/api/envs.html#mjlab.envs.ManagerBasedRlEnvCfg.commands">commands (mjlab.envs.ManagerBasedRlEnvCfg attribute)</a>
 </li>
-      <li><a href="source/api/managers.html#mjlab.managers.CommandTerm">CommandTerm (class in mjlab.managers)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/api/managers.html#mjlab.managers.CommandTerm">CommandTerm (class in mjlab.managers)</a>
+</li>
       <li><a href="source/api/managers.html#mjlab.managers.CommandTermCfg">CommandTermCfg (class in mjlab.managers)</a>
 </li>
       <li><a href="source/api/entity.html#mjlab.entity.Entity.compile">compile() (mjlab.entity.Entity method)</a>
@@ -1398,6 +1401,8 @@ document.write(`
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/actuator.html#mjlab.actuator.Actuator.has_delay">has_delay (mjlab.actuator.Actuator property)</a>
 </li>
+      <li><a href="source/api/scene.html#mjlab.scene.Scene.has_mesh_variants">has_mesh_variants (mjlab.scene.Scene property)</a>
+</li>
       <li><a href="source/api/entity.html#mjlab.entity.Entity.has_site_actuators">has_site_actuators (mjlab.entity.Entity property)</a>
 </li>
       <li><a href="source/api/entity.html#mjlab.entity.Entity.has_tendon_actuators">has_tendon_actuators (mjlab.entity.Entity property)</a>
@@ -1430,10 +1435,10 @@ document.write(`
 </li>
       <li><a href="source/api/terrains.html#mjlab.terrains.HfRandomUniformTerrainCfg">HfRandomUniformTerrainCfg (class in mjlab.terrains)</a>
 </li>
-      <li><a href="source/api/terrains.html#mjlab.terrains.HfWaveTerrainCfg">HfWaveTerrainCfg (class in mjlab.terrains)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/api/terrains.html#mjlab.terrains.HfWaveTerrainCfg">HfWaveTerrainCfg (class in mjlab.terrains)</a>
+</li>
       <li><a href="source/api/rl.html#mjlab.rl.RslRlModelCfg.hidden_dims">hidden_dims (mjlab.rl.RslRlModelCfg attribute)</a>
 </li>
       <li><a href="source/api/actuator.html#mjlab.actuator.LearnedMlpActuatorCfg.history_length">history_length (mjlab.actuator.LearnedMlpActuatorCfg attribute)</a>
@@ -1975,6 +1980,8 @@ document.write(`
 </li>
       </ul></li>
       <li><a href="source/api/managers.html#mjlab.managers.MetricsTermCfg.per_substep">per_substep (mjlab.managers.MetricsTermCfg attribute)</a>
+</li>
+      <li><a href="source/api/sim.html#mjlab.sim.Simulation.per_world_default_fields">per_world_default_fields (mjlab.sim.Simulation property)</a>
 </li>
       <li><a href="source/api/terrains.html#mjlab.terrains.HfPerlinNoiseTerrainCfg.persistence">persistence (mjlab.terrains.HfPerlinNoiseTerrainCfg attribute)</a>
 </li>
@@ -2659,6 +2666,8 @@ document.write(`
 </li>
       </ul></li>
       <li><a href="source/api/viewer.html#mjlab.viewer.ViewerConfig.OriginType.WORLD">WORLD (mjlab.viewer.ViewerConfig.OriginType attribute)</a>
+</li>
+      <li><a href="source/api/sim.html#mjlab.sim.Simulation.world_to_variant">world_to_variant (mjlab.sim.Simulation property)</a>
 </li>
       <li><a href="source/api/scene.html#mjlab.scene.Scene.write">write() (mjlab.scene.Scene method)</a>
 </li>

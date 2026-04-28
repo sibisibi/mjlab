@@ -194,6 +194,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../architecture_overview.html">Architecture Overview</a></li>
 <li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">Entity</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="entity_data.html">Entity Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="per_world_mesh.html">Mesh Variants</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../actuators.html">Actuators</a></li>
@@ -472,6 +473,7 @@ document.write(`
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#init-state"><code class="docutils literal notranslate"><span class="pre">init_state</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#articulation"><code class="docutils literal notranslate"><span class="pre">articulation</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spec-editors">Spec editors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-world-mesh-variants">Per-world mesh variants</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#subclassing-entity">Subclassing Entity</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-elements">Finding elements</a></li>
 </ul>
@@ -692,6 +694,16 @@ example, a <code class="docutils literal notranslate"><span class="pre">Collisio
 sets contact parameters only on foot geoms. See the asset zoo
 (<code class="docutils literal notranslate"><span class="pre">mjlab.asset_zoo.robots</span></code>) for complete examples.</p>
 </section>
+<section id="per-world-mesh-variants">
+<h3>Per-world mesh variants<a class="headerlink" href="#per-world-mesh-variants" title="Link to this heading">#</a></h3>
+<p>For scenes that need different mesh assets in different parallel worlds
+(for example, training a manipulation policy that generalizes across
+object shapes), use <code class="docutils literal notranslate"><span class="pre">VariantEntityCfg</span></code> instead of <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code>. Each
+world is assigned a variant proportional to a configurable weight, and
+mesh-dependent compiled constants (collision bounds, body inertials,
+subtree mass) are stored as per-world arrays so domain randomization and
+viewers stay consistent. See <a class="reference internal" href="per_world_mesh.html#per-world-mesh"><span class="std std-ref">Mesh Variants</span></a>.</p>
+</section>
 <section id="subclassing-entity">
 <h3>Subclassing Entity<a class="headerlink" href="#subclassing-entity" title="Link to this heading">#</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">Entity</span></code> and <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code> can be subclassed for specialized behavior.
@@ -802,6 +814,7 @@ their corresponding data views without manual index bookkeeping.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="entity_data.html">Entity Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="per_world_mesh.html">Mesh Variants</a></li>
 </ul>
 </div>
 </section>
@@ -858,6 +871,7 @@ their corresponding data views without manual index bookkeeping.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#init-state"><code class="docutils literal notranslate"><span class="pre">init_state</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#articulation"><code class="docutils literal notranslate"><span class="pre">articulation</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#spec-editors">Spec editors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#per-world-mesh-variants">Per-world mesh variants</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#subclassing-entity">Subclassing Entity</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#finding-elements">Finding elements</a></li>
 </ul>
