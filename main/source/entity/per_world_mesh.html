@@ -59,7 +59,7 @@
     <link rel="prev" title="Entity Data" href="entity_data.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 28, 2026"/>
+    <meta name="docbuild:last-update" content="Apr 29, 2026"/>
   </head>
   
   
@@ -473,7 +473,6 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#domain-randomization">Domain randomization</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewers">Viewers</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#performance-considerations">Performance considerations</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limitations">Limitations</a></li>
 </ul>
             </nav>
         </div>
@@ -503,22 +502,19 @@ the Viser viewer all pick up the variant assignment automatically.</p>
 <p>A standard <code class="docutils literal notranslate"><span class="pre">EntityCfg</span></code> provides a single <code class="docutils literal notranslate"><span class="pre">spec_fn</span></code> that returns one
 <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code>. A <code class="docutils literal notranslate"><span class="pre">VariantEntityCfg</span></code> provides a dictionary of named
 variants, each with its own <code class="docutils literal notranslate"><span class="pre">spec_fn</span></code> and a weight controlling the
-proportion of worlds that use it. During scene construction mjlab
-merges the per-variant specs into a single <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code> whose mesh slots
-are padded to the maximum count any variant uses, then writes a
-per-world <code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> table that selects the right mesh for each
-world. In the merged scene <code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> is no longer a flat
-<code class="docutils literal notranslate"><span class="pre">(ngeom,)</span></code> vector but a <code class="docutils literal notranslate"><span class="pre">(num_envs,</span> <span class="pre">ngeom)</span></code> table whose rows differ
-by variant. A value of <code class="docutils literal notranslate"><span class="pre">-1</span></code> marks a disabled mesh slot, used for
-variants with fewer mesh geoms than the maximum.</p>
-<p>Mesh choice is entangled with several other compiled-model constants:
-geom collision bounds, geom local frames, body inertials, subtree mass,
-and inverse weights. mjlab compiles each unique row of the
-<code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> table on the host and copies the relevant compiled
-fields into per-world arrays on the GPU, so each world’s compiled
-constants stay consistent with that world’s mesh selection. The full
-list of fields handled this way is in
-<code class="docutils literal notranslate"><span class="pre">mjlab.sim.mesh_variants.VARIANT_DEPENDENT_FIELDS</span></code>.</p>
+proportion of worlds that use it.</p>
+<p><strong>All variants must declare the same kinematic structure.</strong> The batched
+simulator assumes a single topology across worlds; per-world variation
+is confined to mesh assets and the constants derived from them. mjlab
+uses the first variant’s body tree as the template and copies mesh
+assets and explicit body inertials from the others. Geom-level
+properties on later variants such as <code class="docutils literal notranslate"><span class="pre">rgba</span></code>, friction, and material
+assignments are not propagated; control per-world appearance through
+domain randomization on <code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code> or <code class="docutils literal notranslate"><span class="pre">mat_rgba</span></code>. The structural
+check is enforced at construction time and raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+describing the first mismatch. Variants must also be floating-base
+(declare a free joint on the root body); fixed-base variants are
+rejected.</p>
 <p>A minimal two-variant config:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
 
@@ -546,23 +542,22 @@ list of fields handled this way is in
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Every variant must declare the same kinematic structure. Only mesh
-assets and explicit body inertials may differ across variants. mjlab
-preserves the first variant’s body tree as the template; from each
-later variant it copies the mesh assets and, if the body declares one,
-the explicit inertial properties (<code class="docutils literal notranslate"><span class="pre">body.explicitinertial</span> <span class="pre">=</span> <span class="pre">1</span></code> with
-<code class="docutils literal notranslate"><span class="pre">mass</span></code>, <code class="docutils literal notranslate"><span class="pre">ipos</span></code>, <code class="docutils literal notranslate"><span class="pre">inertia</span></code>, <code class="docutils literal notranslate"><span class="pre">iquat</span></code>). Geom-level properties on
-later variants such as <code class="docutils literal notranslate"><span class="pre">rgba</span></code>, friction, and material assignments are
-not propagated. Per-world appearance is best controlled through domain
-randomization on <code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code> or <code class="docutils literal notranslate"><span class="pre">mat_rgba</span></code> rather than through
-per-variant specs.</p>
-<p>The kinematic-structure check is enforced at construction time and
-raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> describing the first mismatch. The current
-check covers the variant root body’s direct joints (count, types,
-names) and the count of its direct child bodies. Deeper mismatches in
-nested body trees are not detected; for typical single-body props this
-does not apply, but multi-body articulated variants should be
-hand-checked.</p>
+<p>During scene construction mjlab merges the per-variant specs into a
+single <code class="docutils literal notranslate"><span class="pre">MjSpec</span></code> whose mesh slots are padded to the maximum count any
+variant uses, then writes a per-world <code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> table that
+selects the right mesh for each world. In the merged scene
+<code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> is no longer a flat <code class="docutils literal notranslate"><span class="pre">(ngeom,)</span></code> vector but a
+<code class="docutils literal notranslate"><span class="pre">(num_envs,</span> <span class="pre">ngeom)</span></code> table whose rows differ by variant. A value of
+<code class="docutils literal notranslate"><span class="pre">-1</span></code> marks a disabled mesh slot, used for variants with fewer mesh
+geoms than the maximum.</p>
+<p>Mesh choice is entangled with several other compiled-model constants:
+geom collision bounds, geom local frames, body inertials, subtree mass,
+and inverse weights. mjlab compiles each unique row of the
+<code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> table on the host and copies the relevant compiled
+fields into per-world arrays on the GPU, so each world’s compiled
+constants stay consistent with that world’s mesh selection. The full
+list of fields handled this way is in
+<code class="docutils literal notranslate"><span class="pre">mjlab.sim.mesh_variants.VARIANT_DEPENDENT_FIELDS</span></code>.</p>
 </section>
 <section id="world-assignment">
 <h2>World assignment<a class="headerlink" href="#world-assignment" title="Link to this heading">#</a></h2>
@@ -660,26 +655,6 @@ and does not affect training throughput.</p>
 Memory footprint at scene-build time scales with the total number of
 mesh vertices and faces across all declared variants.</p>
 </section>
-<section id="limitations">
-<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">#</a></h2>
-<ul class="simple">
-<li><p><strong>Fixed-base entities are not currently supported.</strong>
-<code class="docutils literal notranslate"><span class="pre">Entity._build_spec</span></code> skips the <code class="docutils literal notranslate"><span class="pre">auto_wrap_fixed_base_mocap</span></code> pass
-for <code class="docutils literal notranslate"><span class="pre">VariantEntityCfg</span></code>, so fixed-base variants are not
-mocap-wrapped and would remain at the world origin. Use
-floating-base variants with a free joint, as in the example above.</p></li>
-<li><p><strong>Only meshes and explicit body inertials vary across variants.</strong>
-Per-variant geom properties (<code class="docutils literal notranslate"><span class="pre">rgba</span></code>, friction, contype,
-conaffinity), per-variant materials, and per-variant textures are
-not propagated; the first variant’s values are used for all worlds.
-Vary appearance through domain randomization on <code class="docutils literal notranslate"><span class="pre">geom_rgba</span></code> or
-<code class="docutils literal notranslate"><span class="pre">mat_rgba</span></code> instead.</p></li>
-<li><p><strong>The kinematic-structure validator is shallow.</strong> It checks the
-variant root body’s joints and the count of its direct children but
-does not recursively compare nested body trees. Multi-body
-articulated variants should be hand-checked.</p></li>
-</ul>
-</section>
 </section>
 
 
@@ -732,7 +707,6 @@ articulated variants should be hand-checked.</p></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#domain-randomization">Domain randomization</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#viewers">Viewers</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#performance-considerations">Performance considerations</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#limitations">Limitations</a></li>
 </ul>
   </nav></div>
 
@@ -766,7 +740,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 28, 2026.
+  Last updated on Apr 29, 2026.
   <br/>
 </p>
   </div>
