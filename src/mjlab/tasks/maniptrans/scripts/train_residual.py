@@ -292,8 +292,9 @@ def main():
 
   with open(args.index_path) as f:
     rows = list(csv.DictReader(f))
+  motion_filename = "motion.npz" if args.side == "bimanual" else f"motion_{args.side}.npz"
   motion_files = [
-    f"{args.output_dir}/{args.robot}/{rows[i]['dataset']}/{rows[i]['filename']}/motion.npz"
+    f"{args.output_dir}/{args.robot}/{rows[i]['dataset']}/{rows[i]['filename']}/{motion_filename}"
     for i in args.indices
   ]
   data_dirs = [
