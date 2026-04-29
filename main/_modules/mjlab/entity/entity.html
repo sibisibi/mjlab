@@ -193,7 +193,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../source/architecture_overview.html">Architecture Overview</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../source/entity/entity_data.html">Entity Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Mesh Variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../source/actuators.html">Actuators</a></li>
@@ -410,7 +410,7 @@ document.write(`
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">mujoco_warp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mjwarp</span>
@@ -425,13 +425,12 @@ document.write(`
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">spec_config</span> <span class="k">as</span> <span class="n">spec_cfg</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.lab_api.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_matching_names</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.mujoco</span><span class="w"> </span><span class="kn">import</span> <span class="n">dof_width</span><span class="p">,</span> <span class="n">qpos_width</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-  <span class="n">auto_wrap_fixed_base_mocap</span><span class="p">,</span>
-  <span class="n">copy_mesh_data</span><span class="p">,</span>
-  <span class="n">validate_variant_structure</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">auto_wrap_fixed_base_mocap</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.string</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_expr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.xml</span><span class="w"> </span><span class="kn">import</span> <span class="n">fix_spec_xml</span><span class="p">,</span> <span class="n">strip_buffer_textures</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariantMetadata</span>
 
 
 <div class="viewcode-block" id="EntityIndexing">
@@ -475,79 +474,6 @@ document.write(`
   <span class="k">def</span><span class="w"> </span><span class="nf">root_body_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bodies</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span></div>
 
-
-
-<span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">VariantCfg</span><span class="p">:</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;One object variant for per-world mesh randomization.</span>
-
-<span class="sd">  Each variant provides a ``spec_fn`` that returns an MjSpec for one object.</span>
-<span class="sd">  The ``weight`` controls what fraction of worlds use this variant.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="n">spec_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">]</span>
-  <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
-
-
-<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">BodyInertialMetadata</span><span class="p">:</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Explicit inertial properties for one body in a mesh variant.&quot;&quot;&quot;</span>
-
-  <span class="n">body_name</span><span class="p">:</span> <span class="nb">str</span>
-  <span class="n">mass</span><span class="p">:</span> <span class="nb">float</span>
-  <span class="n">ipos</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
-  <span class="n">inertia</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
-  <span class="n">iquat</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
-
-
-<span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">VariantMetadata</span><span class="p">:</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Bookkeeping produced by Entity when merging variant specs.&quot;&quot;&quot;</span>
-
-  <span class="n">variant_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-  <span class="n">variant_weights</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-  <span class="c1"># Per-variant ordered mesh names for each geom slot. Shorter variants</span>
-  <span class="c1"># have None for padding slots that should be disabled (dataid = -1).</span>
-  <span class="n">variant_mesh_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
-  <span class="n">num_mesh_geoms</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># Max mesh geom count after padding.</span>
-  <span class="c1"># Per-variant explicit body inertials. Names are local to the variant spec;</span>
-  <span class="c1"># build_mesh_variant_model prefixes them with the scene entity name when</span>
-  <span class="c1"># applying them.</span>
-  <span class="n">variant_body_inertials</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">BodyInertialMetadata</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_iter_body_tree</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjsBody</span><span class="p">):</span>
-  <span class="k">yield</span> <span class="n">body</span>
-  <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">bodies</span><span class="p">:</span>
-    <span class="k">yield from</span> <span class="n">_iter_body_tree</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_collect_explicit_body_inertials</span><span class="p">(</span>
-  <span class="n">root_body</span><span class="p">:</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjsBody</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">BodyInertialMetadata</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-  <span class="n">inertials</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BodyInertialMetadata</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">body</span> <span class="ow">in</span> <span class="n">_iter_body_tree</span><span class="p">(</span><span class="n">root_body</span><span class="p">):</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">body</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">body</span><span class="o">.</span><span class="n">explicitinertial</span><span class="p">:</span>
-      <span class="k">continue</span>
-    <span class="n">inertials</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-      <span class="n">BodyInertialMetadata</span><span class="p">(</span>
-        <span class="n">body_name</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">mass</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">mass</span><span class="p">),</span>
-        <span class="n">ipos</span><span class="o">=</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">ipos</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">ipos</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">ipos</span><span class="p">[</span><span class="mi">2</span><span class="p">])),</span>
-        <span class="n">inertia</span><span class="o">=</span><span class="p">(</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">inertia</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">inertia</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">inertia</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
-        <span class="p">),</span>
-        <span class="n">iquat</span><span class="o">=</span><span class="p">(</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">iquat</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">iquat</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">iquat</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
-          <span class="nb">float</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">iquat</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
-        <span class="p">),</span>
-      <span class="p">)</span>
-    <span class="p">)</span>
-  <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inertials</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="EntityCfg">
@@ -609,50 +535,6 @@ document.write(`
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_variant_spec_fn_unset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">:</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Sentinel default for ``VariantEntityCfg.spec_fn``.</span>
-
-<span class="sd">  ``VariantEntityCfg`` builds its spec from ``variants`` via</span>
-<span class="sd">  ``Entity._build_merged_spec``; the inherited ``spec_fn`` field is unused.</span>
-<span class="sd">  Identity comparison against this sentinel detects accidental user overrides.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span>
-    <span class="s2">&quot;VariantEntityCfg.spec_fn should never be called; the merged spec is &quot;</span>
-    <span class="s2">&quot;built from `variants`.&quot;</span>
-  <span class="p">)</span>
-
-
-<span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">VariantEntityCfg</span><span class="p">(</span><span class="n">EntityCfg</span><span class="p">):</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Entity config for per-world mesh variants.</span>
-
-<span class="sd">  Instead of a single ``spec_fn``, provide a dict of named variants.</span>
-<span class="sd">  Each world gets a variant assigned proportionally by weight. The</span>
-<span class="sd">  merged spec (with all variant meshes and padded geoms) is built</span>
-<span class="sd">  automatically.</span>
-
-<span class="sd">  All variants must share the same kinematic structure (same bodies,</span>
-<span class="sd">  joints, joint types). Only mesh geoms can differ.</span>
-
-<span class="sd">  Variant assignment is fixed at ``Simulation`` initialization; it does</span>
-<span class="sd">  not resample on episode reset. Pass the per-variant spec via</span>
-<span class="sd">  :class:`VariantCfg` rather than setting ``spec_fn`` directly.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="n">variants</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VariantCfg</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Named mesh variants with weights.&quot;&quot;&quot;</span>
-
-  <span class="n">spec_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">_variant_spec_fn_unset</span><span class="p">)</span>
-<span class="w">  </span><span class="sd">&quot;&quot;&quot;Unused on ``VariantEntityCfg``; the merged spec is built from ``variants``.&quot;&quot;&quot;</span>
-
-  <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">_variant_spec_fn_unset</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-        <span class="s2">&quot;VariantEntityCfg.spec_fn cannot be set; pass per-variant specs via &quot;</span>
-        <span class="s2">&quot;VariantCfg(spec_fn=...) inside `variants` instead.&quot;</span>
-      <span class="p">)</span>
-
-
 <div class="viewcode-block" id="Entity">
 <a class="viewcode-back" href="../../../source/api/entity.html#mjlab.entity.Entity">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Entity</span><span class="p">:</span>
@@ -699,129 +581,12 @@ document.write(`
 
 
   <span class="k">def</span><span class="w"> </span><span class="nf">_build_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariantEntityCfg</span><span class="p">,</span> <span class="n">build_merged_variant_spec</span>
+
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="n">VariantEntityCfg</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_build_merged_spec</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_variant_metadata</span> <span class="o">=</span> <span class="n">build_merged_variant_spec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span> <span class="o">=</span> <span class="n">auto_wrap_fixed_base_mocap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">spec_fn</span><span class="p">)()</span>
-
-  <span class="k">def</span><span class="w"> </span><span class="nf">_build_merged_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a merged spec from multiple variant specs.</span>
-
-<span class="sd">    Validates that all variants share the same kinematic structure,</span>
-<span class="sd">    merges all mesh assets into a single spec, and pads the body to</span>
-<span class="sd">    the max mesh geom count across variants.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="p">,</span> <span class="n">VariantEntityCfg</span><span class="p">)</span>
-    <span class="n">variants</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">variants</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">variants</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;VariantEntityCfg.variants must contain at least one entry.&quot;</span><span class="p">)</span>
-
-    <span class="n">variant_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">variant_weights</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">variant_specs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">mujoco</span><span class="o">.</span><span class="n">MjSpec</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">vcfg</span> <span class="ow">in</span> <span class="n">variants</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">variant_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-      <span class="n">variant_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vcfg</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-      <span class="n">variant_specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vcfg</span><span class="o">.</span><span class="n">spec_fn</span><span class="p">())</span>
-
-    <span class="c1"># Find root body in each variant.</span>
-    <span class="n">variant_bodies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">mujoco</span><span class="o">.</span><span class="n">MjsBody</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">variant_specs</span><span class="p">):</span>
-      <span class="n">children</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">worldbody</span><span class="o">.</span><span class="n">bodies</span><span class="p">)</span>
-      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="sa">f</span><span class="s2">&quot;Variant &#39;</span><span class="si">{</span><span class="n">variant_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; must have exactly one &quot;</span>
-          <span class="sa">f</span><span class="s2">&quot;root body under worldbody, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
-        <span class="p">)</span>
-      <span class="n">variant_bodies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-    <span class="n">validate_variant_structure</span><span class="p">(</span><span class="n">variant_names</span><span class="p">,</span> <span class="n">variant_bodies</span><span class="p">)</span>
-
-    <span class="c1"># Variant entities must be floating-base. Mocap auto-wrap is not applied</span>
-    <span class="c1"># for variant entities, so fixed-base variants would silently stack at</span>
-    <span class="c1"># the world origin. Variants share joint structure (validated above), so</span>
-    <span class="c1"># checking the first is sufficient.</span>
-    <span class="n">ref_joints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">variant_bodies</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">joints</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">ref_joints</span> <span class="ow">or</span> <span class="n">ref_joints</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtJoint</span><span class="o">.</span><span class="n">mjJNT_FREE</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-        <span class="s2">&quot;VariantEntityCfg requires floating-base variants. Each variant&#39;s &quot;</span>
-        <span class="s2">&quot;root body must declare a free joint via body.add_freejoint(); &quot;</span>
-        <span class="s2">&quot;fixed-base variants are not supported.&quot;</span>
-      <span class="p">)</span>
-
-    <span class="n">variant_body_inertials</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-      <span class="n">_collect_explicit_body_inertials</span><span class="p">(</span><span class="n">body</span><span class="p">)</span> <span class="k">for</span> <span class="n">body</span> <span class="ow">in</span> <span class="n">variant_bodies</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Collect original mesh names per variant BEFORE any renaming.</span>
-    <span class="n">variant_orig_mesh_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">variant_mesh_geom_counts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">body</span> <span class="ow">in</span> <span class="n">variant_bodies</span><span class="p">:</span>
-      <span class="n">orig_names</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">meshname</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">geoms</span> <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="o">.</span><span class="n">mjGEOM_MESH</span>
-      <span class="p">]</span>
-      <span class="n">variant_orig_mesh_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">orig_names</span><span class="p">)</span>
-      <span class="n">variant_mesh_geom_counts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">orig_names</span><span class="p">))</span>
-
-    <span class="n">max_mesh_geoms</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">variant_mesh_geom_counts</span><span class="p">)</span>
-
-    <span class="c1"># Use first variant as template. Prefix ALL mesh names with</span>
-    <span class="c1"># variant name to avoid collisions across variants.</span>
-    <span class="n">template_spec</span> <span class="o">=</span> <span class="n">variant_specs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">template_body</span> <span class="o">=</span> <span class="n">variant_bodies</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="c1"># Rename template meshes first.</span>
-    <span class="n">template_prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">variant_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">/&quot;</span>
-    <span class="n">old_to_new</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">mesh</span> <span class="ow">in</span> <span class="n">template_spec</span><span class="o">.</span><span class="n">meshes</span><span class="p">:</span>
-      <span class="n">new_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">template_prefix</span><span class="si">}{</span><span class="n">mesh</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
-      <span class="n">old_to_new</span><span class="p">[</span><span class="n">mesh</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_name</span>
-      <span class="n">mesh</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">new_name</span>
-    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">template_body</span><span class="o">.</span><span class="n">geoms</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">g</span><span class="o">.</span><span class="n">meshname</span> <span class="ow">in</span> <span class="n">old_to_new</span><span class="p">:</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">meshname</span> <span class="o">=</span> <span class="n">old_to_new</span><span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">meshname</span><span class="p">]</span>
-
-    <span class="c1"># Copy mesh assets from other variants.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">variant_specs</span><span class="p">)):</span>
-      <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">variant_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">/&quot;</span>
-      <span class="k">for</span> <span class="n">mesh</span> <span class="ow">in</span> <span class="n">variant_specs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">meshes</span><span class="p">:</span>
-        <span class="n">new_mesh</span> <span class="o">=</span> <span class="n">template_spec</span><span class="o">.</span><span class="n">add_mesh</span><span class="p">()</span>
-        <span class="n">new_mesh</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">mesh</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="n">copy_mesh_data</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">new_mesh</span><span class="p">)</span>
-
-    <span class="c1"># Pad body to max mesh geom count.</span>
-    <span class="n">current_count</span> <span class="o">=</span> <span class="n">variant_mesh_geom_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">max_mesh_geoms</span> <span class="o">&gt;</span> <span class="n">current_count</span><span class="p">:</span>
-      <span class="n">longest_idx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-        <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">variant_mesh_geom_counts</span><span class="p">)),</span>
-        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">j</span><span class="p">:</span> <span class="n">variant_mesh_geom_counts</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
-      <span class="p">)</span>
-      <span class="n">longest_prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">variant_names</span><span class="p">[</span><span class="n">longest_idx</span><span class="p">]</span><span class="si">}</span><span class="s2">/&quot;</span>
-      <span class="n">longest_names</span> <span class="o">=</span> <span class="n">variant_orig_mesh_names</span><span class="p">[</span><span class="n">longest_idx</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">current_count</span><span class="p">,</span> <span class="n">max_mesh_geoms</span><span class="p">):</span>
-        <span class="n">geom</span> <span class="o">=</span> <span class="n">template_body</span><span class="o">.</span><span class="n">add_geom</span><span class="p">()</span>
-        <span class="n">geom</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">mujoco</span><span class="o">.</span><span class="n">mjtGeom</span><span class="o">.</span><span class="n">mjGEOM_MESH</span>
-        <span class="n">geom</span><span class="o">.</span><span class="n">meshname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">longest_prefix</span><span class="si">}{</span><span class="n">longest_names</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="n">geom</span><span class="o">.</span><span class="n">contype</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">geom</span><span class="o">.</span><span class="n">conaffinity</span> <span class="o">=</span> <span class="mi">1</span>
-
-    <span class="c1"># Build variant_mesh_names: use original names with variant prefix.</span>
-    <span class="n">variant_mesh_name_lists</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">orig_names</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">variant_orig_mesh_names</span><span class="p">):</span>
-      <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">variant_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">/&quot;</span>
-      <span class="n">names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">orig_names</span><span class="p">]</span>
-      <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_mesh_geoms</span><span class="p">:</span>
-        <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-      <span class="n">variant_mesh_name_lists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">names</span><span class="p">))</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_variant_metadata</span> <span class="o">=</span> <span class="n">VariantMetadata</span><span class="p">(</span>
-      <span class="n">variant_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">variant_names</span><span class="p">),</span>
-      <span class="n">variant_weights</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">variant_weights</span><span class="p">),</span>
-      <span class="n">variant_mesh_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">variant_mesh_name_lists</span><span class="p">),</span>
-      <span class="n">num_mesh_geoms</span><span class="o">=</span><span class="n">max_mesh_geoms</span><span class="p">,</span>
-      <span class="n">variant_body_inertials</span><span class="o">=</span><span class="n">variant_body_inertials</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span> <span class="o">=</span> <span class="n">template_spec</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span><span class="w"> </span><span class="nf">variant_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VariantMetadata</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>

@@ -193,7 +193,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../source/architecture_overview.html">Architecture Overview</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../source/entity/entity_data.html">Entity Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Mesh Variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../source/actuators.html">Actuators</a></li>
@@ -608,21 +608,13 @@ document.write(`
 
     <span class="c1"># Initialize scene and simulation.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">scene</span> <span class="o">=</span> <span class="n">Scene</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">scene</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">has_mesh_variants</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span>
-        <span class="n">num_envs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span>
-        <span class="n">cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">sim</span><span class="p">,</span>
-        <span class="n">spec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span>
-        <span class="n">variant_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">collect_variant_info</span><span class="p">(),</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-      <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span>
-        <span class="n">num_envs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span>
-        <span class="n">cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">sim</span><span class="p">,</span>
-        <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">compile</span><span class="p">(),</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-      <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="n">Simulation</span><span class="p">(</span>
+      <span class="n">num_envs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span>
+      <span class="n">cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">sim</span><span class="p">,</span>
+      <span class="n">spec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">spec</span><span class="p">,</span>
+      <span class="n">variant_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">collect_variant_info</span><span class="p">(),</span>
+      <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span>
       <span class="n">mj_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim</span><span class="o">.</span><span class="n">mj_model</span><span class="p">,</span>

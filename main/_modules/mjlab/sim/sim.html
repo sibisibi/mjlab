@@ -193,7 +193,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../source/architecture_overview.html">Architecture Overview</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../source/entity/index.html">Entity</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../source/entity/entity_data.html">Entity Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Mesh Variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source/entity/per_world_mesh.html">Heterogeneous Worlds</a></li>
 </ul>
 </details></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../source/actuators.html">Actuators</a></li>
@@ -417,14 +417,14 @@ document.write(`
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wp</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VARIANT_DEPENDENT_FIELDS</span><span class="p">,</span> <span class="n">build_variant_model</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.managers.event_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecomputeLevel</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.mesh_variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VARIANT_DEPENDENT_FIELDS</span><span class="p">,</span> <span class="n">build_mesh_variant_model</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.randomization</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_model_fields</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sim.sim_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchArray</span><span class="p">,</span> <span class="n">WarpBridge</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.utils.nan_guard</span><span class="w"> </span><span class="kn">import</span> <span class="n">NanGuard</span><span class="p">,</span> <span class="n">NanGuardCfg</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-  <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.entity</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariantMetadata</span>
+  <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.entity.variants</span><span class="w"> </span><span class="kn">import</span> <span class="n">VariantMetadata</span>
   <span class="kn">from</span><span class="w"> </span><span class="nn">mjlab.sensor.sensor_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">SensorContext</span>
 
 <span class="c1"># Type aliases for better IDE support while maintaining runtime compatibility</span>
@@ -667,7 +667,7 @@ document.write(`
 <span class="sd">    they are rendering or inspecting.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">wp</span><span class="o">.</span><span class="n">ScopedDevice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wp_device</span><span class="p">):</span>
-      <span class="n">result</span> <span class="o">=</span> <span class="n">build_mesh_variant_model</span><span class="p">(</span>
+      <span class="n">result</span> <span class="o">=</span> <span class="n">build_variant_model</span><span class="p">(</span>
         <span class="n">spec</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_envs</span><span class="p">,</span>
         <span class="n">variant_info</span><span class="p">,</span>
@@ -698,7 +698,7 @@ document.write(`
     <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_fields</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;geom_dataid&quot;</span><span class="p">)</span>
 
     <span class="c1"># Stash variant assignments as torch tensors keyed by bare entity name</span>
-    <span class="c1"># (mesh_variants emits &quot;&lt;name&gt;/&quot; prefixes; strip the trailing slash for</span>
+    <span class="c1"># (build_variant_model emits &quot;&lt;name&gt;/&quot; prefixes; strip the trailing slash for</span>
     <span class="c1"># the public API).</span>
     <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">world_to_variant</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="n">key</span> <span class="o">=</span> <span class="n">prefix</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
