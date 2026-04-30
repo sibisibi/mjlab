@@ -58,9 +58,12 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument("--robot", required=True)
   p.add_argument("--side", required=True, choices=["right", "left", "bimanual"])
-  p.add_argument("--motion_file", required=True)
-  p.add_argument("--data_dir", required=True)
-  p.add_argument("--pool_dir", required=True)
+  p.add_argument("--motion_file", required=True,
+    help="Packed motion .pt produced by package_motion_batch.py.")
+  p.add_argument("--index", type=int, default=None,
+    help="Optional: select one motion (by row index) inside the packed .pt.")
+  p.add_argument("--input_dir", required=True,
+    help="Pool root for object meshes; resolves <input_dir>/<pool_rel_dir>/<mesh_rel>.")
   p.add_argument("--obj_density", type=float, default=800.0)
   p.add_argument("--contact_match_weight", type=float, default=1.0)
   p.add_argument("--contact_match_beta", type=float, default=40.0)

@@ -12,8 +12,6 @@ obs filtering (no hand_obj_distance / gt_tips_distance in actor).
 """
 
 import argparse
-import csv
-import json
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -70,46 +68,44 @@ def build_env_cfg(args):
   motion_cmd = cfg.commands["motion"]
   assert isinstance(motion_cmd, ManipTransCommandCfg)
   motion_cmd.motion_file = args.motion_file
+  motion_cmd.motion_index = args.index
   motion_cmd.pin_objects = False
 
   sides = ("right", "left") if args.side == "bimanual" else (args.side,)
   add_object_interaction_rewards(cfg, sides)
 
-  data_dir = Path(args.data_dir)
-  pool_dir = Path(args.pool_dir)
-  with open(data_dir / "task_info.json") as f:
-    task_info = json.load(f)
-  right_obj_dir = str(pool_dir / task_info["right_object_mesh_dir"])
-  left_mesh_rel = task_info.get("left_object_mesh_dir")
-  left_obj_dir = str(pool_dir / left_mesh_rel) if left_mesh_rel else None
-  right_mesh_scale = float(task_info.get("right_object_mesh_scale", 1.0))
-  left_mesh_scale = float(task_info.get("left_object_mesh_scale", 1.0))
-
-  if getattr(args, "_all_data_dirs", None) and len(args._all_data_dirs) > 1:
-    base_keys = (
-      task_info["right_object_mesh_dir"], task_info["left_object_mesh_dir"],
-      right_mesh_scale, left_mesh_scale,
+  # Read object mesh paths + scales from the packed .pt header. The packer
+  # filtered to a single object_id, so these are constant across motions.
+  packed = torch.load(args.motion_file, weights_only=False)
+  pool_rel = packed.get("pool_rel_dir")
+  if pool_rel is None:
+    raise ValueError(
+      f"Packed motion file {args.motion_file!r} has no `pool_rel_dir` "
+      f"embedded -- regenerate via package_motion_batch.py."
     )
-    for idx, other_dir in zip(args.indices[1:], args._all_data_dirs[1:]):
-      with open(Path(other_dir) / "task_info.json") as f:
-        other = json.load(f)
-      other_keys = (
-        other["right_object_mesh_dir"], other["left_object_mesh_dir"],
-        float(other.get("right_object_mesh_scale", 1.0)),
-        float(other.get("left_object_mesh_scale", 1.0)),
-      )
-      if other_keys != base_keys:
-        raise ValueError(
-          f"Multi-traj object mismatch at index {idx}: {other_keys} != {base_keys}. "
-          f"All indices must share object id and mesh scale."
-        )
+  pool_dir = Path(args.input_dir) / pool_rel
+  right_mesh_rel = packed.get("right_object_mesh_dir")
+  left_mesh_rel = packed.get("left_object_mesh_dir")
+  if right_mesh_rel is None and left_mesh_rel is None:
+    raise ValueError(
+      f"Packed motion file {args.motion_file!r} has neither "
+      f"right_object_mesh_dir nor left_object_mesh_dir embedded."
+    )
+  right_obj_dir = str(pool_dir / right_mesh_rel) if right_mesh_rel else None
+  left_obj_dir = str(pool_dir / left_mesh_rel) if left_mesh_rel else None
+  right_mesh_scale = float(packed.get("right_object_mesh_scale", 1.0))
+  left_mesh_scale = float(packed.get("left_object_mesh_scale", 1.0))
 
   # Bimanual-on-same-item trajectories: build one entity, point both sides at it,
   # else two entities drift between pin snaps and render as twin ghosts.
-  shared_object = (left_obj_dir is not None and right_obj_dir == left_obj_dir)
-  cfg.scene.entities["object_right"] = get_object_cfg(
-    right_obj_dir, "obj_right", density=args.obj_density, mesh_scale=right_mesh_scale,
+  shared_object = (
+    left_obj_dir is not None and right_obj_dir is not None
+    and right_obj_dir == left_obj_dir
   )
+  if right_obj_dir is not None:
+    cfg.scene.entities["object_right"] = get_object_cfg(
+      right_obj_dir, "obj_right", density=args.obj_density, mesh_scale=right_mesh_scale,
+    )
   if left_obj_dir is not None and not shared_object:
     cfg.scene.entities["object_left"] = get_object_cfg(
       left_obj_dir, "obj_left", density=args.obj_density, mesh_scale=left_mesh_scale,
@@ -285,10 +281,13 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument("--robot", required=True)
   p.add_argument("--side", required=True, choices=["right", "left", "bimanual"])
-  p.add_argument("--input_dir", required=True)
-  p.add_argument("--output_dir", required=True)
-  p.add_argument("--index_path", required=True)
-  p.add_argument("--indices", type=int, nargs="+", required=True)
+  p.add_argument("--input_dir", required=True,
+    help="Pool root for object meshes (resolves <input_dir>/<pool_rel_dir>/<mesh_rel>).")
+  p.add_argument("--motion_file", required=True,
+    help="Packed motion .pt produced by package_motion_batch.py.")
+  p.add_argument("--index", type=int, default=None,
+    help="Optional: select one motion (by row index) inside the packed .pt for "
+         "single-reference training. Default None = train on all M motions.")
   p.add_argument("--num_envs", type=int, required=True)
   p.add_argument("--max_iterations", type=int, default=1000000)
   p.add_argument("--save_interval", type=int, default=100)
@@ -329,22 +328,6 @@ def main():
   if args.side in ("right", "left") and len(args.base_checkpoints) != 1:
     raise ValueError(
       f"--side {args.side} requires 1 --base_checkpoints; got {len(args.base_checkpoints)}.")
-
-  with open(args.index_path) as f:
-    rows = list(csv.DictReader(f))
-  motion_filename = "motion.npz" if args.side == "bimanual" else f"motion_{args.side}.npz"
-  motion_files = [
-    f"{args.output_dir}/{args.robot}/{rows[i]['dataset']}/{rows[i]['filename']}/{motion_filename}"
-    for i in args.indices
-  ]
-  data_dirs = [
-    f"{args.output_dir}/{rows[i]['dataset']}/{rows[i]['filename']}"
-    for i in args.indices
-  ]
-  args.motion_file = motion_files if len(motion_files) > 1 else motion_files[0]
-  args.data_dir = data_dirs[0]
-  args._all_data_dirs = data_dirs
-  args.pool_dir = f"{args.input_dir}/{rows[args.indices[0]]['dataset']}"
 
   configure_torch_backends()
   device = f"cuda:{args.gpu}"

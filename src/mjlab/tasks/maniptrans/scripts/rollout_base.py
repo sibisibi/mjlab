@@ -30,7 +30,10 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument("--robot", required=True)
   p.add_argument("--side", required=True, choices=["right", "left", "bimanual"])
-  p.add_argument("--motion_file", required=True)
+  p.add_argument("--motion_file", required=True,
+    help="Packed motion .pt produced by package_motion_batch.py.")
+  p.add_argument("--index", type=int, default=None,
+    help="Optional: select one motion (by row index) inside the packed .pt.")
   p.add_argument("--checkpoint", required=True, help="Stage 1 base checkpoint.")
   p.add_argument("--obs_clip", type=float, default=5.0)
   p.add_argument("--seed", type=int, default=0)

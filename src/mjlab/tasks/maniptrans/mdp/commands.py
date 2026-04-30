@@ -54,14 +54,29 @@ class ManipTransMotionData:
     sides: tuple[str, ...],
     n_hand_dofs: int,
     device: str,
+    motion_index: int | None = None,
   ) -> None:
-    motion_files = (
-      [motion_file] if isinstance(motion_file, (str, bytes)) else list(motion_file)
-    )
-    if len(motion_files) == 0:
-      raise ValueError("motion_file must be a non-empty path or list of paths")
-
-    datas = [np.load(p, allow_pickle=True) for p in motion_files]
+    if (
+      isinstance(motion_file, (str, bytes))
+      and str(motion_file).endswith(".pt")
+    ):
+      datas, motion_files, packed_meta = self._load_packed_pt(
+        str(motion_file), motion_index
+      )
+    else:
+      if motion_index is not None:
+        raise ValueError(
+          "motion_index only applies to packed .pt motion files; got "
+          f"{motion_file!r}"
+        )
+      motion_files = (
+        [motion_file] if isinstance(motion_file, (str, bytes)) else list(motion_file)
+      )
+      if len(motion_files) == 0:
+        raise ValueError("motion_file must be a non-empty path or list of paths")
+      datas = [dict(np.load(p, allow_pickle=True)) for p in motion_files]
+      packed_meta = None
+    self.packed_meta: dict | None = packed_meta
     M = len(datas)
     time_lens = [int(d["joint_pos"].shape[0]) for d in datas]
     T_max = max(time_lens)
@@ -243,6 +258,60 @@ class ManipTransMotionData:
     return torch.tensor(stacked, dtype=dtype, device=device)
 
   @staticmethod
+  def _load_packed_pt(
+    path: str, motion_index: int | None
+  ) -> tuple[list[dict[str, np.ndarray]], list[str], dict]:
+    """Load a packed motion .pt file produced by package_motion_batch.py.
+
+    Returns (datas, motion_files, packed_meta) where datas is a list of
+    dict-of-numpy-arrays mimicking np.load() output for each selected motion,
+    motion_files is a list of synthetic per-motion identifiers (for error
+    messages), and packed_meta carries embedded task_info-equivalent fields
+    (right/left_object_mesh_dir, scales, pool_rel_dir).
+    """
+    packed = torch.load(path, weights_only=False)
+    motion_num_frames = packed["motion_num_frames"].tolist()
+    length_starts = packed["length_starts"].tolist()
+    motion_filenames = packed.get("motion_filename", [])
+    M_total = len(motion_num_frames)
+
+    if motion_index is None or motion_index < 0:
+      slice_idxs = list(range(M_total))
+    else:
+      slice_idxs = [motion_index]
+
+    total_frames = int(sum(motion_num_frames))
+    flat_keys = []
+    for k, v in packed.items():
+      if torch.is_tensor(v) and v.ndim >= 1 and v.size(0) == total_frames:
+        flat_keys.append(k)
+
+    datas: list[dict[str, np.ndarray]] = []
+    motion_files: list[str] = []
+    for m in slice_idxs:
+      s = length_starts[m]
+      T_m = motion_num_frames[m]
+      d: dict[str, np.ndarray] = {}
+      for k in flat_keys:
+        d[k] = packed[k][s : s + T_m].cpu().numpy()
+      for jn_key in ("mano_right_joint_names", "mano_left_joint_names"):
+        if jn_key in packed:
+          d[jn_key] = np.array(packed[jn_key])
+      datas.append(d)
+      ident = motion_filenames[m] if m < len(motion_filenames) else f"motion[{m}]"
+      motion_files.append(f"{path}#{ident}")
+
+    packed_meta = {
+      "right_object_mesh_dir": packed.get("right_object_mesh_dir"),
+      "left_object_mesh_dir": packed.get("left_object_mesh_dir"),
+      "right_object_mesh_scale": packed.get("right_object_mesh_scale"),
+      "left_object_mesh_scale": packed.get("left_object_mesh_scale"),
+      "pool_rel_dir": packed.get("pool_rel_dir"),
+      "object_id": packed.get("object_id"),
+    }
+    return datas, motion_files, packed_meta
+
+  @staticmethod
   def _require_all_or_none(
     present: list[bool], key: str, motion_files: list[str]
   ) -> None:
@@ -274,7 +343,8 @@ class ManipTransCommand(CommandTerm):
     n_hand_dofs = self.robot.num_joints
 
     self.motion = ManipTransMotionData(
-      cfg.motion_file, cfg.sides, n_hand_dofs, device=self.device
+      cfg.motion_file, cfg.sides, n_hand_dofs, device=self.device,
+      motion_index=cfg.motion_index,
     )
 
     # Populate per-side hinge-joint velocity trajectories now that env step
@@ -1310,6 +1380,10 @@ class ManipTransCommandCfg(CommandTermCfg):
   """Configuration for ManipTrans motion command."""
 
   motion_file: "str | list[str]"
+  motion_index: "int | None" = None
+  """For a single packed .pt motion_file, optionally select one motion (M=1).
+  None = use all M motions in the packed file (multi-reference). No-op when
+  motion_file is an .npz path or list of .npz paths."""
   entity_name: str
   sides: tuple[str, ...]
   body_mapping: dict

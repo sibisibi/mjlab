@@ -6,7 +6,6 @@ no tactile obs, no object obs/rew/term.
 """
 
 import argparse
-import csv
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +24,7 @@ def build_env_cfg(args):
   cfg = load_env_cfg(task_id)
   cfg.scene.num_envs = args.num_envs
   cfg.commands["motion"].motion_file = args.motion_file
+  cfg.commands["motion"].motion_index = args.index
   return cfg
 
 
@@ -32,10 +32,11 @@ def main():
   p = argparse.ArgumentParser()
   p.add_argument("--robot", required=True)
   p.add_argument("--side", required=True, choices=["right", "left", "bimanual"])
-  p.add_argument("--input_dir", required=True)
-  p.add_argument("--output_dir", required=True)
-  p.add_argument("--index_path", required=True)
-  p.add_argument("--indices", type=int, nargs="+", required=True)
+  p.add_argument("--motion_file", required=True,
+    help="Packed motion .pt produced by package_motion_batch.py.")
+  p.add_argument("--index", type=int, default=None,
+    help="Optional: select one motion (by row index) inside the packed .pt for "
+         "single-reference training. Default None = train on all M motions.")
   p.add_argument("--num_envs", type=int, required=True)
   p.add_argument("--max_iterations", type=int, default=1000000)
   p.add_argument("--save_interval", type=int, default=100)
@@ -48,15 +49,6 @@ def main():
   p.add_argument("--run_name", required=True)
   p.add_argument("--gpu", type=int, default=0)
   args = p.parse_args()
-
-  with open(args.index_path) as f:
-    rows = list(csv.DictReader(f))
-  motion_filename = "motion.npz" if args.side == "bimanual" else f"motion_{args.side}.npz"
-  motion_files = [
-    f"{args.output_dir}/{args.robot}/{rows[i]['dataset']}/{rows[i]['filename']}/{motion_filename}"
-    for i in args.indices
-  ]
-  args.motion_file = motion_files if len(motion_files) > 1 else motion_files[0]
 
   configure_torch_backends()
   device = f"cuda:{args.gpu}"
