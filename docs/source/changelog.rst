@@ -36,6 +36,12 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed ``ContactSensor`` with ``global_frame=True`` and
+  ``reduce`` ∈ {``"none"``, ``"mindist"``, ``"maxforce"``} producing forces
+  rotated onto the wrong axis. The contact-frame→world rotation matrix had
+  its columns ordered ``[tangent, tangent2, normal]`` instead of
+  ``[normal, tangent, tangent2]``, projecting the normal-force component
+  onto a tangent direction. Contribution by @bd-pdomanico.
 - Fixed ``ContactSensor.compute_first_contact`` and ``compute_first_air``
   occasionally missing events when a contact began or ended right at the
   last physics substep of a control step. ``current_contact_time`` /
