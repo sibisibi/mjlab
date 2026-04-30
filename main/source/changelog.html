@@ -585,6 +585,12 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code> with <code class="docutils literal notranslate"><span class="pre">global_frame=True</span></code> and
+<code class="docutils literal notranslate"><span class="pre">reduce</span></code> ∈ {<code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mindist&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;maxforce&quot;</span></code>} producing forces
+rotated onto the wrong axis. The contact-frame→world rotation matrix had
+its columns ordered <code class="docutils literal notranslate"><span class="pre">[tangent,</span> <span class="pre">tangent2,</span> <span class="pre">normal]</span></code> instead of
+<code class="docutils literal notranslate"><span class="pre">[normal,</span> <span class="pre">tangent,</span> <span class="pre">tangent2]</span></code>, projecting the normal-force component
+onto a tangent direction. Contribution by &#64;bd-pdomanico.</p></li>
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">extras[&quot;log&quot;]</span></code> entries written by reward terms (e.g. <code class="docutils literal notranslate"><span class="pre">Metrics/*</span></code>
 values in velocity tasks) being silently discarded on any step where at
 least one environment resets. <code class="docutils literal notranslate"><span class="pre">_reset_idx</span></code> was clearing the dict after
