@@ -68,6 +68,8 @@ def main():
     help="Unused at eval (cfg.terminations wiped post-build); needed only "
          "to satisfy build_env_cfg's termination registration.")
   p.add_argument("--object_reward_mult", type=float, default=1.0)
+  p.add_argument("--curriculum_scale", type=float, default=0.0,
+    help="Unused at eval (cfg.curriculum unused post-build); needed for build_env_cfg.")
   p.add_argument("--obs_clip", type=float, default=5.0)
   p.add_argument("--base_checkpoints", nargs="+", required=True,
     help="1 path for --side {right,left}; 2 paths [right, left] for --side bimanual.")

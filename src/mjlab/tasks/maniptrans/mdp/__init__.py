@@ -59,6 +59,10 @@ from mjlab.tasks.maniptrans.mdp.rewards import (
   joints_vel_error_exp as joints_vel_error_exp,
   wrist_power_penalty as wrist_power_penalty,
 )
+from mjlab.tasks.maniptrans.mdp.curriculums import (
+  build_obj_term_stages as build_obj_term_stages,
+  gravity_curriculum as gravity_curriculum,
+)
 from mjlab.tasks.maniptrans.mdp.terminations import (
   contact_expected_but_missing as contact_expected_but_missing,
   contact_missed_too_long as contact_missed_too_long,

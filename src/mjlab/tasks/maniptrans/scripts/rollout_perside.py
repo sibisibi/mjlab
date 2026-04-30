@@ -66,6 +66,7 @@ def main():
   p.add_argument("--contact_match_weight", type=float, default=1.0)
   p.add_argument("--contact_match_beta", type=float, default=40.0)
   p.add_argument("--contact_miss_t", type=int, default=999999)
+  p.add_argument("--curriculum_scale", type=float, default=0.0)
   p.add_argument("--object_reward_mult", type=float, default=1.0)
   p.add_argument("--obs_clip", type=float, default=0.0)
   p.add_argument("--base_checkpoints", nargs="+", required=True,

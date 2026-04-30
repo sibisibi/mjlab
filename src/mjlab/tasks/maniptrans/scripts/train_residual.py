@@ -27,6 +27,7 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.managers.observation_manager import ObservationTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.sensor import ContactMatch, ContactSensorCfg
@@ -79,7 +80,8 @@ def build_env_cfg(args):
   with open(data_dir / "task_info.json") as f:
     task_info = json.load(f)
   right_obj_dir = str(pool_dir / task_info["right_object_mesh_dir"])
-  left_obj_dir = str(pool_dir / task_info["left_object_mesh_dir"])
+  left_mesh_rel = task_info.get("left_object_mesh_dir")
+  left_obj_dir = str(pool_dir / left_mesh_rel) if left_mesh_rel else None
   right_mesh_scale = float(task_info.get("right_object_mesh_scale", 1.0))
   left_mesh_scale = float(task_info.get("left_object_mesh_scale", 1.0))
 
@@ -104,25 +106,35 @@ def build_env_cfg(args):
 
   # Bimanual-on-same-item trajectories: build one entity, point both sides at it,
   # else two entities drift between pin snaps and render as twin ghosts.
-  shared_object = (right_obj_dir == left_obj_dir)
+  shared_object = (left_obj_dir is not None and right_obj_dir == left_obj_dir)
   cfg.scene.entities["object_right"] = get_object_cfg(
     right_obj_dir, "obj_right", density=args.obj_density, mesh_scale=right_mesh_scale,
   )
-  if not shared_object:
+  if left_obj_dir is not None and not shared_object:
     cfg.scene.entities["object_left"] = get_object_cfg(
       left_obj_dir, "obj_left", density=args.obj_density, mesh_scale=left_mesh_scale,
     )
   if args.side == "right":
-    if not shared_object:
+    if "object_left" in cfg.scene.entities:
       del cfg.scene.entities["object_left"]
     motion_cmd.object_entity_names = {"right": "object_right"}
   elif args.side == "left":
+    if left_obj_dir is None and not shared_object:
+      raise ValueError(
+        "--side left requested but trajectory has no left object "
+        "(task_info['left_object_mesh_dir'] is null)."
+      )
     if shared_object:
       motion_cmd.object_entity_names = {"left": "object_right"}
     else:
       del cfg.scene.entities["object_right"]
       motion_cmd.object_entity_names = {"left": "object_left"}
   else:
+    if left_obj_dir is None:
+      raise ValueError(
+        "--side bimanual requested but trajectory has no left object "
+        "(task_info['left_object_mesh_dir'] is null)."
+      )
     if shared_object:
       motion_cmd.object_entity_names = {"right": "object_right", "left": "object_right"}
     else:
@@ -243,6 +255,29 @@ def build_env_cfg(args):
       "asset_cfg": SceneEntityCfg("hand"),
     },
   )
+
+  # ManipTrans-style curriculum: object termination tightening + gravity ramp.
+  # curriculum_scale=0 disables. 1.0 = literal ManipTrans (gravity ep 80, term ep 133).
+  if args.curriculum_scale > 0:
+    from mjlab.envs.mdp.curriculums import termination_curriculum
+    pos_stages, rot_stages = mt_mdp.build_obj_term_stages(args.curriculum_scale)
+    cfg.curriculum = {
+      "obj_pos_thr": CurriculumTermCfg(
+        func=termination_curriculum,
+        params={"termination_name": "obj_pos_diverged", "stages": pos_stages},
+      ),
+      "obj_rot_thr": CurriculumTermCfg(
+        func=termination_curriculum,
+        params={"termination_name": "obj_rot_diverged", "stages": rot_stages},
+      ),
+      "gravity": CurriculumTermCfg(
+        func=mt_mdp.gravity_curriculum,
+        params={
+          "schedule_steps": int(1920 * args.curriculum_scale),
+          "full_g": 9.81,
+        },
+      ),
+    }
   return cfg
 
 
@@ -272,6 +307,11 @@ def main():
          "settle on what natural streaks look like.")
   p.add_argument("--base_checkpoints", nargs="+", required=True,
     help="1 path for --side {right,left}; 2 paths [right, left] for --side bimanual.")
+  p.add_argument("--curriculum_scale", type=float, default=0.0,
+    help="Multiplier on ManipTrans schedule_steps. 0 (default) = curriculum off. "
+         "1.0 = literal ManipTrans (gravity ep 80, obj term ep 133). 10.0 = "
+         "stretched (ep 800 / 1333). Tightens obj_pos/rot_diverged thresholds "
+         "and ramps gravity 0->-9.81 m/s^2.")
   p.add_argument("--residual_action_scale", type=float, default=1.0)
   p.add_argument("--init_std", type=float, default=0.37)
   p.add_argument("--wandb_project", required=True)
