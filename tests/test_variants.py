@@ -1036,6 +1036,107 @@ def test_dataid_assigned_per_world():
   assert not np.array_equal(dataid[0], dataid[2])
 
 
+def _sphere_with_material_spec() -> mujoco.MjSpec:
+  """Single-geom sphere whose visual references a named material."""
+  spec = mujoco.MjSpec()
+  m = spec.add_mesh()
+  m.name = "sphere"
+  m.make_sphere(subdivision=2)
+  mat = spec.add_material()
+  mat.name = "red_mat"
+  mat.rgba[:] = (1.0, 0.0, 0.0, 1.0)
+  body = spec.worldbody.add_body()
+  body.name = "prop"
+  body.add_freejoint()
+  g = body.add_geom()
+  g.name = "visual"
+  g.type = mujoco.mjtGeom.mjGEOM_MESH
+  g.meshname = "sphere"
+  g.material = "red_mat"
+  return spec
+
+
+def _cone_with_material_spec() -> mujoco.MjSpec:
+  """Single-geom cone whose visual references a different named material."""
+  spec = mujoco.MjSpec()
+  m = spec.add_mesh()
+  m.name = "cone"
+  m.make_cone(nedge=8, radius=0.05)
+  mat = spec.add_material()
+  mat.name = "blue_mat"
+  mat.rgba[:] = (0.0, 0.0, 1.0, 1.0)
+  body = spec.worldbody.add_body()
+  body.name = "prop"
+  body.add_freejoint()
+  g = body.add_geom()
+  g.name = "visual"
+  g.type = mujoco.mjtGeom.mjGEOM_MESH
+  g.meshname = "cone"
+  g.material = "blue_mat"
+  return spec
+
+
+def test_materials_merged_under_variant_prefix():
+  """Both variants' materials end up in the merged spec, name-prefixed."""
+  scene_spec, vi = _build_scene_with_variants(
+    _sphere_with_material_spec, _cone_with_material_spec
+  )
+  model = scene_spec.compile()
+  mat_names = {model.material(i).name for i in range(model.nmat)}
+  assert "object/a/red_mat" in mat_names
+  assert "object/b/blue_mat" in mat_names
+
+
+def test_matid_assigned_per_world():
+  """Each world's geom_matid points to its variant's material."""
+  scene_spec, vi = _build_scene_with_variants(
+    _sphere_with_material_spec, _cone_with_material_spec
+  )
+  result = build_variant_model(scene_spec, 4, vi)
+
+  matid = result.wp_model.geom_matid.numpy()
+  assert matid.shape == (4, result.mj_model.ngeom)
+
+  w2v = result.world_to_variant["object/"]
+  red_id = mujoco.mj_name2id(
+    result.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "object/a/red_mat"
+  )
+  blue_id = mujoco.mj_name2id(
+    result.mj_model, mujoco.mjtObj.mjOBJ_MATERIAL, "object/b/blue_mat"
+  )
+  assert red_id >= 0 and blue_id >= 0 and red_id != blue_id
+
+  # Slot geom is the last mesh geom (single-geom variants -> ordinal 0).
+  slot_gid = next(
+    gid
+    for gid in range(result.mj_model.ngeom - 1, -1, -1)
+    if result.mj_model.geom_type[gid] == mujoco.mjtGeom.mjGEOM_MESH
+  )
+
+  for w in range(4):
+    expected = red_id if w2v[w] == 0 else blue_id
+    assert int(matid[w, slot_gid]) == expected
+
+
+def test_matid_minus_one_when_variant_has_no_material():
+  """A variant slot without a material yields geom_matid == -1 in its worlds."""
+  scene_spec, vi = _build_scene_with_variants(
+    _sphere_with_material_spec,
+    _simple_cone_spec,  # cone has no material
+  )
+  result = build_variant_model(scene_spec, 4, vi)
+
+  matid = result.wp_model.geom_matid.numpy()
+  w2v = result.world_to_variant["object/"]
+  slot_gid = next(
+    gid
+    for gid in range(result.mj_model.ngeom - 1, -1, -1)
+    if result.mj_model.geom_type[gid] == mujoco.mjtGeom.mjGEOM_MESH
+  )
+  cone_world = int(np.where(w2v == 1)[0][0])
+  assert int(matid[cone_world, slot_gid]) == -1
+
+
 def test_padding_slots_get_disabled():
   """Shorter variant's padding geom slots have dataid == -1."""
   scene_spec, vi = _build_scene_with_variants(_sphere_2col_spec, _cone_4col_spec)

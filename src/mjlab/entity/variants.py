@@ -47,7 +47,7 @@ import warp as wp
 
 from mjlab.entity.entity import EntityCfg
 from mjlab.utils.mujoco import dof_width, qpos_width
-from mjlab.utils.spec import copy_mesh_data
+from mjlab.utils.spec import copy_material_data, copy_mesh_data, copy_texture_data
 
 # Reserved name prefixes for synthesized template entities. Source variant
 # specs must not create geoms, bodies, meshes, or other named items under
@@ -967,6 +967,38 @@ def build_merged_variant_spec(
       new_mesh.name = f"{prefix}{mesh.name}"
       copy_mesh_data(mesh, new_mesh)
 
+  # Mirror of the mesh treatment above for textures and materials.
+  texture_old_to_new: dict[str, str] = {}
+  for tex in template_spec.textures:
+    new_name = f"{template_prefix}{tex.name}"
+    texture_old_to_new[tex.name] = new_name
+    tex.name = new_name
+  material_old_to_new: dict[str, str] = {}
+  for mat in template_spec.materials:
+    new_name = f"{template_prefix}{mat.name}"
+    material_old_to_new[mat.name] = new_name
+    mat.name = new_name
+    mat.textures = [texture_old_to_new.get(t, t) for t in mat.textures]
+  for _, body in _iter_body_paths(template_body):
+    for g in body.geoms:
+      if g.material in material_old_to_new:
+        g.material = material_old_to_new[g.material]
+
+  # Copy texture/material assets from other variants into the template.
+  for i in range(1, len(variant_specs)):
+    prefix = f"{variant_names[i]}/"
+    src_to_dst_tex: dict[str, str] = {}
+    for tex in variant_specs[i].textures:
+      new_tex = template_spec.add_texture()
+      new_tex.name = f"{prefix}{tex.name}"
+      src_to_dst_tex[tex.name] = new_tex.name
+      copy_texture_data(tex, new_tex)
+    for mat in variant_specs[i].materials:
+      new_mat = template_spec.add_material()
+      new_mat.name = f"{prefix}{mat.name}"
+      copy_material_data(mat, new_mat)
+      new_mat.textures = [src_to_dst_tex.get(t, t) for t in new_mat.textures]
+
   # (2) Slot-driven rename of variant 0's existing mesh geoms. Walk
   # the template body tree; within each (body, role) bucket, the
   # n-th mesh geom (in source order) maps to slot ordinal n.
@@ -1052,6 +1084,18 @@ def _qualified_mesh_name(entity_prefix: str, variant_name: str, mesh_name: str) 
   added (``<entity>/<variant>/<mesh>``).
   """
   return f"{entity_prefix}{variant_name}/{mesh_name}"
+
+
+def _qualified_material_name(
+  entity_prefix: str, variant_name: str, material_name: str
+) -> str:
+  """Material asset name in the merged template's namespace.
+
+  Source materials are prefixed with the variant name during merge
+  (``<variant>/<material>``); after scene attach the entity prefix is
+  added (``<entity>/<variant>/<material>``).
+  """
+  return f"{entity_prefix}{variant_name}/{material_name}"
 
 
 def _qualified_slot_geom_name(entity_prefix: str, template_geom_name: str) -> str:
@@ -1298,6 +1342,10 @@ def build_variant_model(
   base_dataid = model.geom_dataid.copy()
   dataid_table = np.tile(base_dataid, (nworld, 1))
 
+  # Same treatment for matid so each variant can use its own material.
+  base_matid = model.geom_matid.copy()
+  matid_table = np.tile(base_matid, (nworld, 1))
+
   world_to_variant: dict[str, np.ndarray] = {}
 
   for entity_prefix, metadata in variant_info:
@@ -1342,9 +1390,11 @@ def build_variant_model(
         )
       slot_geom_ids[s_idx] = gid
 
-    # Resolve every (variant, slot) -> mesh_id. ``-1`` for slots a
-    # variant doesn't fill.
+    # Resolve every (variant, slot) -> (mesh_id, mat_id). ``-1`` denotes
+    # an unfilled slot (mesh) or a slot rendered without a material
+    # (matid).
     variant_slot_mesh_ids = np.full((nvariants, nslots), -1, dtype=np.int64)
+    variant_slot_matids = np.full((nvariants, nslots), -1, dtype=np.int64)
     for v_idx, slot_specs in enumerate(metadata.variant_slot_specs):
       variant_name = metadata.variant_names[v_idx]
       for s_idx, gspec in enumerate(slot_specs):
@@ -1360,13 +1410,26 @@ def build_variant_model(
             f"slot {slots[s_idx].key}) not found in compiled model."
           )
         variant_slot_mesh_ids[v_idx, s_idx] = mid
+        if gspec.material:
+          full_mat_name = _qualified_material_name(
+            entity_prefix, variant_name, gspec.material
+          )
+          matid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_MATERIAL, full_mat_name)
+          if matid < 0:
+            raise ValueError(
+              f"Material '{full_mat_name}' (variant '{variant_name}', "
+              f"slot {slots[s_idx].key}) not found in compiled model."
+            )
+          variant_slot_matids[v_idx, s_idx] = matid
 
     # Vectorized scatter: per-world row from variant assignment.
     dataid_table[:, slot_geom_ids] = variant_slot_mesh_ids[w2v]
+    matid_table[:, slot_geom_ids] = variant_slot_matids[w2v]
 
   # Build warp model.
   m = mjwarp.put_model(model)
   m.geom_dataid = wp.array(dataid_table, dtype=int)
+  m.geom_matid = wp.array(matid_table, dtype=int)
 
   # Populate dependent per-world fields.
   _populate_dependent_fields(m, model, nworld, variant_info, world_to_variant)

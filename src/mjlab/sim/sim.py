@@ -275,6 +275,7 @@ class Simulation:
     # viewer syncs them per-world.
     self._expanded_fields.update(VARIANT_DEPENDENT_FIELDS)
     self._expanded_fields.add("geom_dataid")
+    self._expanded_fields.add("geom_matid")
 
     # Stash variant assignments as torch tensors keyed by bare entity name
     # (build_variant_model emits "<name>/" prefixes; strip the trailing slash for

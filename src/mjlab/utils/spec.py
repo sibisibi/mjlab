@@ -465,3 +465,54 @@ def copy_mesh_data(src: mujoco.MjsMesh, dst: mujoco.MjsMesh) -> None:
   dst.refpos[:] = src.refpos
   dst.refquat[:] = src.refquat
   dst.smoothnormal = src.smoothnormal
+
+
+def copy_texture_data(src: mujoco.MjsTexture, dst: mujoco.MjsTexture) -> None:
+  """Copy texture data from *src* to *dst*.
+
+  Copies the file path or builtin/data fields, format, dimensions, and color
+  settings. The ``name`` field is NOT copied; set it on *dst* before calling.
+  """
+  assert dst.name, "dst.name must be set before copy_texture_data."
+  dst.type = src.type
+  dst.colorspace = src.colorspace
+  dst.builtin = src.builtin
+  dst.mark = src.mark
+  dst.rgb1[:] = src.rgb1
+  dst.rgb2[:] = src.rgb2
+  dst.markrgb[:] = src.markrgb
+  dst.random = src.random
+  dst.gridsize[:] = src.gridsize
+  dst.gridlayout = src.gridlayout
+  dst.width = src.width
+  dst.height = src.height
+  dst.nchannel = src.nchannel
+  dst.hflip = src.hflip
+  dst.vflip = src.vflip
+  if src.file:
+    dst.file = src.file
+  if len(src.cubefiles) > 0:
+    dst.cubefiles = src.cubefiles
+  if len(src.data) > 0:
+    dst.data = src.data
+  if src.content_type:
+    dst.content_type = src.content_type
+
+
+def copy_material_data(src: mujoco.MjsMaterial, dst: mujoco.MjsMaterial) -> None:
+  """Copy material data from *src* to *dst*.
+
+  Copies appearance settings (rgba, specular, shininess, ...) and texture
+  bindings. The ``name`` field is NOT copied; set it on *dst* before calling.
+  """
+  assert dst.name, "dst.name must be set before copy_material_data."
+  dst.rgba[:] = src.rgba
+  dst.emission = src.emission
+  dst.specular = src.specular
+  dst.shininess = src.shininess
+  dst.reflectance = src.reflectance
+  dst.roughness = src.roughness
+  dst.metallic = src.metallic
+  dst.texuniform = src.texuniform
+  dst.texrepeat[:] = src.texrepeat
+  dst.textures = list(src.textures)
