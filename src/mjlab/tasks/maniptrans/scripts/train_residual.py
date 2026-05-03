@@ -261,6 +261,8 @@ def build_env_cfg(args):
       func=mt_mdp.future_obj_pos_delta, params={"command_name": "motion"}),
     "future_obj_vel": ObservationTermCfg(
       func=mt_mdp.future_obj_vel, params={"command_name": "motion"}),
+    "obj_local_sdf_at_keypoints": ObservationTermCfg(
+      func=mt_mdp.obj_local_sdf_at_keypoints, params={"command_name": "motion"}),
   }
   cfg.observations["actor"].terms.update(object_obs)
   cfg.observations["critic"].terms.update(object_obs)

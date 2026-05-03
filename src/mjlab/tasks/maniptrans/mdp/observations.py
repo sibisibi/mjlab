@@ -655,3 +655,50 @@ def future_obj_vel(
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   v = _to_wrist_frame(command.next_obj_vel_w, command)
   return v.reshape(v.shape[0], -1)
+
+
+def obj_local_sdf_at_keypoints(
+  env: ManagerBasedRlEnv,
+  command_name: str,
+) -> torch.Tensor:
+  """Per-keypoint SDF + outward normal, queried against the per-side baked
+  object SDF grid.
+
+  Per side, six keypoints (palm site + five fingertip sites in that order)
+  contribute a 4-tuple ``(sdf, ∇x, ∇y, ∇z)``:
+
+    - sdf: signed distance from the keypoint to the object surface
+      (positive outside, negative inside; standard convention).
+    - ∇x, ∇y, ∇z: outward unit normal at the keypoint, expressed in the
+      per-side wrist frame for consistency with the rest of the actor obs
+      (T1.0 wrist-frame rewrite).
+
+  Shape: ``(B, n_sides * 6 * 4)``. If a side has no SDF baked (no mesh path
+  configured), its block is filled with zeros so the obs dim stays
+  consistent across configurations.
+
+  This is the geometry signal the actor was missing pre-T2: it lets the
+  policy answer "where is the surface relative to my fingertips, and which
+  way is outward" without inferring shape from contact-force history.
+  """
+  command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
+  parts = []
+  B = command.robot_wrist_pos_w.shape[0]
+  for side in command._side_list:
+    si = command._side_list.index(side)
+    if side not in command._obj_sdf_grids:
+      parts.append(torch.zeros(B, 6, 4, device=command.device))
+      continue
+    palm_pos = command.robot_wrist_pos_w[:, si]  # (B, 3)
+    tip_pos = command.robot_tip_pos_w[:, si]  # (B, 5, 3)
+    keypoints = torch.cat([palm_pos[:, None, :], tip_pos], dim=1)  # (B, 6, 3)
+    sdf, grad_world = command.sdf_query(keypoints, side)  # (B, 6), (B, 6, 3)
+    # Rotate gradient into the per-side wrist frame for actor consistency.
+    wrist_quat = (
+      command.robot_wrist_quat_w[:, si:si + 1].expand(B, 6, 4)
+    )
+    grad_wrist = quat_apply_inverse(wrist_quat, grad_world)
+    feat = torch.cat([sdf[..., None], grad_wrist], dim=-1)  # (B, 6, 4)
+    parts.append(feat)
+  out = torch.stack(parts, dim=1)  # (B, n_sides, 6, 4)
+  return out.reshape(out.shape[0], -1)

@@ -33,6 +33,7 @@ from mjlab.tasks.maniptrans.mdp.observations import (
   tip_penetration as tip_penetration,
   obj_angvel as obj_angvel,
   obj_angvel_delta as obj_angvel_delta,
+  obj_local_sdf_at_keypoints as obj_local_sdf_at_keypoints,
   obj_pos_delta as obj_pos_delta,
   obj_pos_relative as obj_pos_relative,
   obj_quat as obj_quat,
