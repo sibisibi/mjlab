@@ -136,6 +136,24 @@ def build_env_cfg(args):
     else:
       motion_cmd.object_entity_names = {"right": "object_right", "left": "object_left"}
 
+  # SDF baking — point the command at each side's visual.obj so it can bake
+  # an object-local SDF + gradient grid at init time. The grid is cached on
+  # disk under <obj_dir>/.sdf_cache/ so subsequent runs load instantly.
+  mesh_paths: dict[str, str] = {}
+  mesh_scales: dict[str, float] = {}
+  if args.side in ("right", "bimanual"):
+    if right_obj_dir is not None:
+      mesh_paths["right"] = str(Path(right_obj_dir) / "visual.obj")
+      mesh_scales["right"] = right_mesh_scale
+  if args.side in ("left", "bimanual"):
+    side_dir = right_obj_dir if shared_object else left_obj_dir
+    side_scale = right_mesh_scale if shared_object else left_mesh_scale
+    if side_dir is not None:
+      mesh_paths["left"] = str(Path(side_dir) / "visual.obj")
+      mesh_scales["left"] = side_scale
+  motion_cmd.object_mesh_paths = mesh_paths or None
+  motion_cmd.object_mesh_scales = mesh_scales or None
+
   for key, term in cfg.rewards.items():
     if key.endswith("_contact_match"):
       term.weight *= args.contact_match_weight

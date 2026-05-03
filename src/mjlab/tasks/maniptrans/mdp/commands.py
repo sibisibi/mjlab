@@ -32,6 +32,89 @@ if TYPE_CHECKING:
 FINGER_NAMES = ("thumb", "index", "middle", "ring", "pinky")
 
 
+def _bake_object_sdf_grid(
+  mesh_path: str,
+  mesh_scale: float,
+  extent: float,
+  N: int,
+  device: str,
+) -> torch.Tensor:
+  """Bake a signed-distance + gradient grid for an object mesh.
+
+  Output layout: ``(4, N, N, N)`` float32 — channel 0 is the signed distance
+  (positive outside, negative inside; standard SDF convention), channels 1-3
+  are the analytic gradient via central differences along x/y/z. Grid spans
+  ``[-extent, extent]^3`` in the object-local frame; voxel side is
+  ``2 * extent / (N - 1)`` (corner-aligned, F.grid_sample-friendly).
+
+  Caches the baked grid under ``<mesh_dir>/.sdf_cache/sdf_e{extent}_n{N}_s{scale}.pt``
+  so subsequent runs on the same object load instantly. Cache key encodes
+  the parameters that change the grid contents; mesh mtime is *not* hashed
+  (regenerate the cache by deleting the file if you replace the .obj).
+  """
+  import hashlib
+  from pathlib import Path
+
+  import trimesh
+
+  mesh_path_p = Path(mesh_path)
+  cache_dir = mesh_path_p.parent / ".sdf_cache"
+  # Cache key encodes the bake-time parameters that change the grid contents,
+  # plus a "method" tag so old caches with the np.gradient-based gradient are
+  # silently abandoned in favour of the analytic-normal v2 layout.
+  key = hashlib.md5(
+    f"{mesh_path_p.name}|method=v2_analytic|e={extent}|n={N}|s={mesh_scale}".encode()
+  ).hexdigest()[:12]
+  cache_file = cache_dir / f"sdf_v2_e{extent}_n{N}_s{mesh_scale}_{key}.pt"
+
+  if cache_file.exists():
+    return torch.load(cache_file, map_location=device, weights_only=True).to(
+      device=device, dtype=torch.float32
+    )
+
+  mesh = trimesh.load(mesh_path_p, process=False, force="mesh")
+  if not isinstance(mesh, trimesh.Trimesh):
+    raise TypeError(
+      f"SDF bake expected a single trimesh.Trimesh, got {type(mesh)} from {mesh_path!r}"
+    )
+  if mesh_scale != 1.0:
+    mesh.apply_scale(mesh_scale)
+
+  xs = np.linspace(-extent, extent, N, dtype=np.float32)
+  X, Y, Z = np.meshgrid(xs, xs, xs, indexing="ij")
+  pts = np.stack([X, Y, Z], axis=-1).reshape(-1, 3).astype(np.float32)
+
+  # closest_point gives both unsigned distance and the projection onto the
+  # surface (`closest`). contains gives the sign. Together: standard SDF
+  # (positive outside, negative inside) plus analytic outward normals via
+  # the displacement (pts - closest) / |pts - closest|. The analytic
+  # normal is unit-length by construction near the surface; np.gradient
+  # over a discrete grid systematically under-magnitudes the gradient by
+  # ~25% at the surface, which makes the "direction" signal noisy.
+  closest, dist, _ = trimesh.proximity.closest_point(mesh, pts)
+  inside = mesh.contains(pts)
+  sd = np.where(inside, -dist, dist).astype(np.float32)
+
+  # Analytic SDF gradient: ∇sdf points in the direction of increasing SDF.
+  # - outside (sd > 0): away from the surface, i.e. (pts - closest) / |...|.
+  # - inside  (sd < 0): toward the surface,    i.e. (closest - pts) / |...|.
+  # Combined: sign(sd) * (pts - closest) / |pts - closest|, with sign +1
+  # outside and -1 inside.
+  sign = np.where(inside, -1.0, 1.0).astype(np.float32)
+  disp = (pts - closest).astype(np.float32)
+  unit = disp / np.maximum(
+    np.linalg.norm(disp, axis=-1, keepdims=True), 1e-8
+  )
+  grad_pts = (sign[:, None] * unit).astype(np.float32)  # (M, 3)
+  grad = grad_pts.reshape(N, N, N, 3).transpose(3, 0, 1, 2)  # (3, N, N, N)
+  sdf = sd.reshape(N, N, N)
+  grid = np.concatenate([sdf[None], grad], axis=0)  # (4, N, N, N)
+
+  cache_dir.mkdir(parents=True, exist_ok=True)
+  torch.save(torch.from_numpy(grid), cache_file)
+  return torch.from_numpy(grid).to(device=device, dtype=torch.float32)
+
+
 class ManipTransMotionData:
   """Loads one or more motion.npz files and organizes robot + MANO data.
 
@@ -383,6 +466,27 @@ class ManipTransCommand(CommandTerm):
       contact_names = [f"contact_{side}_{finger}_tip" for finger in FINGER_NAMES]
       contact_ids, _ = self.robot.find_sites(contact_names, preserve_order=True)
       self._contact_site_indices[side] = contact_ids
+
+    # Per-side object SDF grids (4, N, N, N): channel 0 = signed distance
+    # (positive outside), channels 1-3 = ∇sdf via central differences. Baked
+    # once at command init from the visual mesh; cached on disk under the
+    # mesh dir so subsequent runs load instantly. Used by the `sdf_query`
+    # helper for SDF-based observations and rewards.
+    self._obj_sdf_grids: dict[str, torch.Tensor] = {}
+    self._obj_sdf_extent: float = float(cfg.obj_sdf_grid_extent)
+    self._obj_sdf_n: int = int(cfg.obj_sdf_grid_n)
+    if cfg.object_mesh_paths is not None:
+      scales = cfg.object_mesh_scales or {}
+      for side, mesh_path in cfg.object_mesh_paths.items():
+        if side not in cfg.sides:
+          continue
+        if mesh_path is None:
+          continue
+        scale = float(scales.get(side, 1.0))
+        self._obj_sdf_grids[side] = _bake_object_sdf_grid(
+          mesh_path, scale, self._obj_sdf_extent, self._obj_sdf_n,
+          device=str(self.device),
+        )
 
     # All tracked bodies (per side, matching the hand's body_names minus wrist).
     # Each maps to a MANO joint for delta obs and tracking rewards.
@@ -739,6 +843,88 @@ class ManipTransCommand(CommandTerm):
         self.motion.tips_distance[side][self.env_traj_idx, self.time_steps]
       )
     return torch.stack(parts, dim=1)
+
+  def sdf_query(
+    self, world_pts: torch.Tensor, side: str
+  ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Query the per-side baked SDF + gradient at arbitrary world-frame points.
+
+    Args:
+      world_pts: ``(B, K, 3)`` (or ``(B, 3)``) world-frame query points.
+      side: which side's SDF to use (must be in ``cfg.sides`` and have a
+        baked grid; raises KeyError otherwise).
+
+    Returns:
+      ``(sdf, grad_world)`` of shapes ``(B, K)`` and ``(B, K, 3)`` (or
+      ``(B,)`` and ``(B, 3)`` if input is 2-D). ``sdf`` is the signed
+      distance in metres (positive outside, negative inside, standard
+      convention). ``grad_world`` is the SDF gradient expressed in world
+      frame, magnitude ≈ 1 near the surface (it's an approximate surface
+      normal for outside-points).
+
+    Implementation: transforms the query points into the object's local
+    frame using ``sim_obj_pos_w`` and ``sim_obj_quat_w``, normalizes to
+    grid coords in ``[-1, 1]``, samples the baked grid via
+    ``F.grid_sample`` (trilinear, border padding) in a single call. The
+    gradient is sampled in the same call (channels 1-3 of the grid) and
+    rotated back to world frame. Outside the grid box, the returned SDF /
+    gradient is the value at the nearest box face — so callers should
+    ensure ``cfg.obj_sdf_grid_extent`` is large enough to enclose the
+    expected query region (default 0.30 m → 60 cm cube around the object).
+    """
+    if side not in self._obj_sdf_grids:
+      raise KeyError(
+        f"sdf_query: no SDF grid baked for side {side!r}. Set "
+        f"`object_mesh_paths[{side!r}]` on the ManipTransCommandCfg."
+      )
+    grid = self._obj_sdf_grids[side]  # (4, N, N, N)
+    si = self._side_list.index(side)
+    obj_pos = self.sim_obj_pos_w[:, si]  # (B, 3)
+    obj_quat = self.sim_obj_quat_w[:, si]  # (B, 4)
+
+    squeeze_K = world_pts.dim() == 2
+    if squeeze_K:
+      world_pts = world_pts.unsqueeze(1)  # (B, 1, 3)
+
+    B, K = world_pts.shape[0], world_pts.shape[1]
+    # World → object-local: local = R(q_obj)^-1 (world - obj_pos).
+    # Broadcast quat over K via the lab_api helper (works on (..., 4) / (..., 3)).
+    delta = world_pts - obj_pos[:, None, :]  # (B, K, 3)
+    quat_b = obj_quat[:, None, :].expand(B, K, 4)
+    from mjlab.utils.lab_api.math import quat_apply, quat_apply_inverse
+    local = quat_apply_inverse(quat_b, delta)  # (B, K, 3) in object frame
+
+    # Normalize to F.grid_sample coords in [-1, 1].
+    norm = local / self._obj_sdf_extent  # (B, K, 3)
+    # F.grid_sample 5-D: input (N, C, D, H, W); grid last-axis is (x, y, z)
+    # mapping to (W, H, D) of the input. Our grid is laid out so dim-order
+    # is (x_idx, y_idx, z_idx) -- i.e., D=x, H=y, W=z. So the grid sample's
+    # "(x, y, z)" must be passed as (z_norm, y_norm, x_norm) to align.
+    norm_zyx = norm.flip(-1)  # (B, K, 3) reordered to (z, y, x)
+    sample_grid = norm_zyx.reshape(1, B * K, 1, 1, 3)
+    grid_5d = grid.unsqueeze(0)  # (1, 4, N, N, N)
+    out = torch.nn.functional.grid_sample(
+      grid_5d, sample_grid, mode="bilinear",
+      padding_mode="border", align_corners=True,
+    )  # (1, 4, B*K, 1, 1)
+    out = out.view(4, B, K).permute(1, 2, 0)  # (B, K, 4)
+    sdf = out[..., 0]  # (B, K)
+    # Channels 1-3 were baked as analytic outward normals (unit length at
+    # each grid point). Trilinear interpolation between neighbouring voxels
+    # with slightly-different normals (mesh curvature) produces a vector
+    # that's *near* unit length but typically 0.7-0.9 in practice. The
+    # actor needs a direction signal not a magnitude (magnitude info lives
+    # in the SDF channel), so re-normalize here to a clean unit vector.
+    grad_local = out[..., 1:]  # (B, K, 3) in object frame
+    grad_local = grad_local / (
+      grad_local.norm(dim=-1, keepdim=True).clamp(min=1e-6)
+    )
+    grad_world = quat_apply(quat_b, grad_local)  # (B, K, 3)
+
+    if squeeze_K:
+      sdf = sdf.squeeze(1)
+      grad_world = grad_world.squeeze(1)
+    return sdf, grad_world
 
   # --- All body joint tracking (17 per side: 12 non-tip + 5 tip) ---
 
@@ -1419,6 +1605,29 @@ class ManipTransCommandCfg(CommandTermCfg):
   the hand's asset_zoo constants module (e.g. BODY_MAPPING in
   asset_zoo.hands.xhand.constants). Side prefix is applied at lookup time."""
   object_entity_names: dict[str, str] = None  # side → entity name, e.g. {"right": "object_right"}
+  object_mesh_paths: dict[str, str] | None = None
+  """Per-side absolute path to the visual mesh of each object (e.g. the
+  object pool's `visual.obj`). Used to bake an object-local SDF grid at
+  command init for SDF-based observations and rewards. None disables baking.
+  """
+  object_mesh_scales: dict[str, float] | None = None
+  """Per-side mesh scale to apply at SDF bake time (matches the scene entity's
+  spawn scale). Defaults to 1.0 per side if `object_mesh_paths` is set but
+  scales are not. Ignored when `object_mesh_paths` is None.
+  """
+  obj_sdf_grid_extent: float = 0.30
+  """Half-side of the object-local SDF box, in metres. Box is
+  [-extent, extent]^3 (so total side = 2 * extent, default 0.30 m → 0.60 m
+  cube). Should comfortably enclose the object plus ~5 cm margin so SDF
+  gradients near the surface are well-defined. Voxel size is
+  2 * extent / N where N is `obj_sdf_grid_n`.
+  """
+  obj_sdf_grid_n: int = 48
+  """SDF grid resolution per axis (cube of N^3 voxels). Default 48 →
+  ~6.25 mm voxels at the default 0.30 m extent — fine enough for sub-cm
+  fingertip-surface tracking after trilinear interpolation, cheap on memory
+  (~440 KB per side for sdf+grad).
+  """
   pin_objects: bool = False  # If True, override object root state every step to match reference trajectory
   pin_mode: Literal["hard", "actuated", "xfrc", "none"] = "hard"
   """How to hold the object when `pin_objects=True`.
