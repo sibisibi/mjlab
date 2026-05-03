@@ -196,11 +196,17 @@ def build_env_cfg(args):
     )
   cfg.observations["actor"].terms.update(tactile_obs)
   cfg.observations["critic"].terms.update(tactile_obs)
-  # Privileged-to-critic only: actor stays blind to object geometry.
+  # Privileged-to-critic only: gt_tips_distance is precomputed MANO-supervised.
   cfg.observations["critic"].terms["gt_tips_distance"] = ObservationTermCfg(
     func=mt_mdp.mano_tips_distance_obs, params={"command_name": "motion"})
-  cfg.observations["critic"].terms["hand_obj_distance"] = ObservationTermCfg(
+  # hand_obj_distance: per-body scalar distance to the object center. Promoted
+  # to the actor (in addition to critic) for per-object-overfit residuals --
+  # withholding a frame-invariant scalar is generalization hygiene that
+  # doesn't apply when we explicitly want to overfit one object.
+  hand_obj_term = ObservationTermCfg(
     func=mt_mdp.hand_obj_distance, params={"command_name": "motion"})
+  cfg.observations["actor"].terms["hand_obj_distance"] = hand_obj_term
+  cfg.observations["critic"].terms["hand_obj_distance"] = hand_obj_term
 
   cfg.terminations["dof_vel_sanity"] = TerminationTermCfg(
     func=mt_mdp.dof_vel_sanity,
