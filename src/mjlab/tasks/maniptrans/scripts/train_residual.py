@@ -70,6 +70,10 @@ def build_env_cfg(args):
   motion_cmd.motion_file = args.motion_file
   motion_cmd.motion_index = args.index
   motion_cmd.pin_objects = False
+  motion_cmd.sampling_mode = args.sampling_mode
+  if args.sampling_mode == "adaptive":
+    motion_cmd.adaptive_uniform_ratio = args.adaptive_uniform_ratio
+    motion_cmd.adaptive_alpha = args.adaptive_alpha
 
   sides = ("right", "left") if args.side == "bimanual" else (args.side,)
   add_object_interaction_rewards(cfg, sides)
@@ -357,6 +361,21 @@ def main():
          "SDF), not the specific point MANO chose. Recommended for "
          "single-side per-object overfitting; off by default to keep the "
          "MANO-labeled behavior intact for bimanual / labeled-grasp use.")
+  p.add_argument("--sampling_mode", type=str, default="uniform",
+    choices=("uniform", "adaptive", "start"),
+    help="Trajectory frame sampling at env reset. 'uniform' picks a "
+         "random frame; 'adaptive' biases toward harder frames (those the "
+         "policy keeps failing on) using the per-frame difficulty buffer; "
+         "'start' always resets to frame 0.")
+  p.add_argument("--adaptive_uniform_ratio", type=float, default=0.1,
+    help="Adaptive sampling: fraction of resets that fall back to uniform "
+         "sampling (safety mix to keep easy frames visited). Ignored when "
+         "--sampling_mode != adaptive.")
+  p.add_argument("--adaptive_alpha", type=float, default=0.001,
+    help="Adaptive sampling: EMA learning rate for the per-frame "
+         "difficulty estimator. Higher = faster reaction to recent "
+         "failures, more variance. Ignored when --sampling_mode != "
+         "adaptive.")
   p.add_argument("--object_reward_mult", type=float, default=1.0)
   p.add_argument("--contact_miss_t", type=int, default=999999,
     help="Per-finger consecutive-miss frame threshold for the "
