@@ -160,6 +160,7 @@ def build_env_cfg(args):
       term.params["beta"] = args.contact_match_beta
       term.params["gamma"] = CONTACT_MATCH_GAMMA
       term.params["tol"] = CONTACT_MATCH_TOL
+      term.params["use_sdf"] = bool(args.use_sdf_contact_match)
 
   side_pref = {"right": "r", "left": "l"}
   sensors: list[ContactSensorCfg] = []
@@ -349,6 +350,13 @@ def main():
     help="Approach-shaping decay for contact_match: exp(-β·ref_dist). "
          "Lower β widens the basin of attraction (more gradient at long "
          "distance, less precision near contact). Default 40.0 (sharp).")
+  p.add_argument("--use_sdf_contact_match", action="store_true",
+    help="Use SDF-based surface distance instead of MANO-labeled ref_dist "
+         "in the contact_match approach term. The reward then rewards "
+         "landing on ANY surface point (queried via the per-side baked "
+         "SDF), not the specific point MANO chose. Recommended for "
+         "single-side per-object overfitting; off by default to keep the "
+         "MANO-labeled behavior intact for bimanual / labeled-grasp use.")
   p.add_argument("--object_reward_mult", type=float, default=1.0)
   p.add_argument("--contact_miss_t", type=int, default=999999,
     help="Per-finger consecutive-miss frame threshold for the "

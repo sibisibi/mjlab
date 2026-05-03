@@ -204,26 +204,36 @@ def contact_point_match_reward(
   beta: float,
   gamma: float,
   tol: float,
+  use_sdf: bool = False,
 ) -> torch.Tensor:
   """Additive approach-shaping + contact-bonus reward, per finger per frame.
 
-      reward = ref_flag · ( exp(-β · ref_dist)
+      reward = ref_flag · ( exp(-β · approach_dist)
                            + found · exp(-γ · max(-dist − tol, 0)) )
 
   - ref_flag: preprocessed binary flag, 1 when MANO reference says this finger
     should contact at this frame. Whole reward is 0 when ref_flag == 0.
-  - ref_dist: ||robot_tip_site - ref_contact_point||, geometric distance to
-    MANO reference target contact point (on the object surface, in current
-    sim object frame).
+  - approach_dist:
+      * `use_sdf=False` (default): ``ref_dist`` =
+        ``||robot_tip_site − ref_contact_point||``. Distance to the
+        MANO-labeled target contact point on the object surface (used for
+        the bimanual / labeled-grasp regime).
+      * `use_sdf=True` (single-side overfit, opt-in): ``surface_dist`` =
+        ``max(SDF(robot_tip_site), 0)``. Distance from the fingertip to the
+        *nearest* point on the object surface, queried against the baked
+        per-side SDF grid. This frees the policy to land on any valid
+        surface point instead of being penalised for picking a different
+        one than MANO labeled.
   - found: count of matched contacts on the penetration (mindist) sensor;
-    > 0 when the narrowphase has produced contact between the fingertip site
-    and the object body.
+    > 0 when the narrowphase has produced contact between the fingertip
+    site and the object body.
   - dist: signed distance from the penetration sensor (< 0 when overlap).
 
   Two branches:
     ref_flag=0          : reward = 0
-    ref_flag=1, found=0 : reward = exp(-β · ref_dist)                          (approach)
-    ref_flag=1, found=1 : reward = exp(-β · ref_dist) + exp(-γ · depth_excess) (landing)
+    ref_flag=1, found=0 : reward = exp(-β · approach_dist)                  (approach)
+    ref_flag=1, found=1 : reward = exp(-β · approach_dist)
+                                 + exp(-γ · depth_excess)                   (landing)
 
   Peak 2.0 at clean landing.
   """
@@ -231,16 +241,21 @@ def contact_point_match_reward(
   si = _side_idx(command, side)
   fi = FINGER_NAMES.index(finger)
 
-  ref_pt = command.ref_contact_pos_w[:, si, fi]  # (B, 3)
   robot_pt = command.robot_tip_pos_w[:, si, fi]  # (B, 3)
-  ref_dist = torch.norm(ref_pt - robot_pt, dim=-1)  # (B,)
+
+  if use_sdf:
+    sdf, _ = command.sdf_query(robot_pt, side)  # (B,)
+    approach_dist = torch.clamp(sdf, min=0.0)
+  else:
+    ref_pt = command.ref_contact_pos_w[:, si, fi]  # (B, 3)
+    approach_dist = torch.norm(ref_pt - robot_pt, dim=-1)  # (B,)
 
   pen_sensor: ContactSensor = env.scene[sensor_name]
-  found = (pen_sensor.data.found[:, fi] > 0).to(ref_dist.dtype)  # (B,) 0/1
+  found = (pen_sensor.data.found[:, fi] > 0).to(approach_dist.dtype)  # (B,) 0/1
   pen_dist = pen_sensor.data.dist[:, fi]  # (B,) signed, <0 = overlap
   excess = torch.clamp(-pen_dist - tol, min=0.0)  # (B,)
 
-  shaping = torch.exp(-beta * ref_dist)  # (B,)
+  shaping = torch.exp(-beta * approach_dist)  # (B,)
   bonus = found * torch.exp(-gamma * excess)  # (B,)
 
   flag = command.ref_contact_flags[:, si, fi]  # (B,) 0 or 1
