@@ -30,6 +30,7 @@ from mjlab.tasks.maniptrans.mdp.observations import (
   mano_wrist_vel as mano_wrist_vel,
   mano_wrist_vel_delta as mano_wrist_vel_delta,
   ref_contact_flags as ref_contact_flags,
+  tip_penetration as tip_penetration,
   obj_angvel as obj_angvel,
   obj_angvel_delta as obj_angvel_delta,
   obj_pos_delta as obj_pos_delta,

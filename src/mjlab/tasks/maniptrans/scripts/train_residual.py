@@ -194,6 +194,10 @@ def build_env_cfg(args):
         "history_len": 3,
       },
     )
+    tactile_obs[f"{p}_tip_penetration"] = ObservationTermCfg(
+      func=mt_mdp.tip_penetration,
+      params={"sensor_name": f"{p}_fingertip_penetration"},
+    )
   cfg.observations["actor"].terms.update(tactile_obs)
   cfg.observations["critic"].terms.update(tactile_obs)
   # gt_tips_distance: precomputed MANO tip-to-object-surface signed distance.

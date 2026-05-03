@@ -598,6 +598,35 @@ def ref_contact_flags(
   return flags.reshape(flags.shape[0], -1)
 
 
+def tip_penetration(
+  env: ManagerBasedRlEnv,
+  sensor_name: str,
+  dist_clamp_min: float = -0.02,
+  dist_clamp_max: float = 0.05,
+) -> torch.Tensor:
+  """Per-finger signed penetration distance + narrowphase-found flag.
+
+  Shape: (B, n_primaries * 2) where n_primaries=5 fingertips and the trailing
+  pair is `[dist_clamped, found]`:
+    - dist: signed distance from the penetration (mindist) sensor (< 0 when
+      overlap), clamped to [dist_clamp_min, dist_clamp_max] to bound the
+      EmpiricalNormalization stats against transient resets.
+    - found: float in {0.0, 1.0} — narrowphase produced contact between the
+      fingertip and the object body this step.
+
+  Why expose these to the actor: contact force is zero in the regime that
+  matters most for approach (the last 1-5 cm before contact). `dist` stays
+  continuous through that regime; `found` is the same binary signal the
+  contact_point_match_reward gates on. Together they make the pre-contact
+  approach phase observable instead of inferred.
+  """
+  sensor: ContactSensor = env.scene[sensor_name]
+  dist = sensor.data.dist.clamp(dist_clamp_min, dist_clamp_max)  # (B, n_primaries)
+  found = (sensor.data.found > 0).to(dist.dtype)  # (B, n_primaries)
+  out = torch.stack([dist, found], dim=-1)  # (B, n_primaries, 2)
+  return out.reshape(out.shape[0], -1)
+
+
 # --- Future object trajectory observations (Stage 2) ---
 
 
