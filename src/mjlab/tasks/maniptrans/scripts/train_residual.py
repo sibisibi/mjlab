@@ -196,9 +196,14 @@ def build_env_cfg(args):
     )
   cfg.observations["actor"].terms.update(tactile_obs)
   cfg.observations["critic"].terms.update(tactile_obs)
-  # Privileged-to-critic only: gt_tips_distance is precomputed MANO-supervised.
-  cfg.observations["critic"].terms["gt_tips_distance"] = ObservationTermCfg(
+  # gt_tips_distance: precomputed MANO tip-to-object-surface signed distance.
+  # Promoted to the actor (in addition to critic) -- per-object overfit doesn't
+  # benefit from privileging this signal, and the contact_match reward already
+  # uses the same data, so giving the actor visibility closes the loop.
+  gt_tips_term = ObservationTermCfg(
     func=mt_mdp.mano_tips_distance_obs, params={"command_name": "motion"})
+  cfg.observations["actor"].terms["gt_tips_distance"] = gt_tips_term
+  cfg.observations["critic"].terms["gt_tips_distance"] = gt_tips_term
   # hand_obj_distance: per-body scalar distance to the object center. Promoted
   # to the actor (in addition to critic) for per-object-overfit residuals --
   # withholding a frame-invariant scalar is generalization hygiene that
