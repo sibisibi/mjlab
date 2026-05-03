@@ -9,7 +9,7 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactSensor
-from mjlab.utils.lab_api.math import quat_inv, quat_mul
+from mjlab.utils.lab_api.math import quat_apply_inverse, quat_inv, quat_mul
 
 from .commands import ManipTransCommand
 
@@ -180,11 +180,46 @@ def mano_wrist_angvel(
   return command.mano_wrist_angvel_w.reshape(command.mano_wrist_angvel_w.shape[0], -1)
 
 
+def _to_wrist_frame(
+  vec_w: torch.Tensor, command: ManipTransCommand
+) -> torch.Tensor:
+  """Rotate world-frame 3-vectors into per-side wrist frame.
+
+  vec_w shape: (B, n_sides, 3) or (B, n_sides, K, 3) for any K. Returns same
+  shape with each side's vectors expressed in that side's wrist frame.
+
+  Wrist frame matters because the policy plans against its own kinematic
+  reference, not the world. For the same object pose, a wrist rotated 90 deg
+  yaw should see the same wrist-frame inputs — not a rotated world-frame copy.
+  """
+  wrist_quat = command.robot_wrist_quat_w  # (B, n_sides, 4)
+  if vec_w.dim() == wrist_quat.dim():
+    return quat_apply_inverse(wrist_quat, vec_w)
+  extra = vec_w.dim() - wrist_quat.dim()
+  for _ in range(extra):
+    wrist_quat = wrist_quat.unsqueeze(2)
+  wrist_quat = wrist_quat.expand(*vec_w.shape[:-1], 4)
+  return quat_apply_inverse(wrist_quat, vec_w)
+
+
+def _quat_to_wrist_frame(
+  quat_w: torch.Tensor, command: ManipTransCommand
+) -> torch.Tensor:
+  """Express a per-side world-frame quaternion in the per-side wrist frame.
+
+  q_wrist_obj = quat_inv(q_wrist_world) @ q_obj_world. Shape: (B, n_sides, 4).
+  """
+  return quat_mul(quat_inv(command.robot_wrist_quat_w), quat_w)
+
+
 def mano_joints_vel(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """MANO reference velocities for all 17 bodies. Shape: (B, n_sides*17*3)."""
+  """MANO reference velocities for all 17 bodies, in wrist frame.
+
+  Shape: (B, n_sides*17*3).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   parts = []
   for side in command._side_list:
@@ -192,7 +227,8 @@ def mano_joints_vel(
     body_vel = command.mano_all_joints_vel_w(side)  # (B, 12, 3)
     tip_vel = command.mano_tip_vel_w[:, si]  # (B, 5, 3)
     parts.append(torch.cat([body_vel, tip_vel], dim=1))  # (B, 17, 3)
-  result = torch.stack(parts, dim=1)
+  result = torch.stack(parts, dim=1)  # (B, n_sides, 17, 3)
+  result = _to_wrist_frame(result, command)
   return result.reshape(result.shape[0], -1)
 
 
@@ -200,7 +236,10 @@ def mano_joints_vel_delta(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Delta of 17-body velocities (MANO - robot). Shape: (B, n_sides*17*3)."""
+  """Delta of 17-body velocities (MANO - robot), in wrist frame.
+
+  Shape: (B, n_sides*17*3).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   parts = []
   for side in command._side_list:
@@ -214,7 +253,8 @@ def mano_joints_vel_delta(
     # Our tips are sites, not bodies, so we approximate with link2 body vel.
     tip_delta = tip_mano_vel - tip_robot_vel
     parts.append(torch.cat([body_delta, tip_delta], dim=1))  # (B, 17, 3)
-  result = torch.stack(parts, dim=1)
+  result = torch.stack(parts, dim=1)  # (B, n_sides, 17, 3)
+  result = _to_wrist_frame(result, command)
   return result.reshape(result.shape[0], -1)
 
 
@@ -234,9 +274,10 @@ def obj_pos_relative(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Object position relative to wrist. Shape: (B, n_sides*3)."""
+  """Object position relative to wrist, in wrist frame. Shape: (B, n_sides*3)."""
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   delta = command.sim_obj_pos_w - command.robot_wrist_pos_w  # (B, n_sides, 3)
+  delta = _to_wrist_frame(delta, command)
   return delta.reshape(delta.shape[0], -1)
 
 
@@ -244,36 +285,48 @@ def obj_quat(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Object quaternion. Shape: (B, n_sides*4)."""
+  """Object quaternion expressed in wrist frame. Shape: (B, n_sides*4).
+
+  q_wrist_obj = quat_inv(q_wrist_world) @ q_obj_world. The actor sees the
+  object's orientation as it would appear from the palm frame, so a wrist yaw
+  does not change the encoding for a fixed object.
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
-  return command.sim_obj_quat_w.reshape(command.sim_obj_quat_w.shape[0], -1)
+  q = _quat_to_wrist_frame(command.sim_obj_quat_w, command)
+  return q.reshape(q.shape[0], -1)
 
 
 def obj_vel(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Object velocity. Shape: (B, n_sides*3)."""
+  """Object linear velocity in wrist frame. Shape: (B, n_sides*3)."""
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
-  return command.sim_obj_vel_w.reshape(command.sim_obj_vel_w.shape[0], -1)
+  v = _to_wrist_frame(command.sim_obj_vel_w, command)
+  return v.reshape(v.shape[0], -1)
 
 
 def obj_angvel(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Object angular velocity. Shape: (B, n_sides*3)."""
+  """Object angular velocity in wrist frame. Shape: (B, n_sides*3)."""
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
-  return command.sim_obj_angvel_w.reshape(command.sim_obj_angvel_w.shape[0], -1)
+  w = _to_wrist_frame(command.sim_obj_angvel_w, command)
+  return w.reshape(w.shape[0], -1)
 
 
 def obj_vel_delta(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Delta of object velocity (ref - sim). Shape: (B, n_sides*3)."""
+  """Delta of object linear velocity (ref - sim) in wrist frame.
+
+  Shape: (B, n_sides*3).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   delta = command.ref_obj_vel_w - command.sim_obj_vel_w
+  delta = _to_wrist_frame(delta, command)
   return delta.reshape(delta.shape[0], -1)
 
 
@@ -281,9 +334,20 @@ def obj_quat_delta(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Quaternion delta of object rotation (ref * inv(sim)). Shape: (B, n_sides*4)."""
+  """Quaternion delta from sim to ref object orientation, in wrist frame.
+
+  Computed as q_ref_in_wrist @ quat_inv(q_sim_in_wrist), where each side's
+  obj quat is first re-expressed in that side's wrist frame. The axis of the
+  returned rotation lives in wrist coordinates so wrist rotations don't
+  reshape the error signal.
+
+  Shape: (B, n_sides*4).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
-  delta = quat_mul(command.ref_obj_quat_w, quat_inv(command.sim_obj_quat_w))
+  wrist_inv = quat_inv(command.robot_wrist_quat_w)
+  sim_in_wrist = quat_mul(wrist_inv, command.sim_obj_quat_w)
+  ref_in_wrist = quat_mul(wrist_inv, command.ref_obj_quat_w)
+  delta = quat_mul(ref_in_wrist, quat_inv(sim_in_wrist))
   return delta.reshape(delta.shape[0], -1)
 
 
@@ -291,9 +355,13 @@ def obj_angvel_delta(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Delta of object angular velocity (ref - sim). Shape: (B, n_sides*3)."""
+  """Delta of object angular velocity (ref - sim) in wrist frame.
+
+  Shape: (B, n_sides*3).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   delta = command.ref_obj_angvel_w - command.sim_obj_angvel_w
+  delta = _to_wrist_frame(delta, command)
   return delta.reshape(delta.shape[0], -1)
 
 
@@ -301,9 +369,10 @@ def obj_pos_delta(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Delta from sim object to ref object pos. Shape: (B, n_sides*3)."""
+  """Delta from sim to ref object pos, in wrist frame. Shape: (B, n_sides*3)."""
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   delta = command.ref_obj_pos_w - command.sim_obj_pos_w  # (B, n_sides, 3)
+  delta = _to_wrist_frame(delta, command)
   return delta.reshape(delta.shape[0], -1)
 
 
@@ -374,18 +443,37 @@ def _log_norm_force(force: torch.Tensor) -> torch.Tensor:
   return torch.cat([log_xyz, log_mag], dim=-1)  # (..., 4)
 
 
+def _force_to_wrist_frame(
+  force: torch.Tensor, command: ManipTransCommand, side: str
+) -> torch.Tensor:
+  """Rotate a per-finger world-frame force tensor into the side's wrist frame.
+
+  force shape: (B, n_primaries, 3). Returns (B, n_primaries, 3).
+  """
+  si = command._side_list.index(side)
+  wrist_quat = command.robot_wrist_quat_w[:, si:si + 1]  # (B, 1, 4)
+  wrist_quat = wrist_quat.expand(force.shape[0], force.shape[1], 4)
+  return quat_apply_inverse(wrist_quat, force)
+
+
 def contact_force(
   env: ManagerBasedRlEnv,
   sensor_name: str,
+  command_name: str,
+  side: str,
 ) -> torch.Tensor:
-  """Log-norm contact force from sensor: direction*log|f| + log|f| per primary.
+  """Log-norm contact force from sensor in wrist frame.
 
-  Shape: `(B, n_primaries * 4)`. See `_log_norm_force` for the rationale — raw
-  forces get log-compressed so the normalizer's running stats stay well-behaved
-  across the magnitude range.
+  Per-finger 4D `[unit_dir * log(|f|+1), log(|f|+1)]` — direction expressed in
+  the per-side wrist frame so the actor reads the same encoding for the same
+  contact regardless of wrist orientation. Shape: ``(B, n_primaries * 4)``.
+
+  See `_log_norm_force` for the magnitude-compression rationale.
   """
+  command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   sensor: ContactSensor = env.scene[sensor_name]
   force = sensor.data.force  # (B, n_primaries, 3)
+  force = _force_to_wrist_frame(force, command, side)
   log_force = _log_norm_force(force)  # (B, n_primaries, 4)
   return log_force.reshape(log_force.shape[0], -1)
 
@@ -393,6 +481,8 @@ def contact_force(
 def contact_force_history(
   env: ManagerBasedRlEnv,
   sensor_name: str,
+  command_name: str,
+  side: str,
   history_len: int,
 ) -> torch.Tensor:
   """Rolling history of per-finger log-norm contact force (4D).
@@ -423,8 +513,10 @@ def contact_force_history(
       No separate bool buffer needed.
   """
   key = f"_contact_force_history_{sensor_name}"
+  command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   sensor: ContactSensor = env.scene[sensor_name]
   force = sensor.data.force  # (B, n_primaries, 3)
+  force = _force_to_wrist_frame(force, command, side)
   current = _log_norm_force(force)  # (B, n_primaries, 4)
   n_primaries = force.shape[1]
 
@@ -513,9 +605,13 @@ def future_obj_pos_delta(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Delta from sim obj to next-frame ref obj pos. Shape: (B, n_sides*3)."""
+  """Delta from sim obj to next-frame ref obj pos, in wrist frame.
+
+  Shape: (B, n_sides*3).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
   delta = command.next_obj_pos_w - command.sim_obj_pos_w
+  delta = _to_wrist_frame(delta, command)
   return delta.reshape(delta.shape[0], -1)
 
 
@@ -523,6 +619,10 @@ def future_obj_vel(
   env: ManagerBasedRlEnv,
   command_name: str,
 ) -> torch.Tensor:
-  """Next-frame ref obj velocity. Shape: (B, n_sides*3)."""
+  """Next-frame ref obj linear velocity, in wrist frame.
+
+  Shape: (B, n_sides*3).
+  """
   command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
-  return command.next_obj_vel_w.reshape(command.next_obj_vel_w.shape[0], -1)
+  v = _to_wrist_frame(command.next_obj_vel_w, command)
+  return v.reshape(v.shape[0], -1)

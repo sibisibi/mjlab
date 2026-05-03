@@ -179,11 +179,20 @@ def build_env_cfg(args):
     p = side_pref[side]
     tactile_obs[f"{p}_contact_force"] = ObservationTermCfg(
       func=mt_mdp.contact_force,
-      params={"sensor_name": f"{p}_fingertip_contact"},
+      params={
+        "sensor_name": f"{p}_fingertip_contact",
+        "command_name": "motion",
+        "side": side,
+      },
     )
     tactile_obs[f"{p}_contact_force_history"] = ObservationTermCfg(
       func=mt_mdp.contact_force_history,
-      params={"sensor_name": f"{p}_fingertip_contact", "history_len": 3},
+      params={
+        "sensor_name": f"{p}_fingertip_contact",
+        "command_name": "motion",
+        "side": side,
+        "history_len": 3,
+      },
     )
   cfg.observations["actor"].terms.update(tactile_obs)
   cfg.observations["critic"].terms.update(tactile_obs)
