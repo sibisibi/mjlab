@@ -243,37 +243,44 @@ def build_env_cfg(args):
   #   func=mt_mdp.contact_missed_too_long,
   #   params={"command_name": "motion", "threshold_steps": args.contact_miss_t, "grace_steps": 15},
   # )
-  cfg.terminations["velocity_sanity"] = TerminationTermCfg(
-    func=mt_mdp.velocity_sanity,
-    params={
-      "command_name": "motion",
-      "max_obj_vel": 100.0, "max_obj_angvel": 200.0, "max_joint_vel": 200.0,
-      "asset_cfg": SceneEntityCfg("hand"),
-    },
-  )
+  if not getattr(args, "disable_velocity_sanity", False):
+    cfg.terminations["joint_vel_sanity"] = TerminationTermCfg(
+      func=mt_mdp.joint_vel_sanity,
+      params={"max_joint_vel": 200.0, "asset_cfg": SceneEntityCfg("hand")},
+    )
+    cfg.terminations["obj_lin_vel_sanity"] = TerminationTermCfg(
+      func=mt_mdp.obj_lin_vel_sanity,
+      params={"command_name": "motion", "max_obj_vel": 100.0},
+    )
+    cfg.terminations["obj_ang_vel_sanity"] = TerminationTermCfg(
+      func=mt_mdp.obj_ang_vel_sanity,
+      params={"command_name": "motion", "max_obj_angvel": 200.0},
+    )
 
   # ManipTrans-style curriculum: object termination tightening + gravity ramp.
   # curriculum_scale=0 disables. 1.0 = literal ManipTrans (gravity ep 80, term ep 133).
   if args.curriculum_scale > 0:
     from mjlab.envs.mdp.curriculums import termination_curriculum
-    pos_stages, rot_stages = mt_mdp.build_obj_term_stages(args.curriculum_scale)
-    cfg.curriculum = {
-      "obj_pos_thr": CurriculumTermCfg(
+    cfg.curriculum = {}
+    if not args.disable_term_tightening:
+      pos_stages, rot_stages = mt_mdp.build_obj_term_stages(args.curriculum_scale)
+      cfg.curriculum["obj_pos_thr"] = CurriculumTermCfg(
         func=termination_curriculum,
         params={"termination_name": "obj_pos_diverged", "stages": pos_stages},
-      ),
-      "obj_rot_thr": CurriculumTermCfg(
+      )
+      cfg.curriculum["obj_rot_thr"] = CurriculumTermCfg(
         func=termination_curriculum,
         params={"termination_name": "obj_rot_diverged", "stages": rot_stages},
-      ),
-      "gravity": CurriculumTermCfg(
-        func=mt_mdp.gravity_curriculum,
-        params={
-          "schedule_steps": int(1920 * args.curriculum_scale),
-          "full_g": 9.81,
-        },
-      ),
-    }
+      )
+    cfg.curriculum["gravity"] = CurriculumTermCfg(
+      func=mt_mdp.gravity_curriculum,
+      params={
+        "schedule_steps": (
+          0 if args.gravity_constant else int(1920 * args.curriculum_scale)
+        ),
+        "full_g": args.gravity_full_g,
+      },
+    )
   return cfg
 
 
@@ -311,6 +318,43 @@ def main():
          "1.0 = literal ManipTrans (gravity ep 80, obj term ep 133). 10.0 = "
          "stretched (ep 800 / 1333). Tightens obj_pos/rot_diverged thresholds "
          "and ramps gravity 0->-9.81 m/s^2.")
+  p.add_argument("--gravity_full_g", type=float, default=9.81,
+    help="Final gravity magnitude in m/s^2 passed to gravity_curriculum. "
+         "0 disables gravity (ramps from 0 -> 0).")
+  p.add_argument("--gravity_constant", action="store_true",
+    help="Skip the gravity ramp; gravity is held at -gravity_full_g from "
+         "step 0 (sets schedule_steps=0 so gravity_curriculum returns frac=1).")
+  p.add_argument("--disable_velocity_sanity", action="store_true",
+    help="Skip the joint/obj_lin/obj_ang velocity_sanity terminations. nan_guard still active.")
+  p.add_argument("--disable_term_tightening", action="store_true",
+    help="Skip the obj_pos_thr/obj_rot_thr curriculum stages. Termination "
+         "thresholds stay at the bare TerminationTermCfg defaults (6cm pos, "
+         "90deg rot) throughout training.")
+  p.add_argument("--pin_mode", choices=["none", "xfrc", "actuated", "hard"], default="none",
+    help="Object pin / soft-attractor mode.")
+  p.add_argument("--xfrc_omega_n", type=float, default=0.0,
+    help="Natural frequency (rad/s) for mass-normalized xfrc PD attractor. "
+         "Single knob: kp = m·ω², kv = 2ζ·sqrt(m·kp). Required when pin_mode=xfrc. "
+         "Auto-detects per-object mass; logs ω_n + derived kp/kv to wandb.")
+  p.add_argument("--xfrc_omega_n_end", type=float, default=None,
+    help="If set, ω_n linearly decays from --xfrc_omega_n to this over "
+         "--xfrc_omega_schedule_steps env-steps. Default None = no decay.")
+  p.add_argument("--xfrc_omega_delay_steps", type=int, default=0,
+    help="Hold ω at omega_n_start for this many env-steps before starting the linear decay. "
+    "Note: 1 PPO iter = num_steps_per_env (32) env-steps; e.g. 200 iters = 6400 env-steps.")
+  p.add_argument("--xfrc_omega_schedule_steps", type=int, default=0,
+    help="Env-steps over which ω_n decays. 0 = held constant at --xfrc_omega_n.")
+  p.add_argument("--xfrc_zeta", type=float, default=1.0,
+    help="Damping ratio for the xfrc attractor. 1.0 = critical damping.")
+  p.add_argument("--xfrc_kp_rot", type=float, default=0.0,
+    help="Rotational P gain (raw scalar; ignored if --xfrc_omega_rot > 0).")
+  p.add_argument("--xfrc_kv_rot", type=float, default=0.0,
+    help="Rotational D gain (raw scalar; ignored if --xfrc_omega_rot > 0).")
+  p.add_argument("--xfrc_omega_rot", type=float, default=0.0,
+    help="If > 0, switches xfrc rotation PD to anisotropic inertia-tensor mode: "
+    "τ = ω²·I_world·axis_angle + 2ζω·I_world·Δω. Overrides --xfrc_kp_rot/_kv_rot.")
+  p.add_argument("--xfrc_zeta_rot", type=float, default=1.0,
+    help="Damping ratio for anisotropic rotation PD (only if --xfrc_omega_rot > 0).")
   p.add_argument("--residual_action_scale", type=float, default=1.0)
   p.add_argument("--init_std", type=float, default=0.37)
   p.add_argument("--wandb_project", required=True)
@@ -334,6 +378,57 @@ def main():
   task_id = f"mjlab-maniptrans-{args.robot}-{args.side}"
 
   cfg = build_env_cfg(args)
+
+  # NaN safety net: sanitize observations + terminate any env whose physics
+  # state went NaN. Robust against transient finger penetration that produces
+  # NaN dynamics; otherwise rsl_rl's check_nan kills the whole run.
+  for group_name in ("actor", "critic"):
+    if group_name in cfg.observations:
+      cfg.observations[group_name].nan_policy = "sanitize"
+  cfg.terminations["nan_guard"] = TerminationTermCfg(
+    func=mt_mdp.nan_guard,
+    params={"command_name": "motion", "asset_cfg": SceneEntityCfg("hand")},
+  )
+
+  # Optional object pin / xfrc soft-attractor.
+  if args.pin_mode != "none":
+    motion_cmd = cfg.commands["motion"]
+    motion_cmd.pin_objects = True
+    motion_cmd.pin_mode = args.pin_mode
+    if args.pin_mode == "xfrc":
+      if args.xfrc_omega_n <= 0:
+        raise ValueError(f"--pin_mode=xfrc requires --xfrc_omega_n > 0; got {args.xfrc_omega_n}")
+      motion_cmd.xfrc_kp_rot = float(args.xfrc_kp_rot)
+      motion_cmd.xfrc_kv_rot = float(args.xfrc_kv_rot)
+      motion_cmd.xfrc_omega_rot = float(args.xfrc_omega_rot)
+      motion_cmd.xfrc_zeta_rot = float(args.xfrc_zeta_rot)
+      # Mass-normalized PD: kp = m·ω², kv = 2ζ·sqrt(m·kp). Curriculum overwrites
+      # cfg.xfrc_kp_pos/kv_pos each step from auto-detected obj mass + ω_n schedule;
+      # logs ω_n + kp + kv to wandb (like gravity_z).
+      motion_cmd.xfrc_kp_pos = 0.0  # placeholder; curriculum sets at step 0
+      motion_cmd.xfrc_kv_pos = 0.0
+      if cfg.curriculum is None:
+        cfg.curriculum = {}
+      omega_end = (args.xfrc_omega_n if args.xfrc_omega_n_end is None
+                   else args.xfrc_omega_n_end)
+      cfg.curriculum["xfrc_omega"] = CurriculumTermCfg(
+        func=mt_mdp.xfrc_curriculum,
+        params={
+          "command_name": "motion",
+          "omega_n_start": float(args.xfrc_omega_n),
+          "omega_n_end": float(omega_end),
+          "schedule_steps": int(args.xfrc_omega_schedule_steps),
+          "delay_steps": int(args.xfrc_omega_delay_steps),
+          "zeta": float(args.xfrc_zeta),
+        },
+      )
+      rot_str = (f"ω_rot={args.xfrc_omega_rot} ζ_rot={args.xfrc_zeta_rot} (anisotropic tensor)"
+                 if args.xfrc_omega_rot > 0
+                 else f"kp_rot={args.xfrc_kp_rot} kv_rot={args.xfrc_kv_rot}")
+      print(f"[train_residual] pin_mode=xfrc  ω_n={args.xfrc_omega_n}"
+            f" → {omega_end} over {args.xfrc_omega_schedule_steps} steps; "
+            f"ζ={args.xfrc_zeta}; {rot_str}",
+            flush=True)
 
   base_dims = [_read_base_dims(p) for p in args.base_checkpoints]
   if len(base_dims) == 2 and base_dims[0] != base_dims[1]:

@@ -89,6 +89,24 @@ def main():
   p.add_argument("--num_envs", type=int, default=1)
   p.add_argument("--trace_metrics", action="store_true")
   p.add_argument("--grace_steps", type=int, default=15)
+  p.add_argument("--zero_gravity", action="store_true",
+    help="Force gravity = 0 throughout the rollout (mutates env.sim.model.opt.gravity).")
+  p.add_argument("--gravity_z", type=float, default=None,
+    help="Override z-gravity to this value (m/s^2, e.g. -0.1). Takes precedence over --zero_gravity.")
+  p.add_argument("--obj_friction", type=float, default=None,
+    help="Override the object's sliding friction (axis 0 of geom_friction). Default ~2.0.")
+  p.add_argument("--pin_mode", choices=["none", "xfrc", "actuated", "hard"], default="none",
+    help="Object pinning mode for the rollout. Default 'none' = real physics. "
+         "'xfrc' = soft PD attractor via xfrc_applied (uses --xfrc_kp/kv_pos/rot).")
+  p.add_argument("--xfrc_kp_pos", type=float, default=0.0)
+  p.add_argument("--xfrc_kv_pos", type=float, default=0.0)
+  p.add_argument("--xfrc_kp_rot", type=float, default=0.0)
+  p.add_argument("--xfrc_kv_rot", type=float, default=0.0)
+  p.add_argument("--xfrc_omega_rot", type=float, default=0.0,
+    help="If > 0, switches xfrc rotation PD to anisotropic inertia-tensor mode "
+    "with τ = ω²·I_world·axis_angle + 2ζω·I_world·Δω. Overrides --xfrc_kp_rot/_kv_rot.")
+  p.add_argument("--xfrc_zeta_rot", type=float, default=1.0,
+    help="Damping ratio for the anisotropic rotation PD (only used if --xfrc_omega_rot > 0).")
   args = p.parse_args()
 
   base_ckpts = list(args.base_checkpoints)
@@ -108,6 +126,24 @@ def main():
   motion_cmd.sampling_mode = "start"
   cfg.terminations = {}
 
+  # Optional object-pin / xfrc soft-attractor for visual ablation sweeps.
+  if args.pin_mode != "none":
+    motion_cmd.pin_objects = True
+    motion_cmd.pin_mode = args.pin_mode
+    if args.pin_mode == "xfrc":
+      motion_cmd.xfrc_kp_pos = float(args.xfrc_kp_pos)
+      motion_cmd.xfrc_kv_pos = float(args.xfrc_kv_pos)
+      motion_cmd.xfrc_kp_rot = float(args.xfrc_kp_rot)
+      motion_cmd.xfrc_kv_rot = float(args.xfrc_kv_rot)
+      motion_cmd.xfrc_omega_rot = float(args.xfrc_omega_rot)
+      motion_cmd.xfrc_zeta_rot = float(args.xfrc_zeta_rot)
+      if args.xfrc_omega_rot > 0:
+        print(f"[rollout] pin_mode=xfrc  kp_pos={args.xfrc_kp_pos} kv_pos={args.xfrc_kv_pos} "
+              f"ω_rot={args.xfrc_omega_rot} ζ_rot={args.xfrc_zeta_rot}  (anisotropic tensor mode)")
+      else:
+        print(f"[rollout] pin_mode=xfrc  kp_pos={args.xfrc_kp_pos} kv_pos={args.xfrc_kv_pos} "
+              f"kp_rot={args.xfrc_kp_rot} kv_rot={args.xfrc_kv_rot}")
+
   for group_name in ("actor", "critic"):
     if group_name in cfg.observations:
       cfg.observations[group_name].enable_corruption = False
@@ -120,6 +156,22 @@ def main():
   )
 
   env = ManagerBasedRlEnv(cfg, device=device, render_mode="rgb_array")
+  if args.gravity_z is not None:
+    env.sim.model.opt.gravity[..., 0] = 0.0
+    env.sim.model.opt.gravity[..., 1] = 0.0
+    env.sim.model.opt.gravity[..., 2] = float(args.gravity_z)
+    print(f"[rollout] gravity override; gravity_z={args.gravity_z}")
+  elif args.zero_gravity:
+    env.sim.model.opt.gravity[:] = 0.0
+    print(f"[rollout] zero_gravity=True")
+  if args.obj_friction is not None:
+    motion_cmd_obj = cast(ManipTransCommand, env.command_manager.get_term("motion"))
+    obj_names = motion_cmd_obj.cfg.object_entity_names or {}
+    for side, obj_name in obj_names.items():
+      obj = env.scene[obj_name]
+      gids = obj.indexing.geom_ids
+      env.sim.model.geom_friction[..., gids, 0] = float(args.obj_friction)
+    print(f"[rollout] obj_friction override (axis 0) = {args.obj_friction} on {list(obj_names.values())}")
   wrapped = RslRlVecEnvWrapper(env)
 
   base_dims = [_read_base_dims(p) for p in base_ckpts]
@@ -196,6 +248,10 @@ def main():
   trace_obj_pos: list[float] = []
   trace_obj_rot: list[float] = []
   first_fail: dict[str, int | None] = {"obj_pos_3cm": None, "tip_6cm": None, "obj_rot_30": None}
+  trace_jvel: list[float] = []
+  trace_ovel: list[float] = []
+  trace_oangvel: list[float] = []
+  hand_entity = env.scene["hand"]
 
   for step in range(args.max_steps):
     with torch.no_grad():
@@ -206,6 +262,13 @@ def main():
       frames.append(img)
 
     if args.trace_metrics:
+      jv = float(torch.norm(hand_entity.data.joint_vel, dim=-1).mean().item())
+      ov = float(torch.norm(cmd.sim_obj_vel_w, dim=-1).max(dim=-1).values.mean().item())
+      oav = float(torch.norm(cmd.sim_obj_angvel_w, dim=-1).max(dim=-1).values.mean().item())
+      trace_jvel.append(jv)
+      trace_ovel.append(ov)
+      trace_oangvel.append(oav)
+
       tip_err_per_finger = torch.norm(cmd.mano_tip_pos_w - cmd.robot_tip_pos_w, dim=-1)
       tip_err_max_side = tip_err_per_finger.max(dim=-1).values.max(dim=-1).values
       tip_err_mean_side = tip_err_per_finger.mean(dim=-1).mean(dim=-1)
@@ -253,7 +316,29 @@ def main():
     print(f"  First frame that crosses k=1.0 threshold (grace={args.grace_steps}):")
     for k, v in first_fail.items():
       print(f"    {k:15s}: {'frame ' + str(v) if v is not None else 'never crossed (SURVIVED)'}")
+    print("-" * 60)
+    T = len(trace_jvel)
+    n_jbad = sum(1 for x in trace_jvel if x > 200.0)
+    n_obad = sum(1 for x in trace_ovel if x > 100.0)
+    n_oabad = sum(1 for x in trace_oangvel if x > 200.0)
+    fj = next((i for i, x in enumerate(trace_jvel) if x > 200.0), None)
+    fo = next((i for i, x in enumerate(trace_ovel) if x > 100.0), None)
+    foa = next((i for i, x in enumerate(trace_oangvel) if x > 200.0), None)
+    print("VEL_SANITY  (thresholds: joint=200 rad/s, obj_lin=100 m/s, obj_ang=200 rad/s)")
+    print(f"  joint_vel    : mean={mn(trace_jvel):7.2f}  peak={mx(trace_jvel):8.2f}  bad_steps={n_jbad}/{T}  first_bad={fj}")
+    print(f"  obj_vel      : mean={mn(trace_ovel):7.2f}  peak={mx(trace_ovel):8.2f}  bad_steps={n_obad}/{T}  first_bad={fo}")
+    print(f"  obj_angvel   : mean={mn(trace_oangvel):7.2f}  peak={mx(trace_oangvel):8.2f}  bad_steps={n_oabad}/{T}  first_bad={foa}")
     print("=" * 60)
+    metrics_path = out_path.with_suffix(out_path.suffix + ".metrics.json")
+    import json
+    metrics_path.write_text(json.dumps({
+      "T": T,
+      "thresholds": {"joint_vel": 200.0, "obj_vel": 100.0, "obj_angvel": 200.0},
+      "joint_vel": {"mean": mn(trace_jvel), "peak": mx(trace_jvel), "bad_steps": n_jbad, "first_bad": fj, "trace": trace_jvel},
+      "obj_vel": {"mean": mn(trace_ovel), "peak": mx(trace_ovel), "bad_steps": n_obad, "first_bad": fo, "trace": trace_ovel},
+      "obj_angvel": {"mean": mn(trace_oangvel), "peak": mx(trace_oangvel), "bad_steps": n_oabad, "first_bad": foa, "trace": trace_oangvel},
+    }))
+    print(f"Wrote metrics: {metrics_path}")
 
 
 if __name__ == "__main__":

@@ -79,11 +79,18 @@ def get_object_spec(
       density=density,
     )
 
-  # Cap total mass at 0.5 kg (ManipTrans convention)
+  # Clamp total mass to [0.05, 0.5] kg. Upper 0.5 kg = ManipTrans convention.
+  # Lower 0.05 kg = floor: tiny objects (<5g sometimes) blow up under random
+  # finger-pulse forces; bumping them up keeps sim/policy dynamics in regime.
   m = spec.compile()
   total_mass = m.body_mass[1]  # body 0 is world, body 1 is the object
   if total_mass > 0.5:
     density_scale = 0.5 / total_mass
+  elif total_mass < 0.01:
+    density_scale = 0.01 / total_mass
+  else:
+    density_scale = None
+  if density_scale is not None:
     for geom in spec.geoms:
       if geom.contype == 2:
         geom.density = density * density_scale
@@ -201,11 +208,16 @@ def get_actuated_object_spec(
       density=density,
     )
 
-  # Cap total mass at 0.5 kg (ManipTrans convention, same as freejoint variant).
+  # Clamp total mass to [0.05, 0.5] kg (same as freejoint variant).
   m = spec.compile()
   total_mass = m.body_mass[1]
   if total_mass > 0.5:
     density_scale = 0.5 / total_mass
+  elif total_mass < 0.01:
+    density_scale = 0.01 / total_mass
+  else:
+    density_scale = None
+  if density_scale is not None:
     for geom in spec.geoms:
       if geom.contype == 2:
         geom.density = density * density_scale

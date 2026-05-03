@@ -1276,7 +1276,33 @@ class ManipTransCommand(CommandTerm):
           # Rotational PD: axis-angle of delta_q = ref_q * sim_q^{-1}
           delta_q = quat_mul(ref_quat, quat_conjugate(sim_quat))
           axis_angle = axis_angle_from_quat(delta_q)
-          torque = kp_rot * axis_angle + kv_rot * (ref_angvel - sim_angvel)
+          omega_rot = float(self.cfg.xfrc_omega_rot)
+          if omega_rot > 0.0:
+            # Anisotropic inertia-tensor mode. I_body = R(iquat)·diag(body_inertia)·R(iquat)^T
+            # is the full inertia tensor in body frame (body_iquat maps principal→body
+            # frame; identity if MuJoCo auto-aligned body frame to principal axes).
+            # I_world = R_sim · I_body · R_sim^T per env per step.
+            body_id = int(obj.indexing.body_ids[0])
+            I_diag_p = self._env.sim.model.body_inertia[0, body_id].to(
+              sim_quat.device, dtype=sim_quat.dtype
+            )  # (3,) principal-frame diagonal
+            iquat = self._env.sim.model.body_iquat[0, body_id].to(
+              sim_quat.device, dtype=sim_quat.dtype
+            )  # (4,) principal→body
+            R_ip = matrix_from_quat(iquat.unsqueeze(0))[0]  # (3, 3)
+            I_body = R_ip @ torch.diag(I_diag_p) @ R_ip.T  # (3, 3) full body-frame inertia
+            R_sim = matrix_from_quat(sim_quat)  # (B, 3, 3)
+            I_world = R_sim @ I_body @ R_sim.transpose(-1, -2)  # (B, 3, 3)
+            zeta_rot = float(self.cfg.xfrc_zeta_rot)
+            kp_rot_eff = omega_rot * omega_rot
+            kv_rot_eff = 2.0 * zeta_rot * omega_rot
+            ang_err = ref_angvel - sim_angvel
+            torque = (
+              kp_rot_eff * torch.einsum("bij,bj->bi", I_world, axis_angle)
+              + kv_rot_eff * torch.einsum("bij,bj->bi", I_world, ang_err)
+            )
+          else:
+            torque = kp_rot * axis_angle + kv_rot * (ref_angvel - sim_angvel)
 
           # Freejoint entity has a single body; apply to it. Shape (B, 1, 3).
           obj.write_external_wrench_to_sim(
@@ -1410,6 +1436,16 @@ class ManipTransCommandCfg(CommandTermCfg):
   xfrc_kv_pos: float = 0.0
   xfrc_kp_rot: float = 0.0
   xfrc_kv_rot: float = 0.0
+  xfrc_omega_rot: float = 0.0
+  """If > 0, switches xfrc rotation PD to anisotropic inertia-tensor mode:
+      τ = ω² · I_world(t) · axis_angle(ref_q sim_q⁻¹)
+        + 2 · ζ_rot · ω · I_world(t) · (ref_angvel - sim_angvel)
+  where I_world = R_sim · diag(body_inertia) · R_sim^T (body_inertia is
+  MuJoCo's diagonal in the body principal-axis frame; R_sim from sim_obj_quat_w).
+  Anisotropic by axis: same response time τ_settling = 1/ω_rot in every axis,
+  regardless of object shape. Overrides `xfrc_kp_rot`/`xfrc_kv_rot` scalars.
+  """
+  xfrc_zeta_rot: float = 1.0
   pin_interval: int = 6
   """For `pin_mode="hard"`: fixed temporal pin interval T. `ep_len % T == 0`
   gating. T=1 is full hard pin (original behavior). T=N lets the object drift

@@ -17,6 +17,34 @@ if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
 
+def nan_guard(
+  env: "ManagerBasedRlEnv",
+  command_name: str,
+  asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+  """Terminate envs whose simulation state contains NaN/Inf.
+
+  Catches what `velocity_sanity` cannot: PyTorch comparison operators return
+  False on NaN, so velocity caps silently fail. This explicit isnan check
+  fires on the next step's termination cycle, after which `_resample_command`
+  resets the env to a clean state.
+  """
+  command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
+  hand: Entity = env.scene[asset_cfg.name]
+  bad_joint = (
+    torch.isnan(hand.data.joint_pos).any(dim=-1)
+    | torch.isnan(hand.data.joint_vel).any(dim=-1)
+  )
+  # Object state shape (B, n_sides, ...): collapse trailing dims.
+  obj_pos = command.sim_obj_pos_w
+  obj_vel = command.sim_obj_vel_w
+  bad_obj = (
+    torch.isnan(obj_pos).flatten(1).any(dim=-1)
+    | torch.isnan(obj_vel).flatten(1).any(dim=-1)
+  )
+  return bad_joint | bad_obj
+
+
 def velocity_diverged(
   env: ManagerBasedRlEnv,
   max_lin_vel: float,
@@ -155,6 +183,21 @@ def velocity_sanity(
   obj_bad = torch.any(obj_vel > max_obj_vel, dim=-1) | torch.any(obj_angvel > max_obj_angvel, dim=-1)
 
   return joint_bad | obj_bad
+
+
+def joint_vel_sanity(env: ManagerBasedRlEnv, max_joint_vel: float, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+  hand: Entity = env.scene[asset_cfg.name]
+  return torch.norm(hand.data.joint_vel, dim=-1) > max_joint_vel
+
+
+def obj_lin_vel_sanity(env: ManagerBasedRlEnv, command_name: str, max_obj_vel: float) -> torch.Tensor:
+  command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
+  return torch.any(torch.norm(command.sim_obj_vel_w, dim=-1) > max_obj_vel, dim=-1)
+
+
+def obj_ang_vel_sanity(env: ManagerBasedRlEnv, command_name: str, max_obj_angvel: float) -> torch.Tensor:
+  command = cast(ManipTransCommand, env.command_manager.get_term(command_name))
+  return torch.any(torch.norm(command.sim_obj_angvel_w, dim=-1) > max_obj_angvel, dim=-1)
 
 
 def dof_vel_sanity(

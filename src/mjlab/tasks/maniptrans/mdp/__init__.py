@@ -62,6 +62,7 @@ from mjlab.tasks.maniptrans.mdp.rewards import (
 from mjlab.tasks.maniptrans.mdp.curriculums import (
   build_obj_term_stages as build_obj_term_stages,
   gravity_curriculum as gravity_curriculum,
+  xfrc_curriculum as xfrc_curriculum,
 )
 from mjlab.tasks.maniptrans.mdp.terminations import (
   contact_expected_but_missing as contact_expected_but_missing,
@@ -71,5 +72,9 @@ from mjlab.tasks.maniptrans.mdp.terminations import (
   obj_rot_diverged as obj_rot_diverged,
   velocity_diverged as velocity_diverged,
   velocity_sanity as velocity_sanity,
+  joint_vel_sanity as joint_vel_sanity,
+  obj_lin_vel_sanity as obj_lin_vel_sanity,
+  obj_ang_vel_sanity as obj_ang_vel_sanity,
   dof_vel_sanity as dof_vel_sanity,
+  nan_guard as nan_guard,
 )
