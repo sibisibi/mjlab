@@ -41,7 +41,7 @@ CONTACT_MATCH_TOL = 0.002
 
 OBJECT_REWARD_TERMS = (
   ("obj_pos", mt_mdp.obj_pos_error_exp, 5.0, 80.0),
-  ("obj_rot", mt_mdp.obj_rot_error_exp, 1.0, 3.0),
+  ("obj_rot", mt_mdp.obj_rot_error_exp, 1.0, 8.0),
   ("obj_vel", mt_mdp.obj_vel_error_exp, 0.1, 1.0),
   ("obj_angvel", mt_mdp.obj_angvel_error_exp, 0.1, 1.0),
 )
