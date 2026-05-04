@@ -80,6 +80,16 @@ def _bake_object_sdf_grid(
   if mesh_scale != 1.0:
     mesh.apply_scale(mesh_scale)
 
+  # Decimate dense meshes before bake. SDF voxel cell size is 2*extent/(N-1)
+  # (~12 mm at default extent=0.30 / N=48); detail finer than that is wasted
+  # on the grid. High-poly inputs (TACO has ~100k faces) blow up
+  # closest_point + contains memory and time. Cap to ~16k faces.
+  MAX_FACES_FOR_BAKE = 16000
+  if len(mesh.faces) > MAX_FACES_FOR_BAKE:
+    decim = mesh.simplify_quadric_decimation(face_count=MAX_FACES_FOR_BAKE)
+    if isinstance(decim, trimesh.Trimesh) and len(decim.faces) > 0:
+      mesh = decim
+
   xs = np.linspace(-extent, extent, N, dtype=np.float32)
   X, Y, Z = np.meshgrid(xs, xs, xs, indexing="ij")
   pts = np.stack([X, Y, Z], axis=-1).reshape(-1, 3).astype(np.float32)
@@ -91,8 +101,22 @@ def _bake_object_sdf_grid(
   # normal is unit-length by construction near the surface; np.gradient
   # over a discrete grid systematically under-magnitudes the gradient by
   # ~25% at the surface, which makes the "direction" signal noisy.
-  closest, dist, _ = trimesh.proximity.closest_point(mesh, pts)
-  inside = mesh.contains(pts)
+  # Batch the queries: trimesh.proximity.closest_point allocates O(M*T)
+  # intermediates internally; processing all 110k pts at once on a 16k-face
+  # mesh is ~21 GB peak. With BATCH=5000 it caps at ~1 GB.
+  BATCH = 5000
+  closest_chunks = []
+  dist_chunks = []
+  inside_chunks = []
+  for b in range(0, pts.shape[0], BATCH):
+    e = min(b + BATCH, pts.shape[0])
+    cb, db, _ = trimesh.proximity.closest_point(mesh, pts[b:e])
+    closest_chunks.append(cb)
+    dist_chunks.append(db)
+    inside_chunks.append(mesh.contains(pts[b:e]))
+  closest = np.concatenate(closest_chunks, axis=0)
+  dist = np.concatenate(dist_chunks, axis=0)
+  inside = np.concatenate(inside_chunks, axis=0)
   sd = np.where(inside, -dist, dist).astype(np.float32)
 
   # Analytic SDF gradient: ∇sdf points in the direction of increasing SDF.
