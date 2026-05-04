@@ -74,6 +74,13 @@ def build_env_cfg(args):
   if args.sampling_mode == "adaptive":
     motion_cmd.adaptive_uniform_ratio = args.adaptive_uniform_ratio
     motion_cmd.adaptive_alpha = args.adaptive_alpha
+  # Residual default 0.1 (= 10% of original ManipTrans-matched DR). Base
+  # policy training keeps ManipTransCommandCfg's cfg default of 1.0; for
+  # residual the original noise (±10° wrist rot, ±1cm wrist trans,
+  # ±range/8 finger DOFs) destroys frame-0 contact geometry on tight grips
+  # and the residual is already operating in the small-correction regime
+  # where ±1° / ±1mm / ±range/80 is plenty of init randomization.
+  motion_cmd.init_noise_scale = args.init_noise_scale
 
   sides = ("right", "left") if args.side == "bimanual" else (args.side,)
   add_object_interaction_rewards(cfg, sides)
@@ -376,6 +383,15 @@ def main():
          "difficulty estimator. Higher = faster reaction to recent "
          "failures, more variance. Ignored when --sampling_mode != "
          "adaptive.")
+  p.add_argument("--init_noise_scale", type=float, default=0.1,
+    help="Multiplier on the ManipTrans-matched warm-start init noise at "
+         "every env reset (wrist trans ±1cm, wrist rot ±10°, finger DOFs "
+         "±range/8, wrist vel ±1cm/s, finger vel ±0.1 at scale=1.0). "
+         "Residual training default is 0.1 — the original 1.0 noise tips "
+         "tight-grip frame-0 hand pose into visible object penetration; "
+         "0.1 is below contact tolerance for typical OakInk2 objects. "
+         "Set 1.0 to match base-policy training; 0.0 for deterministic "
+         "init.")
   p.add_argument("--object_reward_mult", type=float, default=1.0)
   p.add_argument("--contact_miss_t", type=int, default=999999,
     help="Per-finger consecutive-miss frame threshold for the "
