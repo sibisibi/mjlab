@@ -442,6 +442,11 @@ def main():
     "τ = ω²·I_world·axis_angle + 2ζω·I_world·Δω. Overrides --xfrc_kp_rot/_kv_rot.")
   p.add_argument("--xfrc_zeta_rot", type=float, default=1.0,
     help="Damping ratio for anisotropic rotation PD (only if --xfrc_omega_rot > 0).")
+  p.add_argument("--hand_track_weight_scale", type=float, default=1.0,
+    help="Multiplicative scale on hand motion-tracking reward weights "
+    "(wrist_pos/rot/vel/angvel, *_tip, level1/2, joints_vel). Reg-style "
+    "(power, wrist_power, action_rate, joint_limits) and contact_match / obj "
+    "rewards are NOT scaled. Default 1.0 keeps ManipTrans baseline weights.")
   p.add_argument("--residual_action_scale", type=float, default=1.0)
   p.add_argument("--init_std", type=float, default=0.37)
   p.add_argument("--wandb_project", required=True)
@@ -465,6 +470,26 @@ def main():
   task_id = f"mjlab-maniptrans-{args.robot}-{args.side}"
 
   cfg = build_env_cfg(args)
+
+  # Optional scaling of hand motion-tracking reward weights. Lets the residual
+  # policy be told "the base already does hand tracking; spend more gradient
+  # on object/contact". Reg-style (power/wrist_power/action_rate/joint_limits)
+  # and contact_match / object rewards stay at their baseline weights.
+  if abs(args.hand_track_weight_scale - 1.0) > 1e-9:
+    s = float(args.hand_track_weight_scale)
+    HAND_TRACK_SUFFIXES = (
+      "_wrist_pos", "_wrist_rot", "_wrist_vel", "_wrist_angvel",
+      "_thumb_tip", "_index_tip", "_middle_tip", "_ring_tip", "_pinky_tip",
+      "_level1", "_level2", "_joints_vel",
+    )
+    scaled = []
+    for name, term in cfg.rewards.items():
+      if any(name.endswith(suf) for suf in HAND_TRACK_SUFFIXES):
+        old_w = float(term.weight)
+        term.weight = old_w * s
+        scaled.append(f"{name}: {old_w:.3f} -> {term.weight:.3f}")
+    print(f"[train_residual] hand_track_weight_scale={s} applied to "
+          f"{len(scaled)} reward terms:\n  " + "\n  ".join(scaled), flush=True)
 
   # NaN safety net: sanitize observations + terminate any env whose physics
   # state went NaN. Robust against transient finger penetration that produces
