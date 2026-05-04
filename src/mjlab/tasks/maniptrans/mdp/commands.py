@@ -1265,43 +1265,55 @@ class ManipTransCommand(CommandTerm):
     else:
       self._adaptive_sampling(env_ids)
 
-    # Warm-start with ManipTrans-matched noise:
-    # - Wrist translation (tx/ty/tz): trajectory + randn * 0.01
-    # - Wrist rotation (roll/pitch/yaw): trajectory + randn * pi/18 (10°)
-    # - Finger DOFs: trajectory + randn * range / 8
-    # - Wrist velocity: trajectory + randn * 0.01
-    # - Finger velocity: randn * 0.1
+    # Warm-start with ManipTrans-matched noise (training-time DR), scaled by
+    # cfg.init_noise_scale. Default 1.0 = original ManipTrans behavior; set
+    # 0.0 in eval / rollout for the deterministic retargeted ref pose with
+    # no DR perturbation. (mjlab events fire BEFORE command_manager.reset,
+    # so the noise CAN'T live as an EventTermCfg — _resample_command would
+    # overwrite it with ref pose. Noise has to ride on top of ref pose
+    # inside the same reset hook.)
+    #
+    # Scales at noise_scale=1.0:
+    # - Wrist translation: randn * 0.01 (~1cm)
+    # - Wrist rotation:    randn * pi/18 (~10°)
+    # - Finger DOFs:       randn * (joint_range / 8)
+    # - Wrist velocity:    randn * 0.01
+    # - Finger velocity:   randn * 0.1 (REPLACES ref_joint_vel for fingers)
     joint_pos = self.ref_joint_pos[env_ids].clone()
     joint_vel = self.ref_joint_vel[env_ids].clone()
 
     soft_limits = self.robot.data.soft_joint_pos_limits[env_ids]
+    noise_scale = float(getattr(self.cfg, "init_noise_scale", 1.0))
 
-    # Wrist translation noise: randn * 0.01 (1cm)
-    joint_pos[:, self._wrist_trans_ids] += (
-      torch.randn(len(env_ids), len(self._wrist_trans_ids), device=self.device) * 0.01
-    )
-    # Wrist rotation noise: randn * pi/18 (10°)
-    joint_pos[:, self._wrist_rot_ids] += (
-      torch.randn(len(env_ids), len(self._wrist_rot_ids), device=self.device) * (3.14159265 / 18.0)
-    )
-    # Finger noise: randn * range / 8
-    finger_range = (
-      soft_limits[:, self._finger_joint_ids, 1] - soft_limits[:, self._finger_joint_ids, 0]
-    )
-    joint_pos[:, self._finger_joint_ids] += (
-      torch.randn(len(env_ids), len(self._finger_joint_ids), device=self.device)
-      * (finger_range / 8.0)
-    )
+    if noise_scale > 0.0:
+      joint_pos[:, self._wrist_trans_ids] += (
+        torch.randn(len(env_ids), len(self._wrist_trans_ids), device=self.device)
+        * 0.01 * noise_scale
+      )
+      joint_pos[:, self._wrist_rot_ids] += (
+        torch.randn(len(env_ids), len(self._wrist_rot_ids), device=self.device)
+        * (3.14159265 / 18.0) * noise_scale
+      )
+      finger_range = (
+        soft_limits[:, self._finger_joint_ids, 1] - soft_limits[:, self._finger_joint_ids, 0]
+      )
+      joint_pos[:, self._finger_joint_ids] += (
+        torch.randn(len(env_ids), len(self._finger_joint_ids), device=self.device)
+        * (finger_range / 8.0) * noise_scale
+      )
     joint_pos = torch.clip(joint_pos, soft_limits[:, :, 0], soft_limits[:, :, 1])
 
-    # Wrist velocity: trajectory + randn * 0.01
-    joint_vel[:, self._wrist_joint_ids] += (
-      torch.randn(len(env_ids), len(self._wrist_joint_ids), device=self.device) * 0.01
-    )
-    # Finger velocity: randn * 0.1
-    joint_vel[:, self._finger_joint_ids] = (
-      torch.randn(len(env_ids), len(self._finger_joint_ids), device=self.device) * 0.1
-    )
+    if noise_scale > 0.0:
+      joint_vel[:, self._wrist_joint_ids] += (
+        torch.randn(len(env_ids), len(self._wrist_joint_ids), device=self.device)
+        * 0.01 * noise_scale
+      )
+      # Finger velocity REPLACES ref_joint_vel under noise (original
+      # ManipTrans behavior). With noise_scale=0 we keep ref_joint_vel.
+      joint_vel[:, self._finger_joint_ids] = (
+        torch.randn(len(env_ids), len(self._finger_joint_ids), device=self.device)
+        * 0.1 * noise_scale
+      )
 
     self.robot.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
     self.robot.reset(env_ids=env_ids)
@@ -1677,6 +1689,15 @@ class ManipTransCommandCfg(CommandTermCfg):
   adaptive_lambda: float = 0.8
   adaptive_uniform_ratio: float = 0.1
   adaptive_alpha: float = 0.001
+  init_noise_scale: float = 1.0
+  """Multiplier on the ManipTrans-matched warm-start init noise applied at
+  every env reset (wrist trans ±1cm, wrist rot ±10°, finger DOFs ±range/8,
+  wrist vel ±1cm/s, finger vel ±0.1). Default 1.0 = original behavior.
+  Eval / rollout scripts should set 0.0 — DR perturbation on the ref pose
+  reliably tips fingertip-precision contact tasks into visible penetration
+  on frame 0. The noise can't be an EventTermCfg (mjlab events fire before
+  command_manager.reset, so they'd be overwritten by _resample_command's
+  ref-pose write); has to be in-line in the command term."""
 
   def build(self, env: ManagerBasedRlEnv) -> ManipTransCommand:
     return ManipTransCommand(self, env)

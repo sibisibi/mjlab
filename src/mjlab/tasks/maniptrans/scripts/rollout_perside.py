@@ -107,6 +107,13 @@ def main():
     "with τ = ω²·I_world·axis_angle + 2ζω·I_world·Δω. Overrides --xfrc_kp_rot/_kv_rot.")
   p.add_argument("--xfrc_zeta_rot", type=float, default=1.0,
     help="Damping ratio for the anisotropic rotation PD (only used if --xfrc_omega_rot > 0).")
+  # task-07 additions: build_env_cfg now reads these from args. Defaults
+  # preserve original rollout behavior.
+  p.add_argument("--use_sdf_contact_match", action="store_true")
+  p.add_argument("--sampling_mode", type=str, default="uniform",
+    choices=("uniform", "adaptive", "start"))
+  p.add_argument("--adaptive_uniform_ratio", type=float, default=0.1)
+  p.add_argument("--adaptive_alpha", type=float, default=0.001)
   args = p.parse_args()
 
   base_ckpts = list(args.base_checkpoints)
@@ -124,6 +131,11 @@ def main():
   motion_cmd = cfg.commands["motion"]
   assert isinstance(motion_cmd, ManipTransCommandCfg)
   motion_cmd.sampling_mode = "start"
+  # Disable the ManipTrans-matched warm-start DR noise — eval/rollout
+  # wants the deterministic retargeted ref pose. Avoids frame-0 penetration
+  # caused by ±10° wrist rotation / ±1cm trans noise being applied to a
+  # tight fingertip-contact warm-start.
+  motion_cmd.init_noise_scale = 0.0
   cfg.terminations = {}
 
   # Optional object-pin / xfrc soft-attractor for visual ablation sweeps.
