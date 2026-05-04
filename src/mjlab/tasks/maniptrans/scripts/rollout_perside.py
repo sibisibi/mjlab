@@ -114,6 +114,9 @@ def main():
     choices=("uniform", "adaptive", "start"))
   p.add_argument("--adaptive_uniform_ratio", type=float, default=0.1)
   p.add_argument("--adaptive_alpha", type=float, default=0.001)
+  p.add_argument("--init_noise_scale", type=float, default=0.1,
+    help="Default 0.1 to match residual training noise; pass 0.0 for "
+         "deterministic ref-pose rollout.")
   args = p.parse_args()
 
   base_ckpts = list(args.base_checkpoints)
@@ -131,11 +134,8 @@ def main():
   motion_cmd = cfg.commands["motion"]
   assert isinstance(motion_cmd, ManipTransCommandCfg)
   motion_cmd.sampling_mode = "start"
-  # Disable the ManipTrans-matched warm-start DR noise — eval/rollout
-  # wants the deterministic retargeted ref pose. Avoids frame-0 penetration
-  # caused by ±10° wrist rotation / ±1cm trans noise being applied to a
-  # tight fingertip-contact warm-start.
-  motion_cmd.init_noise_scale = 0.0
+  # init_noise_scale comes from --init_noise_scale CLI (default 0.1, matching
+  # residual training). Pass 0.0 explicitly for deterministic ref-pose rollout.
   cfg.terminations = {}
 
   # Optional object-pin / xfrc soft-attractor for visual ablation sweeps.
