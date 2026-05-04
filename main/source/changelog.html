@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="Apr 30, 2026"/>
+    <meta name="docbuild:last-update" content="May 04, 2026"/>
   </head>
   
   
@@ -544,6 +544,11 @@ up the variant assignment automatically. Variants must share the
 same kinematic structure (same bodies, joints, joint types); only
 mesh geoms may differ. Assignment is fixed at simulation init. See
 <a class="reference internal" href="entity/per_world_mesh.html#heterogeneous-worlds"><span class="std std-ref">Heterogeneous Worlds</span></a> for usage. With help from &#64;XiangruiJiang.</p></li>
+<li><p>Per-world mesh variants now support per-variant materials and textures.
+Each variant can reference its own named material, which is automatically
+prefixed and scattered via <code class="docutils literal notranslate"><span class="pre">geom_matid</span></code> alongside the existing
+<code class="docutils literal notranslate"><span class="pre">geom_dataid</span></code> table. Variants without a material get <code class="docutils literal notranslate"><span class="pre">matid</span> <span class="pre">=</span> <span class="pre">-1</span></code>.
+Contribution by &#64;omarrayyann.</p></li>
 </ul>
 </section>
 <section id="changed">
@@ -1238,7 +1243,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on Apr 30, 2026.
+  Last updated on May 04, 2026.
   <br/>
 </p>
   </div>

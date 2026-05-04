@@ -36,6 +36,11 @@ Added
   same kinematic structure (same bodies, joints, joint types); only
   mesh geoms may differ. Assignment is fixed at simulation init. See
   :ref:`heterogeneous_worlds` for usage. With help from @XiangruiJiang.
+- Per-world mesh variants now support per-variant materials and textures.
+  Each variant can reference its own named material, which is automatically
+  prefixed and scattered via ``geom_matid`` alongside the existing
+  ``geom_dataid`` table. Variants without a material get ``matid = -1``.
+  Contribution by @omarrayyann.
 
 Changed
 ^^^^^^^
