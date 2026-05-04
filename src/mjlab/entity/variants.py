@@ -433,6 +433,7 @@ def _check_reserved_names(spec: mujoco.MjSpec, variant_name: str) -> None:
     ("geoms", "geom"),
     ("meshes", "mesh"),
     ("materials", "material"),
+    ("textures", "texture"),
     ("joints", "joint"),
     ("actuators", "actuator"),
     ("tendons", "tendon"),
