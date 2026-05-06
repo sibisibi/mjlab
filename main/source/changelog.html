@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="May 04, 2026"/>
+    <meta name="docbuild:last-update" content="May 06, 2026"/>
   </head>
   
   
@@ -590,6 +590,10 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">dr.pd_gains</span></code> and <code class="docutils literal notranslate"><span class="pre">dr.effort_limits</span></code> silently no-oping when
+passed an <code class="docutils literal notranslate"><span class="pre">Operation</span></code> object (e.g. <code class="docutils literal notranslate"><span class="pre">dr.scale</span></code>) instead of a string.
+Both functions now accept <code class="docutils literal notranslate"><span class="pre">Operation</span> <span class="pre">|</span> <span class="pre">str</span></code> like every other DR event
+and raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for unsupported operations (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/971">#971</a>).</p></li>
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">ContactSensor</span></code> with <code class="docutils literal notranslate"><span class="pre">global_frame=True</span></code> and
 <code class="docutils literal notranslate"><span class="pre">reduce</span></code> ∈ {<code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mindist&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;maxforce&quot;</span></code>} producing forces
 rotated onto the wrong axis. The contact-frame→world rotation matrix had
@@ -1243,7 +1247,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on May 04, 2026.
+  Last updated on May 06, 2026.
   <br/>
 </p>
   </div>
