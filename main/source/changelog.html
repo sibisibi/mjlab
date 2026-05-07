@@ -590,6 +590,10 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">apply_body_impulse</span></code> firing an impulse on the very first step (and
+the first step after every reset) instead of starting with a cooldown as
+documented. The cooldown is now sampled lazily on the first call so impulse
+timing is decorrelated from episode resets (<a class="extlink-issue reference external" href="https://github.com/mujocolab/mjlab/issues/973">#973</a>).</p></li>
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">dr.pd_gains</span></code> and <code class="docutils literal notranslate"><span class="pre">dr.effort_limits</span></code> silently no-oping when
 passed an <code class="docutils literal notranslate"><span class="pre">Operation</span></code> object (e.g. <code class="docutils literal notranslate"><span class="pre">dr.scale</span></code>) instead of a string.
 Both functions now accept <code class="docutils literal notranslate"><span class="pre">Operation</span> <span class="pre">|</span> <span class="pre">str</span></code> like every other DR event
