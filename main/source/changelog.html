@@ -58,7 +58,7 @@
     <link rel="prev" title="Research" href="research.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-    <meta name="docbuild:last-update" content="May 11, 2026"/>
+    <meta name="docbuild:last-update" content="May 12, 2026"/>
   </head>
   
   
@@ -590,6 +590,9 @@ where <code class="docutils literal notranslate"><span class="pre">P</span></cod
 <section id="fixed">
 <h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading">#</a></h3>
 <ul class="simple">
+<li><p>Fixed duplicate random seeds across nodes in multi-node training. The
+per-process seed offset in <code class="docutils literal notranslate"><span class="pre">scripts/train.py</span></code> now uses the global
+<code class="docutils literal notranslate"><span class="pre">RANK</span></code> instead of <code class="docutils literal notranslate"><span class="pre">LOCAL_RANK</span></code>. Contribution by &#64;bd-pdomanico.</p></li>
 <li><p>Fixed <code class="docutils literal notranslate"><span class="pre">apply_body_impulse</span></code> firing an impulse on the very first step (and
 the first step after every reset) instead of starting with a cooldown as
 documented. The cooldown is now sampled lazily on the first call so impulse
@@ -1251,7 +1254,7 @@ By The mjlab Developers
   
   <div class="footer-item">
     <p class="last-updated">
-  Last updated on May 11, 2026.
+  Last updated on May 12, 2026.
   <br/>
 </p>
   </div>
